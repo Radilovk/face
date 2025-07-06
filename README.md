@@ -15,7 +15,7 @@ Small demo that analyzes a selfie with help from OpenAI and Cloudflare Workers.
 - `css/` – styles
 - `js/` – front‑end logic
 - `src/worker.js` – Cloudflare Worker
-- `assets/` – optional icons
+- `assets/` – images and icons
 
 ## Deployment
 

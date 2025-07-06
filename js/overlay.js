@@ -14,6 +14,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     canvas.style.pointerEvents = 'none';
 
+    let detectedFaces = [];
+    const detector = 'FaceDetector' in window ? new FaceDetector() : null;
+
+    async function detectFaces() {
+        if (!detector || !preview.naturalWidth) {
+            detectedFaces = [];
+            return;
+        }
+        try {
+            detectedFaces = await detector.detect(preview);
+        } catch (err) {
+            console.error('Face detection error:', err);
+            detectedFaces = [];
+        }
+    }
+
+    function drawBoxes() {
+        const scaleX = canvas.width / preview.naturalWidth;
+        const scaleY = canvas.height / preview.naturalHeight;
+        for (const face of detectedFaces) {
+            const { width, height, top, left } = face.boundingBox;
+            const x = left * scaleX;
+            const y = top * scaleY;
+            const w = width * scaleX;
+            const h = height * scaleY;
+            const conf = face?.confidence || 0.95;
+            const borderColor = conf > 0.9 ? 'green' : conf > 0.7 ? 'yellow' : 'red';
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, w, h);
+        }
+    }
+
     function resize() {
         canvas.width = preview.clientWidth;
         canvas.height = preview.clientHeight;
@@ -64,14 +97,17 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.lineTo(canvas.width, scanY);
         ctx.stroke();
 
+        drawBoxes();
+
         offset = (offset + 0.5) % step;
         scanY = (scanY + 2) % canvas.height;
         requestAnimationFrame(animate);
     }
 
-    window.addEventListener('resize', resize);
-    preview.addEventListener('load', resize);
+    window.addEventListener('resize', () => { resize(); detectFaces(); });
+    preview.addEventListener('load', () => { resize(); detectFaces(); });
     resize();
+    detectFaces();
     animate();
 });
 

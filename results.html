@@ -6,10 +6,17 @@
     <title>Вашият AI Лицев Анализ</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <button id="theme-toggle"></button>
+    <aside class="fixed right-0 top-0 h-full w-64 bg-black/60 text-white p-4">
+        <p>Faces detected: <span id="face-count">0</span></p>
+        <p>Confidence: <span id="face-confidence">0</span></p>
+        <p>Camera: <span id="camera-name"></span></p>
+        <p>Model status: <span id="model-status">loading...</span></p>
+    </aside>
     <div class="container" id="results-page">
         <!-- Заглавна карта - винаги видима -->
         <div id="summary-card-container"></div>
@@ -27,6 +34,7 @@
         <div id="details" class="tab-content"></div>
     </div>
     <script src="js/results.js"></script>
+    <script src="js/face-info.js"></script>
     <script src="js/theme.js"></script>
 </body>
 </html>

@@ -47,12 +47,16 @@
                 <p>Моля, използвайте снимка без грим, с неутрално изражение и добро осветление.</p>
                 <label for="file-upload" class="upload-btn">Изберете файл</label>
                 <input type="file" id="file-upload" accept="image/*" style="display:none;">
-                <img id="image-preview" src="" alt="Предварителен преглед">
+                <div class="preview-container relative">
+                    <canvas id="overlay" class="absolute inset-0 opacity-50 bg-black/30"></canvas>
+                    <img id="image-preview" src="" alt="Предварителен преглед" class="neon-glow">
+                </div>
                 <button id="analyze-btn" class="cta-button" disabled>АНАЛИЗИРАЙ СЕГА</button>
             </div>
         </div>
     </div>
     <script src="js/main.js"></script>
+    <script src="js/overlay.js"></script>
     <script src="js/theme.js"></script>
 </body>
 </html>

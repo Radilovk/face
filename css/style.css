@@ -190,3 +190,24 @@ body {
 .progress-bar-container { margin-top: 0.5rem; }
 
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* --- Utility classes similar to Tailwind --- */
+.relative { position: relative; }
+.absolute { position: absolute; }
+.inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+.opacity-50 { opacity: 0.5; }
+.bg-black\/30 { background-color: rgba(0, 0, 0, 0.3); }
+
+/* Neon glow for face frames */
+.neon-glow {
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.8), 0 0 16px rgba(0, 255, 255, 0.6);
+}
+
+.preview-container { position: relative; }
+
+.face-box {
+    position: absolute;
+    border: 2px solid cyan;
+    box-shadow: 0 0 6px rgba(0, 255, 255, 0.8), 0 0 12px rgba(0, 255, 255, 0.6);
+    pointer-events: none;
+}

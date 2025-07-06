@@ -17,6 +17,23 @@ Small demo that analyzes a selfie with help from OpenAI and Cloudflare Workers.
 - `src/worker.js` – Cloudflare Worker
 - `assets/` – images and icons
 
+## Конфигурация
+
+- **OPENAI_API_KEY** – приватен ключ за достъп до OpenAI. Подавайте го като секрет чрез:
+  ```bash
+  wrangler secret put OPENAI_API_KEY
+  ```
+- **FACE_ADVICE_KV** – конфигурационно име на KV namespace, съдържащ текстовете с препоръки. В `wrangler.toml` подменете `id` и `preview_id` със своите стойности.
+- Адрес на Worker – в `loading.html` има константа `workerUrl`. За локални тестове или продукция я подменете с вашия URL.
+
+### Публикуване на Worker-а
+
+```bash
+wrangler publish
+# или с допълнителни опции
+wrangler publish --name face-analysis-worker
+```
+
 ## Deployment
 
 1. Install the dependencies:

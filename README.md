@@ -19,15 +19,19 @@ Small demo that analyzes a selfie with help from OpenAI and Cloudflare Workers.
 
 ## Deployment
 
-1. Edit `wrangler.toml` and replace the KV namespace IDs with the ones from your Cloudflare dashboard.
-2. Seed the KV with advice texts:
+1. Install the dependencies:
+   ```bash
+   npm install
+   ```
+2. Edit `wrangler.toml` and replace the KV namespace IDs with the ones from your Cloudflare dashboard.
+3. Seed the KV with advice texts:
    ```bash
    export CF_API_TOKEN=YOUR_TOKEN
    export CF_ACCOUNT_ID=YOUR_ACCOUNT_ID
    export KV_NAMESPACE_ID=YOUR_NAMESPACE_ID
    node scripts/seed_kv.js
    ```
-3. Publish the worker:
+4. Publish the worker:
    ```bash
    wrangler publish
    ```

@@ -22,13 +22,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = document.getElementById('summary-card-container');
         container.innerHTML = `
             <div class="results-summary-card">
-                <img src="${userImage}" alt="User Photo">
+                <img id="result-photo" src="${userImage}" alt="User Photo">
                 <div>
                     <h2>Вашият доклад</h2>
                     <p>Възприемана възраст: <strong>${data.summary.perceived_age}</strong></p>
                 </div>
             </div>
         `;
+        const img = document.getElementById('result-photo');
+        if (window.detectFaces) {
+            img.onload = () => detectFaces(img, 'резултат');
+        }
     }
 
     function renderOverviewTab(data) {

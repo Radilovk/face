@@ -68,6 +68,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             base64Image = resizedImage;
             imagePreview.src = base64Image;
+            imagePreview.onload = () => {
+                if (window.detectFaces) {
+                    detectFaces(imagePreview, file.name);
+                }
+            };
 
             // Активираме бутона след успешна обработка
             analyzeBtn.disabled = false;

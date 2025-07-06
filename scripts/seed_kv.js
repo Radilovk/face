@@ -1,6 +1,18 @@
 // Utility script to populate the KV namespace with default advice texts.
 // Requires the environment variables CF_API_TOKEN, CF_ACCOUNT_ID and KV_NAMESPACE_ID.
 
+// Node 18+ provides a global fetch API. For older versions, fall back to the
+// `node-fetch` package when available.
+if (typeof fetch !== 'function') {
+  try {
+    global.fetch = (...args) =>
+      import('node-fetch').then(({ default: fetch }) => fetch(...args));
+  } catch (err) {
+    console.error('Fetch API not available. Please use Node 18+ or install node-fetch.');
+    process.exit(1);
+  }
+}
+
 const { CF_API_TOKEN, CF_ACCOUNT_ID, KV_NAMESPACE_ID } = process.env;
 
 if (!CF_API_TOKEN || !CF_ACCOUNT_ID || !KV_NAMESPACE_ID) {

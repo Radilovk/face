@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Лицев Анализ</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Вашето Здраве в Огледалото</h1>
+            <p>Получете персонален AI анализ на базата на снимка и начина Ви на живот.</p>
+        </header>
+
+        <div class="main-content">
+            <div class="panel">
+                <h2>1. Попълнете въпросника</h2>
+                <form id="questionnaire-form">
+                    <div class="form-group">
+                        <label for="birthdate">Дата на раждане</label>
+                        <input type="date" id="birthdate" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="sleep">Средно часове сън?</label>
+                        <input type="number" id="sleep" min="1" max="12" placeholder="8" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="stress">Ниво на стрес (1-10)</label>
+                        <input type="number" id="stress" min="1" max="10" placeholder="5" required>
+                    </div>
+                     <div class="form-group">
+                        <label for="sun_exposure">Използвате ли слънцезащита?</label>
+                        <select id="sun_exposure" required>
+                            <option value="daily">Ежедневно</option>
+                            <option value="sometimes">Понякога</option>
+                            <option value="never">Никога</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="panel">
+                <h2>2. Качете снимка</h2>
+                <p>Моля, използвайте снимка без грим, с неутрално изражение и добро осветление.</p>
+                <label for="file-upload" class="upload-btn">Изберете файл</label>
+                <input type="file" id="file-upload" accept="image/*" style="display:none;">
+                <img id="image-preview" src="" alt="Preview">
+                <button id="analyze-btn" class="cta-button" disabled>АНАЛИЗИРАЙ СЕГА</button>
+            </div>
+        </div>
+    </div>
+    <script src="js/main.js"></script>
+</body>
+</html>

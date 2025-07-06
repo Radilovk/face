@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <title>Анализът се извършва...</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="loading-container">
+        <div class="spinner"></div>
+        <h1>Анализираме данните...</h1>
+        <p>Това може да отнеме до минута. Моля, изчакайте.</p>
+    </div>
+    <script>
+        // Този скрипт се изпълнява веднага щом страницата се зареди
+        (async () => {
+            const workerUrl = 'https://face.radilov-k.workers.dev/'; // ВАШИЯТ WORKER URL
+            
+            try {
+                // Взимаме данните, запазени от предишната страница
+                const payloadString = sessionStorage.getItem('analysisPayload');
+                if (!payloadString) {
+                    throw new Error("Не са намерени данни за анализ. Моля, върнете се на началната страница.");
+                }
+                
+                const response = await fetch(workerUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: payloadString,
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Грешка от сървъра: ${errorText}`);
+                }
+
+                const results = await response.json();
+                
+                // Запазваме финалния резултат и пренасочваме
+                sessionStorage.setItem('analysisResult', JSON.stringify(results));
+                window.location.href = 'results.html';
+
+            } catch (error) {
+                alert(`Възникна грешка: ${error.message}`);
+                window.location.href = 'index.html'; // Връщаме потребителя назад
+            }
+        })();
+    </script>
+</body>
+</html>

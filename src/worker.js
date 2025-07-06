@@ -15,6 +15,17 @@ export default {
     try {
       const { image, answers } = await request.json();
 
+      // --- Check base64 image size to avoid excessive API costs ---
+      const MAX_SIZE_MB = 5;
+      const sizeInBytes = image.length * 0.75; // rough original size from base64
+      const maxSizeBytes = MAX_SIZE_MB * 1024 * 1024;
+      if (sizeInBytes > maxSizeBytes) {
+        return new Response(
+          `Payload too large. Image must be smaller than ${MAX_SIZE_MB}MB after processing.`,
+          { status: 413, headers: { ...corsHeaders } }
+        );
+      }
+
       if (!image || !answers) {
         return new Response('Missing image or answers in request body', { status: 400 });
       }

@@ -19,6 +19,13 @@ export default {
         return new Response('Missing image or answers in request body', { status: 400 });
       }
 
+      const base64Data = image.includes(',') ? image.split(',')[1] : image;
+      const approxBytes = Math.ceil((base64Data.length * 3) / 4);
+      const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5MB limit
+      if (approxBytes > MAX_IMAGE_BYTES) {
+        return new Response('Image too large', { status: 400 });
+      }
+
       // 1. Get Analysis from OpenAI
       const aiAnalysis = await getOpenAIAnalysis(image, answers, env.OPENAI_API_KEY);
       

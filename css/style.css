@@ -75,6 +75,8 @@ body {
     cursor: pointer;
     display: block;
     font-weight: 600;
+    min-height: 48px;
+    word-break: break-word;
 }
 .cta-button {
     width: 100%;
@@ -87,6 +89,8 @@ body {
     border-radius: 8px;
     cursor: pointer;
     margin-top: 1rem;
+    min-height: 48px;
+    word-break: break-word;
 }
 .cta-button:disabled { background: #95a5a6; cursor: not-allowed; }
 
@@ -165,6 +169,8 @@ body {
     cursor: pointer;
     border-radius: 12px;
     transition: all 0.3s ease;
+    min-height: 48px;
+    word-break: break-word;
 }
 .tab-button.active {
     background-color: var(--primary-color);

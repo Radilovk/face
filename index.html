@@ -8,15 +8,16 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" crossorigin="anonymous">
 </head>
 <body>
-    <div class="container">
-        <header class="header">
-            <h1>Вашето Здраве в Огледалото</h1>
-            <p>Получете персонален AI анализ на базата на снимка и начина Ви на живот.</p>
-        </header>
+    <header class="hero-section">
+        <h1>Вашето Здраве в Огледалото</h1>
+        <p>Получете персонален AI анализ на базата на снимка и начина Ви на живот.</p>
+    </header>
 
+    <div class="container">
         <div class="main-content">
             <div class="panel">
                 <h2>1. Попълнете въпросника</h2>
+                <img src="assets/istockphoto-1372170192-612x612.jpg" alt="Пример" class="panel-image">
                 <form id="questionnaire-form">
                     <div class="form-group">
                         <label for="birthdate">Дата на раждане</label>
@@ -45,7 +46,7 @@
                 <p>Моля, използвайте снимка без грим, с неутрално изражение и добро осветление.</p>
                 <label for="file-upload" class="upload-btn">Изберете файл</label>
                 <input type="file" id="file-upload" accept="image/*" style="display:none;">
-                <img id="image-preview" src="" alt="Preview">
+                <img id="image-preview" src="assets/ChatGPT%20Image%20Jul%205,%202025,%2006_57_29%20PM.png" alt="Preview">
                 <button id="analyze-btn" class="cta-button" disabled>АНАЛИЗИРАЙ СЕГА</button>
             </div>
         </div>

@@ -1,0 +1,11 @@
+{
+  "name": "face-analysis",
+  "version": "1.0.0",
+  "description": "Demo for analyzing selfies with OpenAI and Cloudflare Workers.",
+  "scripts": {
+    "seed": "node scripts/seed_kv.js"
+  },
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
+}

@@ -5,6 +5,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const preview = document.getElementById('image-preview');
+    let faceBoxes = [];
+
+    // expose function for external scripts
+    window.drawFaceBoxes = (boxes) => {
+        faceBoxes = Array.isArray(boxes) ? boxes : [];
+    };
 
     canvas.style.pointerEvents = 'none';
 
@@ -35,10 +41,21 @@ document.addEventListener('DOMContentLoaded', () => {
     let offset = 0;
     let scanY = 0;
 
+    function drawFaceFrames() {
+        for (const box of faceBoxes) {
+            const { x, y, width, height, conf = 1 } = box;
+            const borderColor = conf > 0.9 ? 'green' : conf > 0.7 ? 'yellow' : 'red';
+            ctx.strokeStyle = borderColor;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x, y, width, height);
+        }
+    }
+
     function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         const step = canvas.width / 8;
         drawGrid(step, offset);
+        drawFaceFrames();
 
         ctx.strokeStyle = 'rgba(0,255,255,0.7)';
         ctx.lineWidth = 2;

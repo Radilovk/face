@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const analyzeBtn = document.getElementById('analyze-btn');
     const statusEl = document.getElementById('model-status');
     const progressEl = document.getElementById('model-progress');
+    const overlay = document.getElementById('overlay');
+    const overlayCtx = overlay ? overlay.getContext('2d') : null;
 
     if (statusEl && progressEl) {
         statusEl.textContent = 'Зареждане на моделите...';
@@ -26,6 +28,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function loadModels() {
         return new Promise(resolve => setTimeout(resolve, 1500));
+    }
+
+    async function detectFaces() {
+        if (!overlayCtx || !('FaceDetector' in window)) return;
+        try {
+            const detector = new FaceDetector();
+            const faces = await detector.detect(imagePreview);
+            const boxes = faces.map(f => ({
+                x: f.boundingBox.x,
+                y: f.boundingBox.y,
+                width: f.boundingBox.width,
+                height: f.boundingBox.height,
+                conf: f.score || f.probability || 1,
+            }));
+            if (window.drawFaceBoxes) {
+                window.drawFaceBoxes(boxes);
+            } else {
+                overlayCtx.clearRect(0, 0, overlay.width, overlay.height);
+                boxes.forEach(b => {
+                    const borderColor = b.conf > 0.9 ? 'green' : b.conf > 0.7 ? 'yellow' : 'red';
+                    overlayCtx.strokeStyle = borderColor;
+                    overlayCtx.lineWidth = 2;
+                    overlayCtx.strokeRect(b.x, b.y, b.width, b.height);
+                });
+            }
+        } catch (err) {
+            console.error('Face detection error:', err);
+        }
     }
 
     // --- Функция за преоразмеряване на изображението ---
@@ -89,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             base64Image = resizedImage;
             imagePreview.src = base64Image;
+            imagePreview.onload = detectFaces;
 
             // Активираме бутона след успешна обработка
             analyzeBtn.disabled = false;

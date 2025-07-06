@@ -18,3 +18,7 @@ Small demo that analyzes a selfie with help from OpenAI and Cloudflare Workers.
 2. Run `wrangler publish` with `CF_API_TOKEN` available.
 
 To populate the KV with advice texts, run `node scripts/seed_kv.js` with the environment variables `CF_API_TOKEN`, `CF_ACCOUNT_ID` and `KV_NAMESPACE_ID` set.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).

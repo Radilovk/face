@@ -19,10 +19,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     analyzeBtn.addEventListener('click', () => {
+        const sleepVal = parseInt(document.getElementById('sleep').value, 10);
+        const stressVal = parseInt(document.getElementById('stress').value, 10);
+
+        if (
+            isNaN(sleepVal) || sleepVal < 1 || sleepVal > 12 ||
+            isNaN(stressVal) || stressVal < 1 || stressVal > 10
+        ) {
+            alert('Невалидни данни: сънят трябва да е между 1 и 12 часа, а стресът – между 1 и 10.');
+            return;
+        }
+
         const answers = {
             birthdate: document.getElementById('birthdate').value,
-            sleep: document.getElementById('sleep').value,
-            stress: document.getElementById('stress').value,
+            sleep: sleepVal,
+            stress: stressVal,
             sun_exposure: document.getElementById('sun_exposure').value,
         };
 

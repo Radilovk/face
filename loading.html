@@ -4,48 +4,46 @@
     <meta charset="UTF-8">
     <title>Анализът се извършва...</title>
     <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
+<body class="loading-body">
     <div class="loading-container">
-        <div class="spinner" role="status" aria-label="Loading">
-            <span class="visually-hidden">Зареждане...</span>
-        </div>
-        <h1>Анализираме данните...</h1>
-        <p>Това може да отнеме до минута. Моля, изчакайте.</p>
+        <img id="loader-gif" src="assets/dna.gif" alt="Analyzing...">
+        <h1>Вашият анализ се генерира</h1>
+        <p id="loading-text">Инициализиране...</p>
     </div>
     <script>
-        // Този скрипт се изпълнява веднага щом страницата се зареди
+        // Анимация на текста
+        const texts = [
+            "Сканиране на изображението...",
+            "Анализ на дермалната структура...",
+            "Проверка за маркери на възпаление...",
+            "Извличане на препоръки...",
+            "Финализиране на доклада..."
+        ];
+        let i = 0;
+        const loadingTextElement = document.getElementById('loading-text');
+        const interval = setInterval(() => {
+            if(loadingTextElement) loadingTextElement.textContent = texts[i];
+            i = (i + 1) % texts.length;
+        }, 2500);
+
+        // Fetch логика (същата като преди)
         (async () => {
-            const workerUrl = '{{WORKER_URL}}'; // Placeholder, replace with actual Worker URL during deployment
-            
+            const workerUrl = 'https://face.radilov-k.workers.dev/';
             try {
-                // Взимаме данните, запазени от предишната страница
                 const payloadString = sessionStorage.getItem('analysisPayload');
-                if (!payloadString) {
-                    throw new Error("Не са намерени данни за анализ. Моля, върнете се на началната страница.");
-                }
-                
+                if (!payloadString) throw new Error("Липсват данни за анализ.");
                 const response = await fetch(workerUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: payloadString,
+                    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payloadString,
                 });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`Грешка от сървъра: ${errorText}`);
-                }
-
+                if (!response.ok) throw new Error(`Грешка от сървъра: ${await response.text()}`);
                 const results = await response.json();
-                
-                // Запазваме финалния резултат и пренасочваме
                 sessionStorage.setItem('analysisResult', JSON.stringify(results));
                 window.location.href = 'results.html';
-
             } catch (error) {
                 alert(`Възникна грешка: ${error.message}`);
-                window.location.href = 'index.html'; // Връщаме потребителя назад
+                window.location.href = 'index.html';
             }
         })();
     </script>

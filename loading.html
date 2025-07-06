@@ -3,18 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <title>Анализът се извършва...</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyan: '#06b6d4',
+                        teal: '#14b8a6',
+                        black: '#000'
+                    },
+                    fontFamily: {
+                        orbitron: ["'Orbitron'", 'sans-serif'],
+                        poppins: ["'Poppins'", 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body class="loading-body">
-    <div class="loading-container">
+<body class="font-poppins bg-gray-100 flex items-center justify-center min-h-screen text-gray-800">
+    <div class="flex flex-col items-center text-center space-y-4">
         <div class="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-        <div class="progress-bar-wrapper w-64 mt-4">
-            <div id="progress-bar" class="progress-bar"></div>
+        <div class="w-64 h-2 bg-gray-200 rounded overflow-hidden">
+            <div id="progress-bar" class="h-2 bg-cyan-500 w-0"></div>
         </div>
-        <h1>Вашият анализ се генерира</h1>
-        <p id="loading-text">Инициализиране...</p>
+        <h1 class="text-lg font-semibold">Вашият анализ се генерира</h1>
+        <p id="loading-text" class="h-6">Инициализиране...</p>
     </div>
     <script>
         // Анимация на текста

@@ -4,32 +4,48 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Вашият AI Лицев Анализ</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cyan: '#06b6d4',
+                        teal: '#14b8a6',
+                        black: '#000'
+                    },
+                    fontFamily: {
+                        orbitron: ["'Orbitron'", 'sans-serif'],
+                        poppins: ["'Poppins'", 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
+<body class="font-poppins bg-gray-100 text-gray-900">
     <button id="theme-toggle"></button>
-    <header class="flex sm:flex-col items-center justify-between p-4 bg-black/40 backdrop-blur-md">
+    <header class="flex flex-col sm:flex-row items-center justify-between p-4 bg-black/40 backdrop-blur-md">
         <h1 class="text-cyan-400 font-orbitron text-xl">faceScan AI Engine</h1>
         <img src="assets/logo.svg" alt="Logo" class="h-8">
     </header>
-    <div class="container" id="results-page">
+    <div class="max-w-4xl mx-auto p-4 space-y-4" id="results-page">
         <!-- Заглавна карта - винаги видима -->
         <div id="summary-card-container"></div>
         
         <!-- Табове за навигация -->
-        <div class="tabs" id="tabs-container">
-            <button class="tab-button active" data-tab="overview">Преглед</button>
-            <button class="tab-button" data-tab="advice">Препоръки</button>
-            <button class="tab-button" data-tab="details">Детайли</button>
+        <div class="flex justify-around bg-white dark:bg-gray-800 rounded shadow" id="tabs-container">
+            <button class="tab-button flex-1 py-2 font-semibold text-gray-800 dark:text-white" data-tab="overview">Преглед</button>
+            <button class="tab-button flex-1 py-2 font-semibold text-gray-800 dark:text-white" data-tab="advice">Препоръки</button>
+            <button class="tab-button flex-1 py-2 font-semibold text-gray-800 dark:text-white" data-tab="details">Детайли</button>
         </div>
 
         <!-- Контейнери за съдържанието на табовете -->
-        <div id="overview" class="tab-content active"></div>
-        <div id="advice" class="tab-content"></div>
-        <div id="details" class="tab-content"></div>
+        <div id="overview" class="tab-content active space-y-4"></div>
+        <div id="advice" class="tab-content space-y-4"></div>
+        <div id="details" class="tab-content space-y-4"></div>
     </div>
     <script src="js/results.js"></script>
     <script src="js/theme.js"></script>

@@ -112,8 +112,72 @@ document.addEventListener('DOMContentLoaded', () => {
         card.innerHTML = `<h3>${title}</h3>`;
         return card;
     }
-    function createMetricCard(title, score, color) { /* ... същата като преди ... */ }
-    function createChartConfig(data) { /* ... същата като преди ... */ }
+    function createMetricCard(title, score, color) {
+        const card = createCard(title);
+
+        const value = document.createElement('p');
+        value.textContent = `${score}/10`;
+        card.appendChild(value);
+
+        const progressContainer = document.createElement('div');
+        progressContainer.className = 'progress-bar-container';
+
+        const outerBar = document.createElement('div');
+        outerBar.className = 'h-2 bg-gray-700 rounded';
+
+        const innerBar = document.createElement('div');
+        const percent = Math.min(Math.max(score * 10, 0), 100);
+        innerBar.style.width = `${percent}%`;
+        innerBar.style.backgroundColor = color;
+        innerBar.className = 'h-2 rounded';
+
+        outerBar.appendChild(innerBar);
+        progressContainer.appendChild(outerBar);
+        card.appendChild(progressContainer);
+
+        return card;
+    }
+
+    function createChartConfig(data) {
+        return {
+            type: 'radar',
+            data: {
+                labels: [
+                    'Бръчки',
+                    'Загуба на обем',
+                    'Пигментация',
+                    'Възпаление',
+                    'Хидратация',
+                    'Стрес'
+                ],
+                datasets: [{
+                    label: 'Скала 1-10',
+                    data: [
+                        data.anti_aging.wrinkle_score,
+                        data.anti_aging.volume_loss_score,
+                        data.anti_aging.pigmentation_score,
+                        data.health_indicators.inflammation_score,
+                        data.health_indicators.hydration_level_score,
+                        data.health_indicators.stress_impact_score
+                    ],
+                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                    borderColor: 'rgba(52, 152, 219, 1)',
+                    pointBackgroundColor: 'rgba(52, 152, 219, 1)'
+                }]
+            },
+            options: {
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 10,
+                        ticks: {
+                            stepSize: 2
+                        }
+                    }
+                }
+            }
+        };
+    }
     function getAdviceTitle(key) {
         const titles = {
             'HIGH_WRINKLE_SCORE': 'Бръчки', 'HIGH_PIGMENTATION_SCORE': 'Пигментация',

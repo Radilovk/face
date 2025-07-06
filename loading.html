@@ -3,27 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <title>Анализът се извършва...</title>
+    <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        cyan: '#2dd4bf',
-                        teal: '#14b8a6',
-                        black: '#0f172a'
-                    }
-                }
-            }
-        }
-    </script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="flex flex-col items-center text-center">
-        <img id="loader-gif" class="w-36 h-36 rounded-xl" src="assets/ChatGPT%20Image%20Jul%205,%202025,%2008_22_22%20PM.png" alt="Analyzing...">
-        <h1 class="text-xl mt-8">Вашият анализ се генерира</h1>
-        <p id="loading-text" class="text-cyan-500 h-8">Инициализиране...</p>
+<body class="loading-body">
+    <div class="loading-container">
+        <img id="loader-gif" src="assets/ChatGPT%20Image%20Jul%205,%202025,%2008_22_22%20PM.png" alt="Analyzing...">
+        <h1>Вашият анализ се генерира</h1>
+        <p id="loading-text">Инициализиране...</p>
     </div>
     <script>
         // Анимация на текста

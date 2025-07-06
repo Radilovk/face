@@ -35,6 +35,30 @@ body {
     padding: 1rem;
 }
 
+.sidebar {
+    background: var(--card-bg);
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 1.5rem;
+}
+
+.progress-bar-wrapper {
+    width: 100%;
+    background: #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 8px;
+    margin-top: 0.5rem;
+}
+
+.progress-bar {
+    height: 100%;
+    background: var(--primary-color);
+    width: 0;
+    transition: width 0.3s ease;
+}
+
 /* --- INDEX.HTML - Начална страница --- */
 .hero-section {
     background-image: linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.55)),

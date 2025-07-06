@@ -4,8 +4,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileUpload = document.getElementById('file-upload');
     const imagePreview = document.getElementById('image-preview');
     const analyzeBtn = document.getElementById('analyze-btn');
+    const statusEl = document.getElementById('model-status');
+    const progressEl = document.getElementById('model-progress');
+
+    if (statusEl && progressEl) {
+        statusEl.textContent = 'Зареждане на моделите...';
+        let prog = 0;
+        const progInterval = setInterval(() => {
+            prog = (prog + 5) % 100;
+            progressEl.style.width = prog + '%';
+        }, 200);
+
+        loadModels().then(() => {
+            clearInterval(progInterval);
+            progressEl.style.width = '100%';
+            statusEl.textContent = 'Моделите са заредени';
+        });
+    }
 
     let base64Image = null;
+
+    function loadModels() {
+        return new Promise(resolve => setTimeout(resolve, 1500));
+    }
 
     // --- Функция за преоразмеряване на изображението ---
     async function resizeImage(file) {

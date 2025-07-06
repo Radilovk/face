@@ -5,10 +5,14 @@
     <title>Анализът се извършва...</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="loading-body">
     <div class="loading-container">
-        <img id="loader-gif" src="assets/ChatGPT%20Image%20Jul%205,%202025,%2008_22_22%20PM.png" alt="Analyzing...">
+        <div class="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
+        <div class="progress-bar-wrapper w-64 mt-4">
+            <div id="progress-bar" class="progress-bar"></div>
+        </div>
         <h1>Вашият анализ се генерира</h1>
         <p id="loading-text">Инициализиране...</p>
     </div>
@@ -23,10 +27,14 @@
         ];
         let i = 0;
         const loadingTextElement = document.getElementById('loading-text');
+        const progressBar = document.getElementById('progress-bar');
+        let prog = 0;
         const interval = setInterval(() => {
             if(loadingTextElement) loadingTextElement.textContent = texts[i];
             i = (i + 1) % texts.length;
-        }, 2500);
+            prog = (prog + 5) % 100;
+            if(progressBar) progressBar.style.width = prog + '%';
+        }, 500);
 
         // Fetch логика (същата като преди)
         (async () => {
@@ -40,8 +48,11 @@
                 if (!response.ok) throw new Error(`Грешка от сървъра: ${await response.text()}`);
                 const results = await response.json();
                 sessionStorage.setItem('analysisResult', JSON.stringify(results));
+                if(progressBar) progressBar.style.width = '100%';
+                clearInterval(interval);
                 window.location.href = 'results.html';
             } catch (error) {
+                clearInterval(interval);
                 alert(`Възникна грешка: ${error.message}`);
                 window.location.href = 'index.html';
             }

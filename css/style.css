@@ -27,14 +27,13 @@ body {
 
 /* --- INDEX.HTML - Начална страница --- */
 .hero-section {
-    background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)),
-        url('../assets/ChatGPT%20Image%20Jul%205,%202025,%2009_16_33%20PM.png');
+    background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('../assets/background.jpg');
     background-size: cover;
     background-position: center;
     color: white;
     text-align: center;
     padding: 4rem 1rem;
-    margin-bottom: 2rem;
+    margin: -1rem -1rem 2rem -1rem; /* Разпъване до краищата */
 }
 .hero-section h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 0.5rem; }
 .hero-section p { font-size: 1.1rem; opacity: 0.9; }
@@ -53,27 +52,10 @@ body {
 .cta-button { width: 100%; background: var(--secondary-color); color: white; border: none; padding: 1rem; font-size: 1.2rem; font-weight: 600; border-radius: 8px; cursor: pointer; margin-top: 1rem; }
 .cta-button:disabled { background: #95a5a6; cursor: not-allowed; }
 
-.panel-image {
-    width: 100%;
-    margin-bottom: 1rem;
-    border-radius: var(--border-radius);
-}
-
-#image-preview {
-    width: 100%;
-    margin-top: 1rem;
-    border-radius: var(--border-radius);
-    object-fit: cover;
-}
-
 /* --- LOADING.HTML - Страница за зареждане --- */
 .loading-body { background-color: var(--dark-bg); }
 .loading-container { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; height: 100vh; color: var(--light-text); }
-#loader-gif {
-    width: 150px;
-    height: 150px;
-    border-radius: var(--border-radius);
-}
+#loader-gif { width: 150px; height: 150px; }
 .loading-container h1 { font-size: 1.5rem; margin-top: 2rem; }
 #loading-text { font-size: 1.1rem; color: var(--primary-color); height: 30px; }
 

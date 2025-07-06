@@ -4,7 +4,7 @@ Small demo that analyzes a selfie with help from OpenAI and Cloudflare Workers.
 
 ## Prerequisites
 
-- **Node.js** v18 or later – required only for the helper scripts.
+- **Node.js** v18 or later – required only for the helper scripts since they rely on the built‑in `fetch` API. On older Node versions install `node-fetch` and import it in `scripts/seed_kv.js`.
 - **Cloudflare account** with a Workers and KV namespace created.
 
 ## Structure

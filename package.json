@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Demo for analyzing selfies with OpenAI and Cloudflare Workers.",
   "scripts": {
-    "seed": "node scripts/seed_kv.js"
+    "seed:advice": "node scripts/seed_kv.js",
+    "seed:products": "node scripts/seed_products_kv.js"
   },
   "dependencies": {
     "node-fetch": "^3.3.2"

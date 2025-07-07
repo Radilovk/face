@@ -48,7 +48,12 @@ wrangler publish --name face-analysis-worker
    export KV_NAMESPACE_ID=YOUR_NAMESPACE_ID
    node scripts/seed_kv.js
    ```
-4. Publish the worker:
+4. Upload the initial products data:
+   ```bash
+   export KV_NAMESPACE_ID=YOUR_PRODUCTS_NAMESPACE_ID
+   node scripts/seed_products.js
+   ```
+5. Publish the worker:
    ```bash
    wrangler publish
    ```

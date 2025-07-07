@@ -2,12 +2,30 @@
 
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+
     // Handle CORS preflight requests
     if (request.method === 'OPTIONS') {
       return handleOptions(request);
     }
 
-    // Only allow POST requests
+    // ----- Products API -----
+    if (url.pathname === '/products') {
+      if (request.method === 'GET') {
+        const data = await env.PRODUCTS_KV.get('products');
+        return new Response(data || '{}', {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        });
+      }
+      if (request.method === 'PUT' || request.method === 'POST') {
+        const body = await request.text();
+        await env.PRODUCTS_KV.put('products', body);
+        return new Response('Stored', { headers: corsHeaders });
+      }
+      return new Response('Method Not Allowed', { status: 405 });
+    }
+
+    // Only allow POST requests for analysis
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 });
     }
@@ -63,7 +81,7 @@ export default {
 // --- CORS Headers ---
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*', // В реална продукция заменете '*' с вашия GitHub Pages домейн
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'POST, PUT, GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
 
@@ -79,7 +97,7 @@ function handleOptions(request) {
     // Handle standard OPTIONS request.
     return new Response(null, {
       headers: {
-        Allow: 'POST, OPTIONS',
+        Allow: 'POST, PUT, GET, OPTIONS',
       },
     });
   }

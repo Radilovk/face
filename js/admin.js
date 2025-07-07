@@ -1,6 +1,18 @@
 let productsData = { categories: [] };
 
 async function loadData() {
+    try {
+        const apiRes = await fetch('/products');
+        if (apiRes.ok) {
+            productsData = await apiRes.json();
+            localStorage.setItem('products', JSON.stringify(productsData));
+            fillGroupOptions();
+            return;
+        }
+    } catch (err) {
+        console.error('Неуспешно зареждане от /products', err);
+    }
+
     const stored = localStorage.getItem('products');
     if (stored) {
         productsData = JSON.parse(stored);
@@ -28,7 +40,19 @@ function fillGroupOptions() {
 
 function saveData() {
     localStorage.setItem('products', JSON.stringify(productsData));
-    alert('Данните са записани локално.');
+    fetch('/products', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(productsData)
+    })
+    .then(res => {
+        if (!res.ok) throw new Error('Server error');
+        alert('Данните са записани.');
+    })
+    .catch(err => {
+        console.error('Неуспешен запис към /products', err);
+        alert('Грешка при запис.');
+    });
 }
 
 document.getElementById('group-form').addEventListener('submit', e => {

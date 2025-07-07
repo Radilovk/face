@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Администрация</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.4/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="p-6 bg-gray-50">
+    <h1 class="text-2xl font-bold mb-6">Административен панел</h1>
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold mb-2">Добавяне на нова група</h2>
+        <form id="group-form" class="space-y-2">
+            <input id="group-name" type="text" placeholder="Име" class="border p-2 w-full" required>
+            <input id="group-image" type="text" placeholder="URL на изображение" class="border p-2 w-full" required>
+            <textarea id="group-description" placeholder="Описание" class="border p-2 w-full"></textarea>
+            <button class="bg-cyan-600 text-white px-4 py-2 rounded">Добави</button>
+        </form>
+    </section>
+    <section class="mb-10">
+        <h2 class="text-xl font-semibold mb-2">Добавяне на продукт към група</h2>
+        <form id="product-form" class="space-y-2">
+            <select id="product-group" class="border p-2 w-full"></select>
+            <input id="product-name" type="text" placeholder="Име" class="border p-2 w-full" required>
+            <input id="product-tagline" type="text" placeholder="Кратко описание" class="border p-2 w-full">
+            <input id="product-link" type="text" placeholder="Линк" class="border p-2 w-full">
+            <input id="product-chart" type="text" placeholder="Стойности за диаграмите (напр. 9,8,7)" class="border p-2 w-full">
+            <button class="bg-teal-600 text-white px-4 py-2 rounded">Добави продукт</button>
+        </form>
+    </section>
+    <button id="save-btn" class="bg-green-600 text-white px-4 py-2 rounded">Запази промените</button>
+    <script src="js/admin.js"></script>
+</body>
+</html>

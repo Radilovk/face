@@ -1,0 +1,221 @@
+document.addEventListener('DOMContentLoaded', () => {
+
+    // --- STATE MANAGEMENT ---
+    const analysisData = {
+        image: null,
+        answers: {}
+    };
+
+    // --- DOM ELEMENT SELECTORS ---
+    const form = document.getElementById('questionnaire');
+    const uploadBox = document.getElementById('upload-box');
+    const fileInput = document.getElementById('file-upload');
+    const imagePreview = document.getElementById('image-preview');
+    const uploadPrompt = document.getElementById('upload-prompt');
+    const fileNameDisplay = document.getElementById('file-name');
+    const analyzeBtn = document.getElementById('analyze-btn');
+    const formInputs = form.querySelectorAll('input, select');
+
+    // --- DYNAMIC VALUE DISPLAY FOR RANGE SLIDERS ---
+    const sleepSlider = document.getElementById('sleep');
+    const sleepValue = document.getElementById('sleep-value');
+    const stressSlider = document.getElementById('stress');
+    const stressValue = document.getElementById('stress-value');
+
+    if (sleepSlider) sleepSlider.addEventListener('input', (e) => sleepValue.textContent = e.target.value);
+    if (stressSlider) stressSlider.addEventListener('input', (e) => stressValue.textContent = e.target.value);
+
+    // --- ACCORDION LOGIC ---
+    const accordionItems = document.querySelectorAll('.accordion-item');
+    accordionItems.forEach(item => {
+        const header = item.querySelector('.accordion-header');
+        header.addEventListener('click', () => {
+            const currentlyActive = document.querySelector('.accordion-item.active');
+            if (currentlyActive && currentlyActive !== item) {
+                currentlyActive.classList.remove('active');
+                currentlyActive.querySelector('.accordion-content').style.maxHeight = null;
+            }
+
+            item.classList.toggle('active');
+            const content = item.querySelector('.accordion-content');
+            if (item.classList.contains('active')) {
+                content.style.maxHeight = content.scrollHeight + 'px';
+            } else {
+                content.style.maxHeight = null;
+            }
+        });
+    });
+    const initialActive = document.querySelector('.accordion-item.active');
+    if (initialActive) {
+        initialActive.querySelector('.accordion-content').style.maxHeight = initialActive.querySelector('.accordion-content').scrollHeight + 'px';
+    }
+
+    // --- FILE UPLOAD LOGIC ---
+    uploadBox.addEventListener('click', () => fileInput.click());
+    ['dragover', 'dragleave', 'drop'].forEach(eventName => uploadBox.addEventListener(eventName, preventDefaults, false));
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    uploadBox.addEventListener('dragover', () => uploadBox.classList.add('dragover'));
+    uploadBox.addEventListener('dragleave', () => uploadBox.classList.remove('dragover'));
+    uploadBox.addEventListener('drop', (e) => {
+        uploadBox.classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file) handleFile(file);
+    });
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) handleFile(file);
+    });
+
+    function handleFile(file) {
+        const allowedTypes = ['image/jpeg', 'image/png'];
+        const maxSize = 5 * 1024 * 1024; // 5MB
+
+        if (!allowedTypes.includes(file.type)) {
+            showError('Грешен файлов формат. Моля, изберете PNG или JPG изображение.');
+            return;
+        }
+        if (file.size > maxSize) {
+            showError('Файлът е твърде голям. Моля, изберете изображение под 5MB.');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            analysisData.image = e.target.result;
+            imagePreview.src = e.target.result;
+            imagePreview.style.display = 'block';
+            uploadPrompt.style.display = 'none';
+            fileNameDisplay.textContent = file.name;
+            fileNameDisplay.style.display = 'block';
+            checkFormCompletion();
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // --- FORM VALIDATION AND DATA PERSISTENCE (localStorage) ---
+    function saveFormData() {
+        const formData = new FormData(form);
+        const data = {};
+        for (let [key, value] of formData.entries()) {
+            data[key] = value;
+        }
+        localStorage.setItem('savedFormData', JSON.stringify(data));
+        checkFormCompletion();
+    }
+
+    function loadFormData() {
+        const savedData = localStorage.getItem('savedFormData');
+        if (savedData) {
+            const data = JSON.parse(savedData);
+            for (const key in data) {
+                const input = form.querySelector(`[name="${key}"]`);
+                if (input) {
+                    if (input.type === 'radio') {
+                        form.querySelector(`[name="${key}"][value="${data[key]}"]`).checked = true;
+                    } else {
+                        input.value = data[key];
+                    }
+                    // Manually trigger input event for range sliders to update their labels
+                    if (input.type === 'range') {
+                        input.dispatchEvent(new Event('input'));
+                    }
+                }
+            }
+        }
+    }
+
+    function checkFormCompletion() {
+        const birthdateInput = document.getElementById('birthdate');
+        analyzeBtn.disabled = !(birthdateInput.value && analysisData.image);
+    }
+
+    formInputs.forEach(input => input.addEventListener('change', saveFormData));
+    loadFormData(); // Load data on initial page load
+    checkFormCompletion();
+
+    // --- DATA SUBMISSION ---
+    analyzeBtn.addEventListener('click', async () => {
+        if (!validateForm()) return;
+        
+        showLoadingOverlay(true);
+
+        analysisData.answers = JSON.parse(localStorage.getItem('savedFormData') || '{}');
+
+        try {
+            const response = await fetch('https://face.radilov-k.workers.dev/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    image: analysisData.image,
+                    answers: analysisData.answers
+                }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP грешка! Статус: ${response.status}`);
+            }
+
+            const result = await response.json();
+            sessionStorage.setItem('analysisResult', JSON.stringify(result));
+            localStorage.removeItem('savedFormData'); // Clean up for next session
+            window.location.href = 'results.html';
+
+        } catch (error) {
+            console.error('Error during analysis:', error);
+            showError(`Възникна грешка: ${error.message}`);
+            showLoadingOverlay(false);
+        }
+    });
+    
+    function validateForm() {
+        const data = JSON.parse(localStorage.getItem('savedFormData') || '{}');
+        if (!data.birthdate) {
+            showError("Моля, въведете дата на раждане.");
+            return false;
+        }
+        if (!analysisData.image) {
+            showError("Моля, качете изображение.");
+            return false;
+        }
+        return true;
+    }
+
+    // --- UI UTILITY FUNCTIONS ---
+    function showLoadingOverlay(show) {
+        let overlay = document.getElementById('loading-overlay');
+        if (show) {
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'loading-overlay';
+                overlay.innerHTML = `<div class="spinner"></div><p>Анализът се извършва...</p>`;
+                document.body.appendChild(overlay);
+            }
+            overlay.style.display = 'flex';
+        } else {
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+        }
+    }
+
+    function showError(message) {
+        let errorBox = document.querySelector('.error-message');
+        if (!errorBox) {
+            errorBox = document.createElement('div');
+            errorBox.className = 'error-message';
+            document.body.appendChild(errorBox);
+        }
+        errorBox.textContent = message;
+        errorBox.classList.add('visible');
+        setTimeout(() => {
+            errorBox.classList.remove('visible');
+        }, 4000);
+    }
+
+});

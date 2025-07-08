@@ -58,3 +58,6 @@ Wrangler CLI за управление на Worker-а
 Cloudflare KV за съхранение на RAG данни
 Външни Услуги:
 OpenAI API (GPT-4o)
+
+## Конфигуриране на worker.js
+За инструкции как да разположите бекенд частта вижте [docs/worker_setup.md](docs/worker_setup.md).

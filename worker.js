@@ -37,27 +37,36 @@ export default {
       body: JSON.stringify(aiPayload)
     });
 
-    const { choices } = await resp.json();
+      const { choices } = await resp.json();
 
-    let aiResponse = {};
-    try {
-      aiResponse = JSON.parse(choices?.[0]?.message?.content ?? '{}');
-    } catch (_) {
-      aiResponse = {};
-    }
+      let aiResponse = {};
+      try {
+        aiResponse = JSON.parse(choices?.[0]?.message?.content ?? '{}');
+      } catch (_) {
+        aiResponse = {};
+      }
 
-    const analysis = {
-      summary: {
-        overall_skin_health_score: aiResponse?.summary?.overall_skin_health_score ?? 0,
-        perceived_age: aiResponse?.summary?.perceived_age ?? 0,
-        key_findings: aiResponse?.summary?.key_findings ?? []
-      },
-      anti_aging: aiResponse?.anti_aging ?? {},
-      health_indicators: aiResponse?.health_indicators ?? {},
-      findings_map: aiResponse?.findings_map ?? {},
-      advice: aiResponse?.advice ?? {}
-    };
+      const analysis = {
+        summary: {
+          overall_skin_health_score: aiResponse?.summary?.overall_skin_health_score ?? 0,
+          perceived_age: aiResponse?.summary?.perceived_age ?? 0,
+          key_findings: aiResponse?.summary?.key_findings ?? []
+        },
+        anti_aging: aiResponse?.anti_aging ?? {},
+        health_indicators: aiResponse?.health_indicators ?? {},
+        findings_map: aiResponse?.findings_map ?? {},
+        advice: {}
+      };
 
-    return Response.json(analysis);
+      if (env.ADVICE_KV) {
+        for (const [flag, active] of Object.entries(analysis.findings_map)) {
+          if (active) {
+            const tip = await env.ADVICE_KV.get(flag);
+            if (tip) analysis.advice[flag] = tip;
+          }
+        }
+      }
+
+      return Response.json(analysis);
   }
 };

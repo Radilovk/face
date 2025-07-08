@@ -61,3 +61,12 @@ OpenAI API (GPT-4o)
 
 ## Конфигуриране на worker.js
 За инструкции как да разположите бекенд частта вижте [docs/worker_setup.md](docs/worker_setup.md).
+
+### Променлива ADVICE_KV
+Worker-ът използва Cloudflare KV за съхранение на съветите. В `wrangler.toml` добавете KV namespace, вързан като `ADVICE_KV`, например:
+
+```toml
+kv_namespaces = [
+  { binding = "ADVICE_KV", id = "<YOUR_KV_ID>" }
+]
+```

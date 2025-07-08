@@ -32,7 +32,25 @@ export default {
     });
 
     const { choices } = await resp.json();
-    const analysis = JSON.parse(choices[0].message.content);
+
+    let aiResponse = {};
+    try {
+      aiResponse = JSON.parse(choices?.[0]?.message?.content ?? '{}');
+    } catch (_) {
+      aiResponse = {};
+    }
+
+    const analysis = {
+      summary: {
+        overall_skin_health_score: aiResponse?.summary?.overall_skin_health_score ?? 0,
+        perceived_age: aiResponse?.summary?.perceived_age ?? 0,
+        key_findings: aiResponse?.summary?.key_findings ?? []
+      },
+      anti_aging: aiResponse?.anti_aging ?? {},
+      health_indicators: aiResponse?.health_indicators ?? {},
+      findings_map: aiResponse?.findings_map ?? {},
+      advice: aiResponse?.advice ?? {}
+    };
 
     return Response.json(analysis);
   }

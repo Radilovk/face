@@ -16,6 +16,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const analyzeBtn = document.getElementById('analyze-btn');
     const formInputs = form.querySelectorAll('input, select');
 
+    // --- MODAL ELEMENTS ---
+    const modalTrigger = document.querySelector('.modal-trigger');
+    const privacyModal = document.getElementById('privacy-modal');
+    const modalCloseBtn = document.getElementById('modal-close-btn');
+
+    function openModal() {
+        privacyModal?.classList.remove('hidden');
+    }
+
+    function closeModal() {
+        privacyModal?.classList.add('hidden');
+    }
+
+    modalTrigger?.addEventListener('click', openModal);
+    modalCloseBtn?.addEventListener('click', closeModal);
+
     // --- DYNAMIC VALUE DISPLAY FOR RANGE SLIDERS ---
     const sleepSlider = document.getElementById('sleep');
     const sleepValue = document.getElementById('sleep-value');

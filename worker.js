@@ -17,7 +17,13 @@ export default {
       model: 'gpt-4o',
       messages: [
         { role: 'system', content: 'Кожен специалист AI' },
-        { role: 'user', content: prompt }
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: `${prompt}\n${JSON.stringify(answers)}` },
+            { type: 'image_url', image_url: { url: image, detail: 'auto' } }
+          ]
+        }
       ],
       max_tokens: 800
     };

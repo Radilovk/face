@@ -190,16 +190,23 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     function validateForm() {
-        const data = JSON.parse(localStorage.getItem('savedFormData') || '{}');
-        if (!data.birthdate) {
+        const birthdateInput = document.getElementById('birthdate');
+        let isValid = true;
+
+        if (!birthdateInput.value) {
+            birthdateInput.classList.add('input-error');
             showError("Моля, въведете дата на раждане.");
-            return false;
+            isValid = false;
+        } else {
+            birthdateInput.classList.remove('input-error');
         }
+
         if (!analysisData.image) {
             showError("Моля, качете изображение.");
-            return false;
+            isValid = false;
         }
-        return true;
+
+        return isValid;
     }
 
     // --- UI UTILITY FUNCTIONS ---

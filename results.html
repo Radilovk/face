@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Title will be updated by JS with the analysis date -->
+    <title>Вашият AI Анализ | Резултати</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+
+    <!-- This is the container that will be captured for download -->
+    <div id="capture-area" class="main-container results-page">
+
+        <header class="results-hero">
+            <div class="results-header-top">
+                <h1 class="main-title">Вашият Персонален Анализ</h1>
+                <div class="actions-toolbar">
+                    <button id="download-btn" class="action-btn" aria-label="Свали като изображение">
+                        <i class="fa-solid fa-download"></i>
+                    </button>
+                    <button id="share-btn" class="action-btn" aria-label="Сподели">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </button>
+                </div>
+            </div>
+            <p class="subtitle">Данните са генерирани от AI модел и са предназначени за информационни цели.</p>
+        </header>
+
+        <main>
+            <!-- SECTION 1: Overall Score -->
+            <section class="summary-section">
+                <div class="score-gauge-container">
+                    <div class="score-gauge" id="score-gauge">
+                        <div class="score-value" id="overall-score-value">--</div>
+                    </div>
+                    <div class="score-label">Общ Здравен Индекс</div>
+                </div>
+                <div class="summary-details">
+                    <p><strong>Предполагаема възраст:</strong> <span id="perceived-age">--</span></p>
+                    <p><strong>Основни заключения:</strong> <span id="key-findings">Зареждат се...</span></p>
+                </div>
+            </section>
+
+            <!-- SECTION 2: Tabs -->
+            <section class="details-section">
+                <div class="tabs-nav">
+                    <button class="tab-link active" data-tab="tab-analysis">Детайлен Анализ</button>
+                    <button class="tab-link" data-tab="tab-advice">Персонални Съвети</button>
+                </div>
+
+                <div class="tabs-content">
+                    <!-- Analysis Tab -->
+                    <div id="tab-analysis" class="tab-pane active">
+                        <div class="metrics-grid">
+                            <!-- Anti-aging Metrics -->
+                            <div class="metric-category">
+                                <h3>Антиейджинг Маркери</h3>
+                                <div class="metric-card" id="metric-wrinkle_score">
+                                    <div class="metric-info">
+                                        <i class="fa-solid fa-lines-leaning"></i>
+                                        <span>Бръчки и фини линии</span>
+                                        <i class="fa-solid fa-circle-question tooltip-trigger" data-tooltip="Оценява дълбочината и плътността на линиите, свързани със загуба на колаген."></i>
+                                        <span class="metric-score">--/10</span>
+                                    </div>
+                                    <div class="progress-bar-container"><div class="progress-bar"></div></div>
+                                </div>
+                                <div class="metric-card" id="metric-volume_loss_score">
+                                    <div class="metric-info">
+                                        <i class="fa-solid fa-cubes"></i>
+                                        <span>Загуба на обем</span>
+                                        <i class="fa-solid fa-circle-question tooltip-trigger" data-tooltip="Анализира загубата на плътност в ключови зони като скули и челюст."></i>
+                                        <span class="metric-score">--/10</span>
+                                    </div>
+                                    <div class="progress-bar-container"><div class="progress-bar"></div></div>
+                                </div>
+                                <div class="metric-card" id="metric-pigmentation_score">
+                                    <div class="metric-info">
+                                        <i class="fa-solid fa-solar-panel"></i>
+                                        <span>Пигментация</span>
+                                        <i class="fa-solid fa-circle-question tooltip-trigger" data-tooltip="Измерва наличието на слънчеви петна и неравномерен тен, причинени от UV увреждане."></i>
+                                        <span class="metric-score">--/10</span>
+                                    </div>
+                                    <div class="progress-bar-container"><div class="progress-bar"></div></div>
+                                </div>
+                            </div>
+                            <!-- Health Metrics -->
+                            <div class="metric-category">
+                                <h3>Здравни Индикатори</h3>
+                                <div class="metric-card" id="metric-hydration_level_score">
+                                    <div class="metric-info">
+                                        <i class="fa-solid fa-droplet"></i>
+                                        <span>Ниво на хидратация</span>
+                                        <i class="fa-solid fa-circle-question tooltip-trigger" data-tooltip="Оценява визуалните признаци на дехидратация, като фини линии и повяхнала кожа."></i>
+                                        <span class="metric-score">--/10</span>
+                                    </div>
+                                    <div class="progress-bar-container"><div class="progress-bar"></div></div>
+                                </div>
+                                <div class="metric-card" id="metric-inflammation_score">
+                                    <div class="metric-info">
+                                        <i class="fa-solid fa-fire-flame-curved"></i>
+                                        <span>Възпаление</span>
+                                        <i class="fa-solid fa-circle-question tooltip-trigger" data-tooltip="Засича зачервявания и раздразнения, които могат да сочат за системно възпаление."></i>
+                                        <span class="metric-score">--/10</span>
+                                    </div>
+                                    <div class="progress-bar-container"><div class="progress-bar"></div></div>
+                                </div>
+                                <div class="metric-card" id="metric-stress_impact_score">
+                                    <div class="metric-info">
+                                        <i class="fa-solid fa-brain"></i>
+                                        <span>Влияние на стрес</span>
+                                        <i class="fa-solid fa-circle-question tooltip-trigger" data-tooltip="Анализира маркери като напрежение в мускулите и уморен вид, свързани с хроничен стрес."></i>
+                                        <span class="metric-score">--/10</span>
+                                    </div>
+                                    <div class="progress-bar-container"><div class="progress-bar"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Advice Tab -->
+                    <div id="tab-advice" class="tab-pane">
+                        <div id="advice-container" class="advice-grid">
+                            <p class="no-advice">Няма специфични препоръки на база този анализ.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="cta-section">
+            <a href="index.html" class="cta-button secondary-btn">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span class="btn-text">Нов Анализ</span>
+            </a>
+        </footer>
+    </div>
+
+    <!-- Hidden elements for functionality -->
+    <div id="tooltip" class="tooltip"></div>
+
+    <div id="share-modal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="modal-close" class="modal-close-btn">&times;</button>
+            <h3>Сподели Анализа</h3>
+            <p>Споделете връзка към Вашите резултати (за бъдеща функционалност) или ги свалете като изображение.</p>
+            <div class="share-options">
+                <div class="copy-link-container">
+                    <input type="text" id="share-link-input" value="https://radilovk.github.io/face/results.html" readonly>
+                    <button id="copy-link-btn">Копирай</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- External library for creating image from HTML -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Main JS file for this page -->
+    <script src="js/results.js"></script>
+
+</body>
+</html>

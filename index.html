@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Analyse.ai | Разкодирай Своето Здраве</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+    <!-- Favicon - Вградена SVG икона в стила на дизайна -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath fill='%23ff00ff' d='M50,5 C74.85,5 95,25.15 95,50 C95,74.85 74.85,95 50,95 C25.15,95 5,74.85 5,50 C5,25.15 25.15,5 50,5 Z M50,15 C30.67,15 15,30.67 15,50 C15,69.33 30.67,85 50,85 C69.33,85 85,69.33 85,50 C85,30.67 69.33,15 50,15 Z'%3E%3C/path%3E%3Cpath fill='%23ff00ff' d='M30 40 Q50 20, 70 40 T 30 40z'/%3E%3C/svg%3E">
+
+</head>
+<body>
+
+    <div class="main-container">
+
+        <header class="hero-section">
+            <h1 class="main-title">Разкодирай Своето Здраве</h1>
+            <p class="subtitle">Нашата AI платформа анализира визуални био-маркери, за да Ви предостави научнo-обоснована обратна връзка за Вашето метаболитно здраве, процеси на стареене и начин на живот.</p>
+        </header>
+
+        <main>
+            <!-- SECTION 1: Questionnaire -->
+            <section id="questionnaire" class="content-section">
+                <h2 class="section-title"><span>Стъпка 1:</span> Контекстуален Анализ</h2>
+                <div class="accordion">
+                    <!-- Step 1 -->
+                    <div class="accordion-item active">
+                        <button class="accordion-header">
+                            <span class="step-counter">01</span> Демографски данни
+                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="accordion-content">
+                             <div class="form-group">
+                                <label for="birthdate">Дата на раждане</label>
+                                <input type="date" id="birthdate" name="birthdate" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="phototype">Фототип на кожата</label>
+                                <select id="phototype" name="phototype">
+                                    <option value="I">Тип I (винаги изгаря)</option>
+                                    <option value="II">Тип II (обикновено изгаря)</option>
+                                    <option value="III">Тип III (понякога изгаря)</option>
+                                    <option value="IV">Тип IV (изгаря минимално)</option>
+                                    <option value="V">Тип V (рядко изгаря)</option>
+                                    <option value="VI">Тип VI (никога не изгаря)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Step 2 -->
+                    <div class="accordion-item">
+                        <button class="accordion-header">
+                           <span class="step-counter">02</span> Начин на живот
+                           <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                        <div class="accordion-content">
+                            <div class="form-group">
+                                <label>Консумация на вода (дневно)</label>
+                                <div class="radio-group">
+                                    <label><input type="radio" name="water" value="low"><span>Под 1л</span></label>
+                                    <label><input type="radio" name="water" value="medium" checked><span>1-2л</span></label>
+                                    <label><input type="radio" name="water" value="high"><span>Над 2л</span></label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Използвате ли слънцезащита?</label>
+                                <div class="radio-group">
+                                     <label><input type="radio" name="spf" value="daily"><span>Ежедневно</span></label>
+                                     <label><input type="radio" name="spf" value="sometimes" checked><span>Понякога</span></label>
+                                     <label><input type="radio" name="spf" value="never"><span>Никога</span></label>
+                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Step 3 -->
+                    <div class="accordion-item">
+                        <button class="accordion-header">
+                            <span class="step-counter">03</span> Стрес и Сън
+                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                        </button>
+                         <div class="accordion-content">
+                            <div class="form-group">
+                                <label for="sleep">Средна продължителност на съня: <span id="sleep-value">8</span> часа</label>
+                                <input type="range" id="sleep" name="sleep" min="4" max="12" value="8">
+                            </div>
+                             <div class="form-group">
+                                <label for="stress">Субективно ниво на стрес: <span id="stress-value">5</span> / 10</label>
+                                <input type="range" id="stress" name="stress" min="1" max="10" value="5">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- SECTION 2: Image Upload -->
+            <section id="upload-section" class="content-section">
+                <h2 class="section-title"><span>Стъпка 2:</span> Визуален Анализ</h2>
+                <div class="upload-container">
+                    <div class="instructions">
+                        <h3>Изисквания за изображението</h3>
+                        <ul>
+                            <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Без грим</li>
+                            <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Неутрално изражение</li>
+                            <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i>Дневна светлина</li>
+                            <li><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>Без очила/шапки</li>
+                            <li><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>Без сенки по лицето</li>
+                            <li><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i>Без филтри</li>
+                        </ul>
+                    </div>
+                    <div id="upload-box" class="upload-box">
+                        <input type="file" id="file-upload" hidden accept="image/jpeg, image/png">
+                        <div id="upload-prompt">
+                            <i class="fa-solid fa-upload" aria-hidden="true"></i>
+                            <p>Плъзнете файл или <span class="browse-link">кликнете тук</span></p>
+                            <span>PNG или JPG, макс. 5MB</span>
+                        </div>
+                        <img id="image-preview" src="#" alt="Preview of uploaded image">
+                        <p id="file-name"></p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: CTA -->
+            <section class="cta-section">
+                 <button id="analyze-btn" class="cta-button" disabled>
+                    <span class="btn-text">Анализирай</span>
+                    <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                 </button>
+                 <div id="form-error" class="form-error-message" hidden></div>
+                 <p class="disclaimer">
+                    С натискането на бутона се съгласявате с нашите 
+                    <span class="modal-trigger" data-modal-target="privacy-modal">Общи условия и Политика за поверителност</span>.
+                </p>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL WINDOW FOR PRIVACY POLICY -->
+    <div id="privacy-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title" class="section-title"><span>Политика за</span> Поверителност</h3>
+                <button id="modal-close-btn" class="modal-close-btn" aria-label="Затвори">&times;</button>
+            </div>
+            <div class="modal-body">
+                <h4>1. Събиране на данни</h4>
+                <p>Ние събираме данните, които предоставяте доброволно: отговори от въпросника и каченото от Вас изображение. Изображението се изпраща към нашия AI партньор (OpenAI) за еднократен анализ и не се съхранява на нашите сървъри след това.</p>
+                <h4>2. Използване на данни</h4>
+                <p>Вашите данни се използват единствено за целите на генериране на персонализиран анализ. Анонимизирани данни могат да бъдат използвани за подобряване на нашия AI модел.</p>
+                <h4>3. Споделяне на данни</h4>
+                <p>Ние не споделяме Вашите лични данни или изображения с трети страни, освен с нашия технологичен партньор (OpenAI) за целите на самия анализ, съгласно техните политики за поверителност.</p>
+                <h4>4. Сигурност</h4>
+                <p>Връзката към нашия сървър е криптирана. API ключът за достъп до AI модела се съхранява сигурно и не е публично достъпен.</p>
+                <h4>5. Вашите права</h4>
+                <p>Тъй като не съхраняваме Вашите данни дълготрайно, нямаме база данни с потребителски профили. Всеки анализ е еднократен акт.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- FULL SCREEN LOADER -->
+    <div id="loader-overlay" class="loader-overlay hidden" role="status" aria-live="polite">
+        <div class="spinner">
+            <div class="dot1"></div>
+            <div class="dot2"></div>
+        </div>
+        <p class="loader-text">Анализирам био-маркери...</p>
+    </div>
+
+
+    <!-- JavaScript File -->
+    <script src="js/main.js"></script>
+
+</body>
+</html>

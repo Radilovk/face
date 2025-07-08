@@ -143,8 +143,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderAdvice(advice) {
         const adviceContainer = document.getElementById('advice-container');
+        adviceContainer.innerHTML = '';
         if (!advice || Object.keys(advice).length === 0) {
-            adviceContainer.innerHTML = '<p class="no-advice">Няма специфични препоръки на база този анализ.</p>';
+            const p = document.createElement('p');
+            p.className = 'no-advice';
+            p.textContent = 'Няма специфични препоръки на база този анализ.';
+            adviceContainer.appendChild(p);
             return;
         }
 
@@ -156,23 +160,35 @@ document.addEventListener('DOMContentLoaded', () => {
             POOR_HYDRATION: "fa-solid fa-droplet",
         };
         
-        adviceContainer.innerHTML = ''; // Clear container
-        let adviceHTML = '';
-        Object.keys(advice).forEach(key => {
+        Object.keys(advice).forEach((key, index) => {
             const adviceText = advice[key];
             const [title, ...textParts] = adviceText.split(':');
             const text = textParts.join(':').trim();
             const iconClass = adviceIconMap[key] || 'fa-solid fa-lightbulb';
 
-            adviceHTML += `
-                <div class="advice-card">
-                    <i class="advice-card-icon ${iconClass}"></i>
-                    <h3 class="advice-card-title">${title}</h3>
-                    <p class="advice-card-text">${text}</p>
-                </div>
-            `;
+            const card = document.createElement('div');
+            card.className = 'advice-card';
+
+            const icon = document.createElement('i');
+            icon.className = `advice-card-icon ${iconClass}`;
+            card.appendChild(icon);
+
+            const titleEl = document.createElement('h3');
+            titleEl.className = 'advice-card-title';
+            titleEl.textContent = title;
+            card.appendChild(titleEl);
+
+            const textEl = document.createElement('p');
+            textEl.className = 'advice-card-text';
+            textEl.textContent = text;
+            card.appendChild(textEl);
+
+            adviceContainer.appendChild(card);
+
+            setTimeout(() => {
+                card.classList.add('visible');
+            }, index * 150);
         });
-        adviceContainer.innerHTML = adviceHTML;
         
         // Stagger animation for advice cards
         const cards = adviceContainer.querySelectorAll('.advice-card');
@@ -202,11 +218,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function handleNoData(message = "Няма данни за анализ. Моля, върнете се на началната страница.") {
         const container = document.querySelector('.main-container.results-page') || document.body;
-        container.innerHTML = `
-            <div style="text-align: center; padding: 4rem;">
-                <h1 class="main-title">Грешка</h1>
-                <p class="subtitle">${message}</p>
-                <a href="index.html" class="cta-button secondary-btn" style="margin-top: 2rem;">Начална страница</a>
-            </div>`;
-    }
-});
+        container.innerHTML = '';
+
+        const wrapper = document.createElement('div');
+        wrapper.style.textAlign = 'center';
+        wrapper.style.padding = '4rem';
+
+        const titleEl = document.createElement('h1');
+        titleEl.className = 'main-title';
+        titleEl.textContent = 'Грешка';
+        wrapper.appendChild(titleEl);
+
+        const subtitleEl = document.createElement('p');
+        subtitleEl.className = 'subtitle';
+        subtitleEl.textContent = message;
+        wrapper.appendChild(subtitleEl);
+
+        const link = document.createElement('a');
+        link.href = 'index.html';
+        link.className = 'cta-button secondary-btn';
+        link.style.marginTop = '2rem';
+        link.textContent = 'Начална страница';
+        wrapper.appendChild(link);
+
+        container.appendChild(wrapper);
+    }});

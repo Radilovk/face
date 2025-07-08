@@ -198,7 +198,28 @@ document.addEventListener('DOMContentLoaded', () => {
             showError("Моля, въведете дата на раждане.");
             isValid = false;
         } else {
-            birthdateInput.classList.remove('input-error');
+            const birthDate = new Date(birthdateInput.value);
+            const today = new Date();
+
+            if (birthDate > today) {
+                birthdateInput.classList.add('input-error');
+                showError("Датата на раждане не може да е в бъдещето.");
+                isValid = false;
+            } else {
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+
+                if (age < 18) {
+                    birthdateInput.classList.add('input-error');
+                    showError("Трябва да сте поне на 18 години, за да използвате услугата.");
+                    isValid = false;
+                } else {
+                    birthdateInput.classList.remove('input-error');
+                }
+            }
         }
 
         if (!analysisData.image) {

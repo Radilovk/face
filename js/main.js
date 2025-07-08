@@ -237,14 +237,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!overlay) {
                 overlay = document.createElement('div');
                 overlay.id = 'loading-overlay';
-                overlay.innerHTML = `<div class="spinner"></div><p>Анализът се извършва...</p>`;
+
+                const spinner = document.createElement('div');
+                spinner.className = 'spinner';
+
+                const textEl = document.createElement('p');
+                textEl.textContent = 'Анализът се извършва...';
+
+                overlay.appendChild(spinner);
+                overlay.appendChild(textEl);
                 document.body.appendChild(overlay);
             }
             overlay.style.display = 'flex';
-        } else {
-            if (overlay) {
-                overlay.style.display = 'none';
-            }
+        } else if (overlay) {
+            overlay.style.display = 'none';
         }
     }
 
@@ -261,5 +267,4 @@ document.addEventListener('DOMContentLoaded', () => {
             errorBox.classList.remove('visible');
         }, 4000);
     }
-
 });

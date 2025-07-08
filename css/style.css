@@ -426,6 +426,14 @@ RESULTS PAGE SPECIFIC STYLES
 }
 
 /* --- METRICS GRID & CARDS --- */
+.radar-wrapper {
+    width: 100%;
+    max-width: 450px;
+    height: 400px;
+    margin: 0 auto 2rem;
+    position: relative;
+}
+
 @keyframes staggerIn {
     from {
         opacity: 0;

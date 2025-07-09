@@ -1,5 +1,25 @@
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type'
+};
+
+function handleOptions(request) {
+  if (
+    request.headers.get('Origin') !== null &&
+    request.headers.get('Access-Control-Request-Method') !== null &&
+    request.headers.get('Access-Control-Request-Headers') !== null
+  ) {
+    return new Response(null, { headers: corsHeaders });
+  }
+  return new Response(null, { headers: { Allow: 'GET,POST,OPTIONS' } });
+}
+
 export default {
   async fetch(request, env) {
+    if (request.method === 'OPTIONS') {
+      return handleOptions(request);
+    }
     if (request.method === 'GET') {
       const url = new URL(request.url);
       const id = url.searchParams.get('id');
@@ -7,17 +27,29 @@ export default {
         const stored = await env.RESULTS_KV.get(id);
         if (stored) {
           return new Response(stored, {
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json', ...corsHeaders }
           });
         }
       }
-      return new Response('Not Found', { status: 404 });
+      return new Response('Not Found', { status: 404, headers: corsHeaders });
     }
     if (request.method !== 'POST') {
-      return new Response('Method Not Allowed', { status: 405 });
+      return new Response('Method Not Allowed', { status: 405, headers: corsHeaders });
     }
 
     const { image, answers } = await request.json();
+
+    const MAX_SIZE_MB = 5;
+    const sizeInBytes = image?.length ? image.length * 0.75 : 0;
+    if (sizeInBytes > MAX_SIZE_MB * 1024 * 1024) {
+      return new Response(
+        `Payload too large. Image must be smaller than ${MAX_SIZE_MB}MB after processing.`,
+        { status: 413, headers: corsHeaders }
+      );
+    }
+    if (!image || !answers) {
+      return new Response('Missing image or answers in request body', { status: 400, headers: corsHeaders });
+    }
 
     const prompt = `Анализирай изображението и отговорите. За всеки показател дай оценка от 1 до 10, като 10 е най-добър резултат. Върни JSON със структурата:\n{
       "summary": {"overall_skin_health_score": <number>, "perceived_age": <number>, "key_findings": ["..."]},
@@ -38,6 +70,7 @@ export default {
           ]
         }
       ],
+      response_format: { type: 'json_object' },
       max_tokens: 800
     };
 
@@ -57,13 +90,13 @@ export default {
       clearTimeout(timeoutId);
     } catch (err) {
       console.error('Failed to call OpenAI:', err);
-      return new Response('Вътрешна грешка при AI заявката.', { status: 500 });
+      return new Response('Вътрешна грешка при AI заявката.', { status: 500, headers: corsHeaders });
     }
 
     if (!resp.ok) {
       const errorText = await resp.text().catch(() => '');
       console.error('OpenAI API error:', resp.status, errorText);
-      return new Response('Грешка при обработката на AI.', { status: 502 });
+      return new Response('Грешка при обработката на AI.', { status: 502, headers: corsHeaders });
     }
 
       const { choices } = await resp.json();
@@ -104,6 +137,6 @@ export default {
         });
       }
 
-      return Response.json(analysis);
+      return Response.json(analysis, { headers: corsHeaders });
   }
 };

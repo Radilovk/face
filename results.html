@@ -154,11 +154,12 @@
         <div class="modal-content">
             <button id="modal-close" class="modal-close-btn">&times;</button>
             <h3>Сподели Анализа</h3>
-            <p>Споделете връзка към Вашите резултати (за бъдеща функционалност) или ги свалете като изображение.</p>
+            <p id="share-help">Копирайте уникалния линк към резултатите или ги свалете като изображение.</p>
             <div class="share-options">
                 <div class="copy-link-container">
-                    <input type="text" id="share-link-input" value="https://radilovk.github.io/face/results.html" readonly>
-                    <button id="copy-link-btn">Копирай</button>
+                    <label for="share-link-input" class="visually-hidden">Линк за споделяне</label>
+                    <input type="text" id="share-link-input" readonly>
+                    <button id="copy-link-btn">Копирай линка</button>
                 </div>
             </div>
         </div>
@@ -172,5 +173,4 @@
 
     <!-- Main JS file for this page -->
     <script src="js/results.js"></script>
-
 </body></html>

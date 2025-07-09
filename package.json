@@ -1,0 +1,14 @@
+{
+  "name": "face",
+  "version": "1.0.0",
+  "description": "AI платформа за анализ на лице",
+  "main": "index.js",
+  "scripts": {
+    "test": "node tests/test_results.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "jsdom": "^22.1.0"
+  }
+}

@@ -1,4 +1,5 @@
 const { JSDOM, VirtualConsole } = require('jsdom');
+const fs = require('fs');
 const path = require('path');
 
 const virtualConsole = new VirtualConsole();
@@ -11,22 +12,26 @@ const example = {
   advice: { HIGH_INFLAMMATION: 'Възпаление: Намалете стреса' }
 };
 
+const script = fs.readFileSync(path.resolve(__dirname, '../js/results.js'), 'utf-8');
 const html = `<!DOCTYPE html><html><body>
 <div id="overall-score-value"></div>
+<div id="score-gauge"></div>
 <span id="perceived-age"></span>
 <span id="key-findings"></span>
 <canvas id="metricsRadarChart"></canvas>
 <div id="advice-container"></div>
-<script src="js/results.js"></script>
+<script>${script}</script>
 </body></html>`;
 
 (async () => {
-  const base = path.resolve(__dirname, '..');
+  process.on('unhandledRejection', (err) => {
+    console.error('Unhandled', err.stack || err);
+  });
   const dom = new JSDOM(html, {
     runScripts: 'dangerously',
     resources: 'usable',
     pretendToBeVisual: true,
-    url: 'file://' + base + '/test.html',
+    url: 'https://example.com/test.html',
     virtualConsole,
     beforeParse(window) {
       window.sessionStorage.setItem('analysisResult', JSON.stringify(example));

@@ -34,11 +34,11 @@
                 <div class="accordion">
                     <!-- Step 1 -->
                     <div class="accordion-item active">
-                        <button class="accordion-header">
+                        <button id="heading-demographics" class="accordion-header" aria-expanded="true" aria-controls="panel-demographics">
                             <span class="step-counter">01</span> Демографски данни
                             <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                         </button>
-                        <div class="accordion-content">
+                        <div id="panel-demographics" class="accordion-content" role="region" aria-labelledby="heading-demographics">
                              <div class="form-group">
                                 <label for="birthdate">Дата на раждане</label>
                                 <input type="date" id="birthdate" name="birthdate" required>
@@ -58,11 +58,11 @@
                     </div>
                     <!-- Step 2 -->
                     <div class="accordion-item">
-                        <button class="accordion-header">
+                        <button id="heading-lifestyle" class="accordion-header" aria-expanded="false" aria-controls="panel-lifestyle">
                            <span class="step-counter">02</span> Начин на живот
                            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                         </button>
-                        <div class="accordion-content">
+                        <div id="panel-lifestyle" class="accordion-content" role="region" aria-labelledby="heading-lifestyle">
                             <div class="form-group">
                                 <label>Консумация на вода (дневно)</label>
                                 <div class="radio-group">
@@ -83,11 +83,11 @@
                     </div>
                     <!-- Step 3 -->
                     <div class="accordion-item">
-                        <button class="accordion-header">
+                        <button id="heading-stress" class="accordion-header" aria-expanded="false" aria-controls="panel-stress">
                             <span class="step-counter">03</span> Стрес и Сън
                             <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
                         </button>
-                         <div class="accordion-content">
+                         <div id="panel-stress" class="accordion-content" role="region" aria-labelledby="heading-stress">
                             <div class="form-group">
                                 <label for="sleep">Средна продължителност на съня: <span id="sleep-value">8</span> часа</label>
                                 <input type="range" id="sleep" name="sleep" min="4" max="12" value="8">
@@ -117,13 +117,13 @@
                         </ul>
                     </div>
                     <div id="upload-box" class="upload-box">
-                        <input type="file" id="file-upload" hidden accept="image/jpeg, image/png">
+                        <input type="file" id="file-upload" hidden accept="image/jpeg, image/png" aria-label="Качи изображение" aria-describedby="upload-prompt">
                         <div id="upload-prompt">
                             <i class="fa-solid fa-upload" aria-hidden="true"></i>
                             <p>Плъзнете файл или <span class="browse-link">кликнете тук</span></p>
                             <span>PNG или JPG, макс. 5MB</span>
                         </div>
-                        <img id="image-preview" src="#" alt="Preview of uploaded image">
+                        <img id="image-preview" src="#" alt="Преглед на каченото изображение">
                         <p id="file-name"></p>
                     </div>
                 </div>

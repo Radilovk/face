@@ -53,16 +53,16 @@
 
             <!-- SECTION 2: Tabs -->
             <section class="details-section">
-                <div class="tabs-nav">
-                    <button class="tab-link active" data-tab="tab-analysis">Детайлен Анализ</button>
-                    <button class="tab-link" data-tab="tab-advice">Персонални Съвети</button>
+                <div class="tabs-nav" role="tablist">
+                    <button id="tab-analysis-link" class="tab-link active" role="tab" aria-selected="true" aria-controls="tab-analysis">Детайлен Анализ</button>
+                    <button id="tab-advice-link" class="tab-link" role="tab" aria-selected="false" aria-controls="tab-advice">Персонални Съвети</button>
                 </div>
 
                 <div class="tabs-content">
                     <!-- Analysis Tab -->
-                    <div id="tab-analysis" class="tab-pane active">
+                    <div id="tab-analysis" class="tab-pane active" role="tabpanel" aria-labelledby="tab-analysis-link">
                         <div class="radar-wrapper">
-                            <canvas id="metricsRadarChart" width="400" height="400"></canvas>
+                            <canvas id="metricsRadarChart" width="400" height="400" role="img" aria-label="Графика с показатели"></canvas>
                         </div>
                         <div class="metrics-grid">
                             <!-- Anti-aging Metrics -->
@@ -130,7 +130,7 @@
                         </div>
                     </div>
                     <!-- Advice Tab -->
-                    <div id="tab-advice" class="tab-pane">
+                    <div id="tab-advice" class="tab-pane" role="tabpanel" aria-labelledby="tab-advice-link">
                         <div id="advice-container" class="advice-grid">
                             <p class="no-advice">Няма специфични препоръки на база този анализ.</p>
                         </div>
@@ -150,7 +150,7 @@
     <!-- Hidden elements for functionality -->
     <div id="tooltip" class="tooltip"></div>
 
-    <div id="share-modal" class="modal-overlay">
+    <div id="share-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="share-help">
         <div class="modal-content">
             <button id="modal-close" class="modal-close-btn">&times;</button>
             <h3>Сподели Анализа</h3>
@@ -172,5 +172,4 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Main JS file for this page -->
-    <script src="js/results.js"></script>
-</body></html>
+    <script src="js/results.js"></script></body></html>

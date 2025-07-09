@@ -232,26 +232,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- UI UTILITY FUNCTIONS ---
     function showLoadingOverlay(show) {
-        let overlay = document.getElementById('loading-overlay');
-        if (show) {
-            if (!overlay) {
-                overlay = document.createElement('div');
-                overlay.id = 'loading-overlay';
-
-                const spinner = document.createElement('div');
-                spinner.className = 'spinner';
-
-                const textEl = document.createElement('p');
-                textEl.textContent = 'Анализът се извършва...';
-
-                overlay.appendChild(spinner);
-                overlay.appendChild(textEl);
-                document.body.appendChild(overlay);
-            }
-            overlay.style.display = 'flex';
-        } else if (overlay) {
-            overlay.style.display = 'none';
-        }
+        const overlay = document.getElementById('loader-overlay');
+        if (!overlay) return;
+        overlay.classList.toggle('hidden', !show);
     }
 
     function showError(message) {
@@ -266,5 +249,4 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => {
             errorBox.classList.remove('visible');
         }, 4000);
-    }
-});
+    }});

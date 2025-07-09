@@ -1,5 +1,18 @@
 export default {
   async fetch(request, env) {
+    if (request.method === 'GET') {
+      const url = new URL(request.url);
+      const id = url.searchParams.get('id');
+      if (id && env.RESULTS_KV) {
+        const stored = await env.RESULTS_KV.get(id);
+        if (stored) {
+          return new Response(stored, {
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+      }
+      return new Response('Not Found', { status: 404 });
+    }
     if (request.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 });
     }
@@ -81,6 +94,14 @@ export default {
             if (tip) analysis.advice[flag] = tip;
           }
         }
+      }
+
+      const id = crypto.randomUUID();
+      analysis.id = id;
+      if (env.RESULTS_KV) {
+        await env.RESULTS_KV.put(id, JSON.stringify(analysis), {
+          expirationTtl: 60 * 60 * 24 * 30
+        });
       }
 
       return Response.json(analysis);

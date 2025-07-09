@@ -1,7 +1,20 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
 
     // --- INITIAL DATA RETRIEVAL & VALIDATION ---
-    const resultsData = sessionStorage.getItem('analysisResult');
+    const params = new URLSearchParams(window.location.search);
+    const resultId = params.get('id');
+
+    let resultsData = sessionStorage.getItem('analysisResult');
+    if (!resultsData && resultId) {
+        try {
+            const resp = await fetch(`https://face.radilov-k.workers.dev/?id=${resultId}`);
+            if (resp.ok) {
+                resultsData = await resp.text();
+            }
+        } catch (err) {
+            console.error('Failed to fetch stored result:', err);
+        }
+    }
     sessionStorage.removeItem('analysisResult'); // Clear after reading to prevent re-use on refresh
 
     if (!resultsData) {
@@ -14,6 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Set dynamic page title
         document.title = `Вашият AI Анализ от ${new Date().toLocaleDateString()}`;
         renderPage(analysis);
+        setupShareLink(analysis.id);
     } catch (error) {
         console.error("Failed to parse analysis data or render page:", error);
         handleNoData("Възникна грешка при визуализацията на данните.");
@@ -210,6 +224,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 link.classList.add('active');
                 document.getElementById(targetTabId).classList.add('active');
+            });
+        });
+    }
+
+    function setupShareLink(id) {
+        const shareBtn = document.getElementById('share-btn');
+        const shareModal = document.getElementById('share-modal');
+        const modalClose = document.getElementById('modal-close');
+        const copyBtn = document.getElementById('copy-link-btn');
+        const linkInput = document.getElementById('share-link-input');
+
+        if (id && linkInput) {
+            linkInput.value = `${location.origin}${location.pathname}?id=${id}`;
+        }
+
+        shareBtn?.addEventListener('click', () => {
+            shareModal?.classList.add('visible');
+            linkInput?.select();
+        });
+        modalClose?.addEventListener('click', () => shareModal?.classList.remove('visible'));
+        copyBtn?.addEventListener('click', () => {
+            if (!linkInput) return;
+            navigator.clipboard.writeText(linkInput.value).then(() => {
+                copyBtn.textContent = 'Копирано!';
+                setTimeout(() => copyBtn.textContent = 'Копирай', 2000);
             });
         });
     }

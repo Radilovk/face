@@ -71,3 +71,13 @@ kv_namespaces = [
   { binding = "ADVICE_KV", id = "<YOUR_KV_ID>" }
 ]
 ```
+
+### Променлива RESULTS_KV
+За съхранение на всеки анализ с уникален идентификатор добавете втори namespace:
+
+```toml
+kv_namespaces = [
+  { binding = "ADVICE_KV", id = "<YOUR_KV_ID>" },
+  { binding = "RESULTS_KV", id = "<YOUR_RESULTS_ID>" }
+]
+```

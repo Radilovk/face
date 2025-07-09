@@ -28,14 +28,30 @@ export default {
       max_tokens: 800
     };
 
-    const resp = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${env.OPENAI_API_KEY}`
-      },
-      body: JSON.stringify(aiPayload)
-    });
+    let resp;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
+      resp = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${env.OPENAI_API_KEY}`
+        },
+        body: JSON.stringify(aiPayload),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+    } catch (err) {
+      console.error('Failed to call OpenAI:', err);
+      return new Response('Вътрешна грешка при AI заявката.', { status: 500 });
+    }
+
+    if (!resp.ok) {
+      const errorText = await resp.text().catch(() => '');
+      console.error('OpenAI API error:', resp.status, errorText);
+      return new Response('Грешка при обработката на AI.', { status: 502 });
+    }
 
       const { choices } = await resp.json();
 

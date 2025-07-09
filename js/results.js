@@ -30,8 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- RENDER HELPER FUNCTIONS ---
 
     function renderSummaryAndGauge(summary) {
-        const rawScore = summary?.overall_skin_health_score ?? 0;
-        const score = 11 - rawScore;
+        const score = summary?.overall_skin_health_score ?? 0;
         const scorePercentage = score * 10;
         
         document.getElementById('overall-score-value').textContent = score;
@@ -63,7 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const allMetrics = {...antiAging, ...health};
         const labels = Object.keys(metricLabels);
-        const data = labels.map(labelKey => 11 - (allMetrics[labelKey] ?? 0));
+        const data = labels.map(labelKey => allMetrics[labelKey] ?? 0);
 
         new Chart(ctx, {
             type: 'radar',
@@ -133,8 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.keys(labelMap).forEach(key => {
             const card = document.getElementById(`metric-${key}`);
             if (!card) return;
-            const raw = metrics[key] ?? 0;
-            const score = 11 - raw;
+            const score = metrics[key] ?? 0;
             card.querySelector('.metric-score').textContent = `${score}/10`;
             const bar = card.querySelector('.progress-bar');
             if (bar) bar.style.width = `${score * 10}%`;

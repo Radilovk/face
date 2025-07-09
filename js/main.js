@@ -45,25 +45,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const accordionItems = document.querySelectorAll('.accordion-item');
     accordionItems.forEach(item => {
         const header = item.querySelector('.accordion-header');
+        const content = item.querySelector('.accordion-content');
         header.addEventListener('click', () => {
             const currentlyActive = document.querySelector('.accordion-item.active');
             if (currentlyActive && currentlyActive !== item) {
                 currentlyActive.classList.remove('active');
-                currentlyActive.querySelector('.accordion-content').style.maxHeight = null;
+                const currHeader = currentlyActive.querySelector('.accordion-header');
+                const currContent = currentlyActive.querySelector('.accordion-content');
+                currHeader.setAttribute('aria-expanded', 'false');
+                currContent.style.maxHeight = null;
             }
 
             item.classList.toggle('active');
-            const content = item.querySelector('.accordion-content');
             if (item.classList.contains('active')) {
                 content.style.maxHeight = content.scrollHeight + 'px';
+                header.setAttribute('aria-expanded', 'true');
             } else {
                 content.style.maxHeight = null;
+                header.setAttribute('aria-expanded', 'false');
             }
         });
     });
     const initialActive = document.querySelector('.accordion-item.active');
     if (initialActive) {
-        initialActive.querySelector('.accordion-content').style.maxHeight = initialActive.querySelector('.accordion-content').scrollHeight + 'px';
+        const content = initialActive.querySelector('.accordion-content');
+        const head = initialActive.querySelector('.accordion-header');
+        content.style.maxHeight = content.scrollHeight + 'px';
+        head.setAttribute('aria-expanded', 'true');
     }
 
     // --- FILE UPLOAD LOGIC ---

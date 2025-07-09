@@ -213,16 +213,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // --- UI EVENT HANDLERS ---
 
-    function setupTabs() {
-        const tabLinks = document.querySelectorAll('.tab-link');
-        tabLinks.forEach(link => {
-            link.addEventListener('click', () => {
-                const targetTabId = link.dataset.tab;
-                
-                document.querySelectorAll('.tab-link').forEach(l => l.classList.remove('active'));
+   function setupTabs() {
+       const tabLinks = document.querySelectorAll('.tab-link');
+       tabLinks.forEach(link => {
+           link.addEventListener('click', () => {
+               const targetTabId = link.dataset.tab;
+
+                document.querySelectorAll('.tab-link').forEach(l => {
+                    l.classList.remove('active');
+                    l.setAttribute('aria-selected', 'false');
+                });
                 document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
 
                 link.classList.add('active');
+                link.setAttribute('aria-selected', 'true');
                 document.getElementById(targetTabId).classList.add('active');
             });
         });

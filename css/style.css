@@ -4,10 +4,11 @@
     --container-bg: #16152a; /* Slightly lighter indigo */
     --text-color: #e0e0e0;
     --text-muted-color: #8c8c9e;
-    --primary-magenta: #ff00ff; /* Vibrant Magenta */
-    --primary-magenta-darker: #c200c2;
-    --border-color: rgba(255, 0, 255, 0.2);
-    --glow-color: rgba(255, 0, 255, 0.15);
+    --primary-blue: #1e88e5; /* Vibrant Blue */
+    --primary-blue-darker: #1565c0;
+    --secondary-green: #4caf50;
+    --border-color: rgba(30, 136, 229, 0.2);
+    --glow-color: rgba(30, 136, 229, 0.15);
     --success-color: #00ffab;
     --danger-color: #ff4d6d;
     --font-family: 'Poppins', sans-serif;
@@ -56,7 +57,7 @@ body {
 /* --- ACCESSIBILITY & INTERACTIVITY ENHANCEMENTS --- */
 /* Improved focus state for keyboard navigation */
 :focus-visible {
-    outline: 2px solid var(--primary-magenta);
+    outline: 2px solid var(--primary-blue);
     outline-offset: 3px;
     box-shadow: 0 0 10px var(--glow-color);
     border-radius: 6px;
@@ -89,7 +90,7 @@ body {
     font-size: 3rem;
     font-weight: 700;
     letter-spacing: -1px;
-    background: linear-gradient(90deg, #fff, #e0c3fc, var(--primary-magenta));
+    background: linear-gradient(90deg, #fff, #e0c3fc, var(--primary-blue));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 1rem;
@@ -117,7 +118,7 @@ body {
 }
 
 .section-title span {
-    color: var(--primary-magenta);
+    color: var(--primary-blue);
     margin-right: 0.5rem;
 }
 
@@ -153,8 +154,8 @@ body {
 .step-counter {
     font-size: 0.9rem;
     font-weight: 600;
-    color: var(--primary-magenta);
-    border: 1px solid var(--primary-magenta);
+    color: var(--primary-blue);
+    border: 1px solid var(--primary-blue);
     border-radius: 50%;
     width: 32px;
     height: 32px;
@@ -167,7 +168,7 @@ body {
 .accordion-header i {
     margin-left: auto;
     transition: transform 0.3s ease;
-    color: var(--primary-magenta);
+    color: var(--primary-blue);
 }
 
 .accordion-item.active .accordion-header i {
@@ -218,8 +219,8 @@ body {
 .radio-group input[type="radio"] { opacity: 0; width: 0; height: 0; position: absolute;}
 .radio-group span { padding: 0.5rem 1rem; border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.2s ease;}
 .radio-group input[type="radio"]:checked + span {
-    background-color: var(--primary-magenta);
-    border-color: var(--primary-magenta);
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
     color: #fff;
     box-shadow: 0 0 15px var(--glow-color);
 }
@@ -239,20 +240,20 @@ input[type="range"]::-webkit-slider-thumb {
     appearance: none;
     width: 20px;
     height: 20px;
-    background: var(--primary-magenta);
+    background: var(--primary-blue);
     cursor: pointer;
     border-radius: 50%;
     border: 2px solid #fff;
-    box-shadow: 0 0 10px var(--primary-magenta);
+    box-shadow: 0 0 10px var(--primary-blue);
 }
 input[type="range"]::-moz-range-thumb {
     width: 20px;
     height: 20px;
-    background: var(--primary-magenta);
+    background: var(--primary-blue);
     cursor: pointer;
     border-radius: 50%;
     border: 2px solid #fff;
-    box-shadow: 0 0 10px var(--primary-magenta);
+    box-shadow: 0 0 10px var(--primary-blue);
 }
 
 
@@ -280,14 +281,14 @@ input[type="range"]::-moz-range-thumb {
     justify-content: center;
 }
 .upload-box.dragover {
-    border-color: var(--primary-magenta);
+    border-color: var(--primary-blue);
     background-color: rgba(255, 0, 255, 0.05);
     transform: scale(1.02);
 }
-.upload-box:hover { border-color: var(--primary-magenta); }
-#upload-prompt i { font-size: 3rem; color: var(--primary-magenta); margin-bottom: 1rem; }
+.upload-box:hover { border-color: var(--primary-blue); }
+#upload-prompt i { font-size: 3rem; color: var(--primary-blue); margin-bottom: 1rem; }
 #upload-prompt p { font-weight: 500; }
-#upload-prompt .browse-link { color: var(--primary-magenta); font-weight: 600; text-decoration: none; }
+#upload-prompt .browse-link { color: var(--primary-blue); font-weight: 600; text-decoration: none; }
 #upload-prompt span { font-size: 0.9rem; color: var(--text-muted-color); }
 #image-preview { display: none; width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; border-radius: 10px; }
 #file-name { position: absolute; bottom: 1rem; left: 1rem; right: 1rem; font-size: 0.9rem; color: var(--success-color); background: rgba(0,0,0,0.5); padding: 0.25rem; border-radius: 4px; display: none;}
@@ -300,7 +301,7 @@ input[type="range"]::-moz-range-thumb {
     font-size: 1.1rem;
     font-weight: 600;
     color: #fff;
-    background: linear-gradient(90deg, var(--primary-magenta), var(--primary-magenta-darker));
+    background: linear-gradient(90deg, var(--primary-blue), var(--primary-blue-darker));
     border: none;
     border-radius: 12px;
     padding: 1rem 2.5rem;
@@ -425,7 +426,7 @@ RESULTS PAGE SPECIFIC STYLES
     left: 0;
     width: 100%;
     height: 3px;
-    background-color: var(--primary-magenta);
+    background-color: var(--primary-blue);
     transform: scaleX(0);
     transition: transform 0.3s ease;
 }
@@ -475,7 +476,7 @@ RESULTS PAGE SPECIFIC STYLES
 .metric-category h3 {
     font-size: 1.25rem;
     font-weight: 600;
-    color: var(--primary-magenta);
+    color: var(--primary-blue);
     margin-bottom: 1.5rem;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 0.75rem;
@@ -507,7 +508,7 @@ RESULTS PAGE SPECIFIC STYLES
 }
 
 .metric-info i {
-    color: var(--primary-magenta);
+    color: var(--primary-blue);
     font-size: 1.2rem;
     width: 20px;
     text-align: center;
@@ -530,7 +531,7 @@ RESULTS PAGE SPECIFIC STYLES
 .progress-bar {
     width: 0%; /* Set by JS */
     height: 100%;
-    background: linear-gradient(90deg, #a900a9, var(--primary-magenta));
+    background: linear-gradient(90deg, var(--primary-blue-darker), var(--primary-blue));
     border-radius: 4px;
     transition: width 1.5s cubic-bezier(0.25, 1, 0.5, 1);
 }
@@ -567,9 +568,9 @@ RESULTS PAGE SPECIFIC STYLES
 
 .advice-card-icon {
     font-size: 2.5rem;
-    color: var(--primary-magenta);
+    color: var(--primary-blue);
     margin-bottom: 1rem;
-    text-shadow: 0 0 15px var(--primary-magenta);
+    text-shadow: 0 0 15px var(--primary-blue);
 }
 
 .advice-card-title {
@@ -630,7 +631,7 @@ RESULTS PAGE SPECIFIC STYLES
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background-color: var(--primary-magenta);
+    background-color: var(--primary-blue);
     opacity: 0.7;
     animation: dotBounce 2s infinite ease-in-out;
 }

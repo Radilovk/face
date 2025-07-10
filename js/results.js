@@ -1,5 +1,19 @@
 document.addEventListener('DOMContentLoaded', async () => {
 
+    const styles = getComputedStyle(document.documentElement);
+    const primaryColor = styles.getPropertyValue('--primary-blue').trim();
+    const textColor = styles.getPropertyValue('--text-color').trim();
+    const mutedColor = styles.getPropertyValue('--text-muted-color').trim();
+
+    function hexToRgba(hex, alpha = 1) {
+        const h = hex.replace('#', '');
+        const bigint = parseInt(h, 16);
+        const r = (bigint >> 16) & 255;
+        const g = (bigint >> 8) & 255;
+        const b = bigint & 255;
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
     // --- INITIAL DATA RETRIEVAL & VALIDATION ---
     const params = new URLSearchParams(window.location.search);
     const resultId = params.get('id');
@@ -55,7 +69,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         setTimeout(() => {
             scoreGaugeEl.style.background = `
                 radial-gradient(var(--container-bg) 85%, transparent 85%),
-                conic-gradient(var(--primary-magenta) 0% ${scorePercentage}%, var(--bg-color) ${scorePercentage}% 100%)
+                conic-gradient(var(--primary-blue) 0% ${scorePercentage}%, var(--bg-color) ${scorePercentage}% 100%)
             `;
         }, 100);
     }
@@ -85,13 +99,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 datasets: [{
                     label: 'Оценка на Показателите (по-голяма стойност е по-добре)',
                     data: data,
-                    backgroundColor: 'rgba(255, 0, 255, 0.2)',
-                    borderColor: 'rgba(255, 0, 255, 1)',
+                    backgroundColor: hexToRgba(primaryColor, 0.2),
+                    borderColor: primaryColor,
                     borderWidth: 2,
-                    pointBackgroundColor: 'rgba(255, 0, 255, 1)',
+                    pointBackgroundColor: primaryColor,
                     pointBorderColor: '#fff',
                     pointHoverBackgroundColor: '#fff',
-                    pointHoverBorderColor: 'rgba(255, 0, 255, 1)'
+                    pointHoverBorderColor: primaryColor
                 }]
             },
             options: {
@@ -101,12 +115,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     r: {
                         angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
                         grid: { color: 'rgba(255, 255, 255, 0.1)' },
-                        pointLabels: { 
-                            color: '#e0e0e0',
+                        pointLabels: {
+                            color: textColor,
                             font: { size: 14, family: 'Poppins' }
                         },
                         ticks: {
-                            color: '#8c8c9e',
+                            color: mutedColor,
                             backdropColor: 'transparent',
                             stepSize: 2,
                             max: 10,
@@ -117,7 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 plugins: {
                     legend: {
                         labels: {
-                            color: '#e0e0e0',
+                            color: textColor,
                             font: { size: 12, family: 'Poppins' }
                         }
                     },

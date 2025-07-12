@@ -252,9 +252,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const modalClose = document.getElementById('modal-close');
         const copyBtn = document.getElementById('copy-link-btn');
         const linkInput = document.getElementById('share-link-input');
+        const fbBtn = document.getElementById('share-facebook');
+        const twBtn = document.getElementById('share-twitter');
+        const liBtn = document.getElementById('share-linkedin');
 
         if (id && linkInput) {
-            linkInput.value = `${location.origin}${location.pathname}?id=${id}`;
+            const shareUrl = `${location.origin}${location.pathname}?id=${id}`;
+            linkInput.value = shareUrl;
+            if (fbBtn) fbBtn.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+            if (twBtn) twBtn.href = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}`;
+            if (liBtn) liBtn.href = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`;
         }
 
         shareBtn?.addEventListener('click', () => {

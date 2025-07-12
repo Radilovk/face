@@ -4,7 +4,7 @@
   "description": "AI платформа за анализ на лице",
   "main": "index.js",
   "scripts": {
-    "test": "node tests/test_results.js"
+    "test": "node tests/test_results.js && node tests/test_main.js"
   },
   "author": "",
   "license": "MIT",

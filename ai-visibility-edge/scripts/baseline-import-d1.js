@@ -16,6 +16,8 @@ const BASE = join(ROOT, 'baseline', BASELINE_ID);
 const local = process.argv.includes('--local');
 const flag = local ? '--local' : '--remote';
 
+ensureWranglerConfig(ROOT);
+
 const TENANT_BY_DOMAIN = {
   'daotslabna.com': 'tenant-daotslabna',
   'biocode-bg.com': 'tenant-biocode',
@@ -37,7 +39,11 @@ for (const q of questions) {
 for (const model of ['openai', 'gemini', 'perplexity']) {
   const dir = join(BASE, model);
   if (!existsSync(dir)) {
-    console.warn(`skip ${model}: no directory`);
+    if (model === 'perplexity') {
+      console.log('skip perplexity (optional — no API key / directory)');
+    } else {
+      console.warn(`skip ${model}: no directory`);
+    }
     continue;
   }
 
@@ -73,4 +79,30 @@ console.log(`Imported ${questions.length} questions + runs to D1 (${flag})`);
 function sql(value) {
   if (value == null) return 'NULL';
   return `'${String(value).replace(/'/g, "''")}'`;
+}
+
+function ensureWranglerConfig(root) {
+  const tomlPath = join(root, 'wrangler.toml');
+  let toml = readFileSync(tomlPath, 'utf8');
+  const accountId = process.env.CLOUDFLARE_ACCOUNT_ID || process.env.CF_ACCOUNT_ID;
+  const kvId = process.env.KV_NAMESPACE_ID;
+
+  if (!local && !accountId) {
+    console.error('Missing CLOUDFLARE_ACCOUNT_ID / CF_ACCOUNT_ID for remote D1 import');
+    process.exit(1);
+  }
+
+  if (accountId) {
+    toml = toml.replace(/account_id = "placeholder"/, `account_id = "${accountId}"`);
+  }
+  if (kvId) {
+    toml = toml.replace(/id = "local-kv-placeholder"/, `id = "${kvId}"`);
+  }
+
+  writeFileSync(tomlPath, toml);
+
+  if (!local && /account_id = "placeholder"/.test(toml)) {
+    console.error('wrangler.toml still has account_id = "placeholder" — check CF_ACCOUNT_ID secret');
+    process.exit(1);
+  }
 }

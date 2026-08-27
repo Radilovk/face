@@ -6,7 +6,7 @@
   "models_collected": [],
   "question_count": 20,
   "repetitions_per_question": 1,
-  "note": "Първи snapshot. Пусни: npm run baseline:collect (OpenAI + Gemini). Perplexity — след PERPLEXITY_API_KEY.",
+  "note": "OpenAI + Gemini = minimum. Perplexity optional (requires PERPLEXITY_API_KEY).",
   "tenant_domains": [
     "daotslabna.com",
     "biocode-bg.com",

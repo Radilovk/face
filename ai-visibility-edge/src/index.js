@@ -7,6 +7,7 @@ import { probeDomain, persistDiagnostic } from './diagnose/probe.js';
 import { passageAutonomy, computeDiagnosticScore } from './diagnose/score.js';
 import { analyzeDisplacement } from './diagnose/displacement.js';
 import { buildDomainReport } from './diagnose/report.js';
+import { fetchDashboardSummary, renderDashboardPage } from './ui/dashboard.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -37,6 +38,16 @@ async function handleRequest(request, env, ctx) {
 
   if (url.pathname === '/health') {
     return json({ ok: true, service: 'ai-visibility-edge', db: Boolean(env.DB), kv: Boolean(env.CACHE) }, 200);
+  }
+
+  if (url.pathname === '/' || url.pathname === '/dashboard') {
+    const origin = url.origin;
+    return html(renderDashboardPage(origin));
+  }
+
+  if (url.pathname === '/api/dashboard/summary') {
+    const summary = await fetchDashboardSummary(env);
+    return json(summary);
   }
 
   if (url.pathname === '/api/baseline-info') {
@@ -239,8 +250,17 @@ function json(body, status = 200) {
   });
 }
 
+function html(body, status = 200) {
+  return new Response(body, {
+    status,
+    headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' },
+  });
+}
+
 function isPlatformRoute(pathname) {
   return (
+    pathname === '/' ||
+    pathname === '/dashboard' ||
     pathname === '/health' ||
     pathname.startsWith('/api/') ||
     /^\/(?:api\/)?report\//.test(pathname)

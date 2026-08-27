@@ -14,6 +14,7 @@ import {
   testPerplexityAdapter,
   testReportTemplate,
 } from './diagnose.js';
+import { testDashboardPage } from './dashboard.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -110,6 +111,7 @@ async function run() {
   testDisplacementExtract();
   testPerplexityAdapter();
   testReportTemplate();
+  testDashboardPage();
   console.log('All tests passed');
 }
 

@@ -10,8 +10,13 @@ import { buildDomainReport } from './diagnose/report.js';
 
 export default {
   async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    // Platform API/report routes bypass fail-open (probe/report take >50ms)
+    if (isPlatformRoute(url.pathname)) {
+      return handleRequest(request, env, ctx);
+    }
     return withFailOpen(request, env, ctx, (req, environment) =>
-      handleRequest(req, environment),
+      handleRequest(req, environment, ctx),
     );
   },
 
@@ -27,11 +32,11 @@ export default {
   },
 };
 
-async function handleRequest(request, env) {
+async function handleRequest(request, env, ctx) {
   const url = new URL(request.url);
 
   if (url.pathname === '/health') {
-    return json({ ok: true, service: 'ai-visibility-edge' }, 200);
+    return json({ ok: true, service: 'ai-visibility-edge', db: Boolean(env.DB), kv: Boolean(env.CACHE) }, 200);
   }
 
   if (url.pathname === '/api/baseline-info') {
@@ -51,32 +56,46 @@ async function handleRequest(request, env) {
     return baselineStatus(env);
   }
 
-  if (url.pathname === '/api/runs/stats' && env.DB) {
+  if (url.pathname === '/api/runs/stats') {
+    const missing = requireDb(env);
+    if (missing) return missing;
     return runsStats(env);
   }
 
-  if (url.pathname === '/api/observations/stats' && env.DB) {
+  if (url.pathname === '/api/observations/stats') {
+    const missing = requireDb(env);
+    if (missing) return missing;
     return observationsStats(env);
   }
 
-  if (url.pathname === '/api/sov' && env.DB) {
+  if (url.pathname === '/api/sov') {
+    const missing = requireDb(env);
+    if (missing) return missing;
     return sovQuery(env, url);
   }
 
   if (url.pathname === '/api/citations/reprocess' && request.method === 'POST') {
+    const missing = requireDb(env);
+    if (missing) return missing;
     return reprocessEndpoint(request, env);
   }
 
-  if (url.pathname === '/api/diagnose/probe' && env.DB) {
+  if (url.pathname === '/api/diagnose/probe') {
+    const missing = requireDb(env);
+    if (missing) return missing;
     return probeEndpoint(env, url);
   }
 
-  if (url.pathname === '/api/diagnose/displacement' && env.DB) {
+  if (url.pathname === '/api/diagnose/displacement') {
+    const missing = requireDb(env);
+    if (missing) return missing;
     return displacementEndpoint(env, url);
   }
 
   const reportMatch = url.pathname.match(/^\/(?:api\/)?report\/([^/]+)$/);
-  if (reportMatch && env.DB) {
+  if (reportMatch) {
+    const missing = requireDb(env);
+    if (missing) return missing;
     return reportEndpoint(env, reportMatch[1], url, request);
   }
 
@@ -218,4 +237,24 @@ function json(body, status = 200) {
     status,
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+function isPlatformRoute(pathname) {
+  return (
+    pathname === '/health' ||
+    pathname.startsWith('/api/') ||
+    /^\/(?:api\/)?report\//.test(pathname)
+  );
+}
+
+function requireDb(env) {
+  if (env.DB) return null;
+  return json(
+    {
+      error: 'db_not_bound',
+      hint: 'Worker deploy missing D1 binding. Run GitHub Action aiv-deploy on main.',
+      database: 'aiv',
+    },
+    503,
+  );
 }

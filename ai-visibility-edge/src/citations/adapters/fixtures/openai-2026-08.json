@@ -1,0 +1,25 @@
+{
+  "id": "resp_fixture_001",
+  "object": "response",
+  "output": [
+    {
+      "type": "message",
+      "role": "assistant",
+      "content": [
+        {
+          "type": "output_text",
+          "text": "В България популярни онлайн магазини за добавки включват MyProtein и специализирани сайтове.",
+          "annotations": [
+            {
+              "type": "url_citation",
+              "url": "https://biocode-bg.com/catalog",
+              "title": "BIOCODE Каталог",
+              "start_index": 0,
+              "end_index": 42
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

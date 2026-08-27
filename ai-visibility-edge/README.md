@@ -42,6 +42,21 @@ npm run baseline:collect -- --limit 5
 npm run baseline:upload-kv
 ```
 
+## След deploy — провери
+
+```
+GET https://<your-worker>.workers.dev/health
+GET https://<your-worker>.workers.dev/api/baseline/status
+GET https://<your-worker>.workers.dev/api/runs/stats   # след D1 + import
+```
+
+## Блок 2 (текущ)
+
+- Адаптери OpenAI + Gemini (`SCHEMA_VERSION`, fixtures)
+- `ask.js` + cron понеделник 03:00 UTC
+- Import baseline → D1 (`npm run db:import-baseline -- --local`)
+- Fetch от KV: `npm run baseline:fetch-kv`
+
 ## Документация
 
 | Документ | Роля |

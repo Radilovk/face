@@ -7,14 +7,25 @@
 | `CF_ACCOUNT_ID` | ✅ | baseline-collect, deploy |
 | `CF_API_TOKEN` | ✅ | baseline-collect, deploy |
 | `KV_NAMESPACE_ID` | ✅ (face KV) | baseline-collect, deploy |
-| `OPENAI_API_KEY` | **Добави** | baseline-collect |
-| `GEMINI_API_KEY` | **Добави** | baseline-collect |
+| `OPENAI_API_KEY` | **GitHub + Worker** | baseline-collect, citations cron |
+| `GEMINI_API_KEY` | **GitHub + Worker** | baseline-collect, citations cron |
+| `D1_DATABASE_ID` | **GitHub** (нов) | D1 migrations + import runs |
 
-**Важно:** Ключовете в Cloudflare Worker secrets **не** се виждат от GitHub Actions. Копирай същите стойности:
+### Създай D1 (еднократно)
 
-`Settings → Secrets and variables → Actions → New repository secret`
+```bash
+cd ai-visibility-edge
+npx wrangler d1 create aiv
+# Копирай database_id → GitHub Secret: D1_DATABASE_ID
+# Обнови wrangler.toml или rely on CI sed patch
+npx wrangler d1 migrations apply aiv --remote
+```
 
-## Cloudflare Worker secrets (face / бъдещ AIV)
+След `D1_DATABASE_ID` в GitHub:
+- **aiv-deploy** — миграции + secrets + deploy
+- **aiv-baseline-collect** — import runs в D1 автоматично
+
+## Cloudflare Worker secrets
 
 | Secret | Роля |
 |--------|------|

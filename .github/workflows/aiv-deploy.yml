@@ -2,7 +2,12 @@ name: aiv-deploy
 
 on:
   workflow_dispatch:
-  # Push deploy — активирай след D1 database_id в wrangler.toml
+  push:
+    branches: [main]
+    paths:
+      - 'ai-visibility-edge/src/**'
+      - 'ai-visibility-edge/wrangler.toml'
+      - 'ai-visibility-edge/migrations/**'
 
 jobs:
   deploy:
@@ -24,12 +29,24 @@ jobs:
       - run: npm ci
       - run: npm test
 
-      - name: Patch wrangler KV (face namespace)
+      - name: Patch wrangler.toml (KV + account + D1)
         run: |
           sed -i 's/local-kv-placeholder/${{ secrets.KV_NAMESPACE_ID }}/' wrangler.toml
+          if [ -n "${{ secrets.D1_DATABASE_ID }}" ]; then
+            sed -i 's/local-d1-placeholder/${{ secrets.D1_DATABASE_ID }}/' wrangler.toml
+          fi
           if ! grep -q '^account_id' wrangler.toml; then
             echo "account_id = \"${{ secrets.CF_ACCOUNT_ID }}\"" >> wrangler.toml
           fi
+
+      - name: D1 migrations (remote)
+        if: ${{ secrets.D1_DATABASE_ID != '' }}
+        run: npx wrangler d1 migrations apply aiv --remote
+
+      - name: Worker secrets
+        run: |
+          echo "${{ secrets.OPENAI_API_KEY }}" | npx wrangler secret put OPENAI_API_KEY
+          echo "${{ secrets.GEMINI_API_KEY }}" | npx wrangler secret put GEMINI_API_KEY
 
       - name: Deploy Worker
         run: npx wrangler deploy

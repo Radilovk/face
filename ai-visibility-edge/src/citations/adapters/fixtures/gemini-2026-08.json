@@ -1,0 +1,32 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [
+          {
+            "text": "Life Protocols предлага протоколи за дълголетие с добавки като NAD+."
+          }
+        ]
+      },
+      "groundingMetadata": {
+        "groundingChunks": [
+          {
+            "web": {
+              "uri": "https://life-protocols.com/products",
+              "title": "Life Protocols Products"
+            },
+            "retrievedContext": {
+              "text": "NAD+ complex longevity protocol"
+            }
+          }
+        ],
+        "groundingSupports": [
+          {
+            "segment": { "text": "Life Protocols предлага протоколи" },
+            "groundingChunkIndices": [0]
+          }
+        ]
+      }
+    }
+  ]
+}

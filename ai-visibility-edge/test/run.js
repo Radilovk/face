@@ -4,6 +4,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { withFailOpen } from '../src/middleware/failOpen.js';
 import { clearConfigCache, getCachedConfig, setCachedConfig } from '../src/config/loader.js';
+import { verifyFixtures, parseModelResponse } from '../src/citations/extract.js';
+import * as openaiAdapter from '../src/citations/adapters/openai.js';
+import * as geminiAdapter from '../src/citations/adapters/gemini.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -68,11 +71,26 @@ function testBaselineQuestions() {
   assert.equal(situational.length, 4);
 }
 
+function testAdapterFixtures() {
+  const errors = verifyFixtures();
+  assert.equal(errors.length, 0, errors.join('; '));
+
+  const openaiFixture = JSON.parse(readFileSync(openaiAdapter.FIXTURE, 'utf8'));
+  const parsed = parseModelResponse('openai', openaiFixture);
+  assert(parsed.citations.length >= 1, 'openai citations');
+  assert(parsed.citations[0].url.includes('biocode'), 'openai url');
+
+  const geminiFixture = JSON.parse(readFileSync(geminiAdapter.FIXTURE, 'utf8'));
+  const g = parseModelResponse('gemini', geminiFixture);
+  assert(g.citations.length >= 1, 'gemini citations');
+}
+
 async function run() {
   await testFailOpenThrowReturnsOriginal();
   await testFailOpenSlowHandlerPassthrough();
   testModuleCacheSkipsD1();
   testBaselineQuestions();
+  testAdapterFixtures();
   console.log('All tests passed');
 }
 

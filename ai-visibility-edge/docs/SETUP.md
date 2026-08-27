@@ -1,69 +1,77 @@
 # Setup — secrets и deploy
 
-## Какво вече имате
+## GitHub Secrets (за Actions)
 
-| Secret | Къде | За проекта |
-|--------|------|------------|
-| `CF_ACCOUNT_ID` | GitHub | Deploy |
-| `CF_API_TOKEN` | GitHub | Deploy |
-| `KV_NAMESPACE_ID` | GitHub | `CACHE` binding в production |
-| `OPENAI_API_KEY` | Cloudflare (face worker) | Baseline + citations |
-| `GEMINI_API_KEY` | Cloudflare (face worker) | Baseline + citations |
-| `FACE_ADVICE_KV` | Cloudflare | **Стар face worker** — не е AIV CACHE |
+| Secret | Има? | Workflow |
+|--------|------|----------|
+| `CF_ACCOUNT_ID` | ✅ | baseline-collect, deploy |
+| `CF_API_TOKEN` | ✅ | baseline-collect, deploy |
+| `KV_NAMESPACE_ID` | ✅ (face KV) | baseline-collect, deploy |
+| `OPENAI_API_KEY` | **Добави** | baseline-collect |
+| `GEMINI_API_KEY` | **Добави** | baseline-collect |
 
-## Следващи стъпки за deploy на `ai-visibility-edge`
+**Важно:** Ключовете в Cloudflare Worker secrets **не** се виждат от GitHub Actions. Копирай същите стойности:
 
-### 1. D1 база (еднократно)
+`Settings → Secrets and variables → Actions → New repository secret`
+
+## Cloudflare Worker secrets (face / бъдещ AIV)
+
+| Secret | Роля |
+|--------|------|
+| `OPENAI_API_KEY` | Runtime citations |
+| `GEMINI_API_KEY` | Runtime citations |
+| `FACE_ADVICE_KV` | Binding name в face worker |
+
+AIV използва **същия KV namespace** чрез `KV_NAMESPACE_ID` в GitHub — binding `CACHE` в `wrangler.toml`.
+
+## Baseline collect (GitHub Action)
+
+**Workflow:** `.github/workflows/aiv-baseline-collect.yml`
+
+### Ръчно пускане
+
+1. GitHub → **Actions** → **aiv-baseline-collect** → **Run workflow**
+2. Параметри:
+   - `limit`: `5` (пилот) или `20` (пълен)
+   - `model`: `all` | `openai` | `gemini`
+
+### Автоматично
+
+- **Понеделник 06:00 UTC** — седмичен snapshot (limit 20, all models)
+
+### Какво прави
+
+1. `npm run baseline:collect` → raw JSON
+2. `npm run baseline:upload-kv` → KV keys:
+   ```
+   aiv/baseline/2026-08-27/openai/q001
+   aiv/baseline/2026-08-27/gemini/q001
+   aiv/baseline/2026-08-27/manifest
+   ```
+3. Artifact backup (90 дни) в GitHub Actions
+
+### Локално (алтернатива)
 
 ```bash
-cd ai-visibility-edge
+export OPENAI_API_KEY=...
+export GEMINI_API_KEY=...
+export CF_ACCOUNT_ID=...
+export CF_API_TOKEN=...
+export KV_NAMESPACE_ID=...
+npm run baseline:collect -- --limit 5
+npm run baseline:upload-kv
+```
+
+## D1 (за deploy)
+
+```bash
 npx wrangler d1 create aiv
-# Копирай database_id в wrangler.toml
+# database_id → wrangler.toml (замени local-d1-placeholder)
 npx wrangler d1 migrations apply aiv --remote
 ```
 
-### 2. KV за AIV (ако `KV_NAMESPACE_ID` е за face)
+Deploy: Actions → **aiv-deploy** (manual) след D1.
 
-Ако GitHub `KV_NAMESPACE_ID` е за face проекта, създай отделен namespace:
+## Perplexity (по-късно)
 
-```bash
-npx wrangler kv namespace create CACHE
-# id → wrangler.toml [[kv_namespaces]]
-```
-
-### 3. Secrets на **новия** worker
-
-```bash
-npx wrangler secret put OPENAI_API_KEY
-npx wrangler secret put GEMINI_API_KEY
-# по-късно:
-npx wrangler secret put PERPLEXITY_API_KEY
-npx wrangler secret put ADMIN_TOKEN
-```
-
-### 4. Deploy
-
-```bash
-CF_ACCOUNT_ID=... npx wrangler deploy
-```
-
-GitHub Actions deploy workflow — Блок 6.
-
-## Baseline collect (локално)
-
-```bash
-export OPENAI_API_KEY=sk-...
-export GEMINI_API_KEY=...
-npm run baseline:collect -- --limit 5   # пилот
-npm run baseline:collect                # всички 20
-```
-
-Raw JSON → `baseline/2026-08-27/{openai,gemini}/`. Commit в git (или остави gitignored и backup в R2).
-
-## Липсва за пълен 3× модел
-
-- `PERPLEXITY_API_KEY` — Cloudflare secret или local env
-
-## Bing / GSC (безплатно, ръчно)
-
-Регистрирай 4-те домейна в Bing Webmaster Tools и Google Search Console — Блок 0.3.
+Добави `PERPLEXITY_API_KEY` в GitHub + Cloudflare; разшири `baseline-collect.js`.

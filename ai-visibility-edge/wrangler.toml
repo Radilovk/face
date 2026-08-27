@@ -9,13 +9,12 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "aiv"
-database_id = "local-dev-placeholder"
+database_id = "local-d1-placeholder"
 
 [[kv_namespaces]]
 binding = "CACHE"
-id = "local-dev-placeholder"
-
-# Production: override via wrangler secret / CI env KV_NAMESPACE_ID
+# Production / CI: същият namespace като face (KV_NAMESPACE_ID / FACE_ADVICE_KV)
+id = "local-kv-placeholder"
 
 [vars]
 BASELINE_ID = "2026-08-27"

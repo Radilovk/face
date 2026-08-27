@@ -95,7 +95,24 @@ for (const model of models) {
       await sleep(1500);
     } catch (err) {
       console.error(`fail ${model}/${q.id}:`, err.message);
+      process.exitCode = 1;
     }
+  }
+}
+
+updateManifest(models);
+
+function updateManifest(collectedModels) {
+  const manifestPath = join(BASELINE_DIR, 'manifest.json');
+  try {
+    const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    const existing = new Set(manifest.models_collected || []);
+    for (const m of collectedModels) existing.add(m);
+    manifest.models_collected = [...existing];
+    manifest.last_collected_at = new Date().toISOString();
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+  } catch (err) {
+    console.warn('manifest update skipped:', err.message);
   }
 }
 
@@ -103,4 +120,4 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-console.log('Done. Update manifest.json models_collected manually or via import script.');
+console.log('Done.');

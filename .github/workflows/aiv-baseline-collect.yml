@@ -1,0 +1,96 @@
+name: aiv-baseline-collect
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Брой въпроси (1-20)'
+        required: false
+        default: '20'
+        type: string
+      model:
+        description: 'openai | gemini | all'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - openai
+          - gemini
+  schedule:
+    # Понеделник 06:00 UTC — седмичен baseline snapshot
+    - cron: '0 6 * * 1'
+
+concurrency:
+  group: aiv-baseline
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-visibility-edge
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      KV_NAMESPACE_ID: ${{ secrets.KV_NAMESPACE_ID }}
+      BASELINE_ID: '2026-08-27'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: ai-visibility-edge/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Validate secrets
+        run: |
+          missing=0
+          for key in CF_ACCOUNT_ID CF_API_TOKEN KV_NAMESPACE_ID; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Missing GitHub secret: $key"
+              missing=1
+            fi
+          done
+          if [ -z "$OPENAI_API_KEY" ] && [ -z "$GEMINI_API_KEY" ]; then
+            echo "::error::Add OPENAI_API_KEY and/or GEMINI_API_KEY to GitHub Secrets (same values as Cloudflare)"
+            missing=1
+          fi
+          exit $missing
+
+      - name: Collect baseline responses
+        run: |
+          LIMIT="${{ github.event.inputs.limit || '20' }}"
+          MODEL="${{ github.event.inputs.model || 'all' }}"
+          npm run baseline:collect -- --limit "$LIMIT" --model "$MODEL"
+
+      - name: Upload to Cloudflare KV (face namespace)
+        run: npm run baseline:upload-kv
+
+      - name: Upload artifact backup
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: baseline-${{ env.BASELINE_ID }}-${{ github.run_id }}
+          path: |
+            ai-visibility-edge/baseline/${{ env.BASELINE_ID }}/**/*.json
+          retention-days: 90
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Baseline collect" >> $GITHUB_STEP_SUMMARY
+          echo "- Baseline ID: \`$BASELINE_ID\`" >> $GITHUB_STEP_SUMMARY
+          echo "- KV prefix: \`aiv/baseline/$BASELINE_ID/\`" >> $GITHUB_STEP_SUMMARY
+          echo "- Namespace: face KV (\`KV_NAMESPACE_ID\`)" >> $GITHUB_STEP_SUMMARY
+          for model in openai gemini; do
+            count=$(find baseline/$BASELINE_ID/$model -name '*.json' 2>/dev/null | wc -l || echo 0)
+            echo "- $model files: $count" >> $GITHUB_STEP_SUMMARY
+          done

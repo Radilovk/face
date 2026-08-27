@@ -25,23 +25,22 @@ npm run db:migrate:local
 
 ## Baseline (Блок 0.1)
 
-20 въпроса в `baseline/2026-08-27/questions.json`. Събиране:
+20 въпроса в `baseline/2026-08-27/questions.json`.
+
+### GitHub Action (препоръчително)
+
+1. Добави в GitHub Secrets: `OPENAI_API_KEY`, `GEMINI_API_KEY` (копие от Cloudflare)
+2. Actions → **aiv-baseline-collect** → Run workflow (`limit: 5` за пилот)
+3. Резултат в **KV** (`aiv/baseline/...`) + artifact
+
+Виж [docs/SETUP.md](docs/SETUP.md).
+
+### Локално
 
 ```bash
-export OPENAI_API_KEY=...
-export GEMINI_API_KEY=...
-npm run baseline:collect
-npm run baseline:collect -- --limit 5   # пилот, ~$1-3
+npm run baseline:collect -- --limit 5
+npm run baseline:upload-kv
 ```
-
-## Secrets
-
-| Къде | Име | Статус |
-|------|-----|--------|
-| GitHub | `CF_ACCOUNT_ID`, `CF_API_TOKEN`, `KV_NAMESPACE_ID` | ✓ |
-| Cloudflare Worker | `OPENAI_API_KEY`, `GEMINI_API_KEY`, `FACE_ADVICE_KV` | ✓ |
-| Липсва | `PERPLEXITY_API_KEY` | за пълен 3× модел |
-| Липсва | D1 `database_id` в wrangler.toml | при remote deploy |
 
 ## Документация
 

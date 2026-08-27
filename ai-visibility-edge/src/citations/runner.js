@@ -1,4 +1,5 @@
 import { askQuestion, persistRuns } from './ask.js';
+import { reprocessRuns } from './reprocess.js';
 
 const CORE_QUESTION_LIMIT = 10;
 
@@ -14,7 +15,7 @@ export async function runCitationBatch(env) {
     .bind(CORE_QUESTION_LIMIT)
     .all();
 
-  const summary = { asked: 0, runs: 0, errors: [] };
+  const summary = { asked: 0, runs: 0, errors: [], reprocess: null };
 
   for (const q of questions ?? []) {
     summary.asked++;
@@ -26,6 +27,12 @@ export async function runCitationBatch(env) {
     } catch (err) {
       summary.errors.push({ question_id: q.id, error: err.message });
     }
+  }
+
+  try {
+    summary.reprocess = await reprocessRuns(env, { limit: 30 });
+  } catch (err) {
+    summary.errors.push({ step: 'reprocess', error: err.message });
   }
 
   return summary;

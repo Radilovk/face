@@ -1,6 +1,8 @@
 import { withFailOpen } from './middleware/failOpen.js';
 import { loadTenantConfig } from './config/loader.js';
 import { runCitationBatch } from './citations/runner.js';
+import { reprocessRuns } from './citations/reprocess.js';
+import { computeSov, currentPeriod } from './index/sov.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -49,6 +51,18 @@ async function handleRequest(request, env) {
     return runsStats(env);
   }
 
+  if (url.pathname === '/api/observations/stats' && env.DB) {
+    return observationsStats(env);
+  }
+
+  if (url.pathname === '/api/sov' && env.DB) {
+    return sovQuery(env, url);
+  }
+
+  if (url.pathname === '/api/citations/reprocess' && request.method === 'POST') {
+    return reprocessEndpoint(request, env);
+  }
+
   const config = await loadTenantConfig(request, env);
   if (!config) {
     return fetch(request);
@@ -87,6 +101,49 @@ async function runsStats(env) {
     total: total?.n ?? 0,
     by_model: results ?? [],
   });
+}
+
+async function observationsStats(env) {
+  const { results } = await env.DB.prepare(
+    `SELECT class, COUNT(*) as count FROM observations GROUP BY class ORDER BY count DESC`,
+  ).all();
+
+  const mis = await env.DB.prepare(`SELECT COUNT(*) as n FROM misattributions`).first();
+
+  return json({
+    by_class: results ?? [],
+    misattributions: mis?.n ?? 0,
+  });
+}
+
+async function sovQuery(env, url) {
+  const domain = url.searchParams.get('domain');
+  const verticalId = url.searchParams.get('vertical_id');
+  const model = url.searchParams.get('model');
+  const period = url.searchParams.get('period') ?? currentPeriod();
+
+  if (!domain || !verticalId) {
+    return json({ error: 'domain and vertical_id required' }, 400);
+  }
+
+  const score = await computeSov(env.DB, {
+    domain,
+    verticalId,
+    model: model || null,
+    period,
+  });
+
+  return json(score);
+}
+
+async function reprocessEndpoint(request, env) {
+  const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
+  if (env.ADMIN_TOKEN && token !== env.ADMIN_TOKEN) {
+    return json({ error: 'unauthorized' }, 401);
+  }
+
+  const summary = await reprocessRuns(env, { limit: 50 });
+  return json(summary);
 }
 
 function json(body, status = 200) {

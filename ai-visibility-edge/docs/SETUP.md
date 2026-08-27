@@ -9,21 +9,19 @@
 | `KV_NAMESPACE_ID` | ✅ (face KV) | baseline-collect, deploy |
 | `OPENAI_API_KEY` | **GitHub + Worker** | baseline-collect, citations cron |
 | `GEMINI_API_KEY` | **GitHub + Worker** | baseline-collect, citations cron |
-| `D1_DATABASE_ID` | **GitHub** (нов) | D1 migrations + import runs |
+| `D1_DATABASE_ID` | **GitHub** | `b5d03061-7656-4c76-b7c6-699d711d07e4` (в wrangler.toml) |
 
-### Създай D1 (еднократно)
+### D1 база `aiv`
+
+**Database ID:** `b5d03061-7656-4c76-b7c6-699d711d07e4` (в `wrangler.toml`)
+
+Опционално в GitHub Secrets със същата стойност: `D1_DATABASE_ID`
 
 ```bash
-cd ai-visibility-edge
-npx wrangler d1 create aiv
-# Копирай database_id → GitHub Secret: D1_DATABASE_ID
-# Обнови wrangler.toml или rely on CI sed patch
 npx wrangler d1 migrations apply aiv --remote
 ```
 
-След `D1_DATABASE_ID` в GitHub:
-- **aiv-deploy** — миграции + secrets + deploy
-- **aiv-baseline-collect** — import runs в D1 автоматично
+След baseline collect — import автоматично в CI.
 
 ## Cloudflare Worker secrets
 

@@ -77,9 +77,8 @@ jobs:
         run: npm run baseline:upload-kv
 
       - name: Import runs to D1 (remote)
-        if: ${{ secrets.D1_DATABASE_ID != '' }}
         run: |
-          sed -i 's/local-d1-placeholder/${{ secrets.D1_DATABASE_ID }}/' wrangler.toml
+          sed -i 's/local-kv-placeholder/${{ secrets.KV_NAMESPACE_ID }}/' wrangler.toml
           if ! grep -q '^account_id' wrangler.toml; then
             echo "account_id = \"${{ secrets.CF_ACCOUNT_ID }}\"" >> wrangler.toml
           fi

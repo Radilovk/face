@@ -27,10 +27,11 @@ export function testBuildRecommendationsCanaryEdge() {
   const items = buildRecommendations({
     probe: { robots_ai_policy: 'allow', http_status: 200, jsonld_blocks: 1, has_canonical: 1, html_text_chars: 2000, price_tokens: 2 },
     tenant: { domain: 'biocode-bg.com', canary: true },
-    edgeActive: false,
+    edgeActive: true,
   });
 
-  assert(items.some((r) => r.id === 'edge_canary_pending'));
+  assert(items.some((r) => r.id === 'edge_canary_live'));
+  assert(items.some((r) => r.id === 'robots_edge_ok'));
 }
 
 export function testInfoModulesAndChecklist() {

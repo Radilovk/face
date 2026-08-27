@@ -20,6 +20,8 @@ import {
   testBuildRecommendationsCanaryEdge,
   testInfoModulesAndChecklist,
 } from './recommendations.js';
+import { testPlatformHost, testTenantEdgeConfig } from './platform-host.js';
+import { testRenderRobotsTxt, testHandleRobotsServe, testHandleRobotsMerge } from './enhance-robots.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -120,6 +122,11 @@ async function run() {
   testBuildRecommendationsRobots();
   testBuildRecommendationsCanaryEdge();
   testInfoModulesAndChecklist();
+  testPlatformHost();
+  testTenantEdgeConfig();
+  await testRenderRobotsTxt();
+  await testHandleRobotsServe();
+  await testHandleRobotsMerge();
   console.log('All tests passed');
 }
 

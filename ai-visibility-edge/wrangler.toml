@@ -9,7 +9,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "aiv"
-database_id = "local-d1-placeholder"
+database_id = "b5d03061-7656-4c76-b7c6-699d711d07e4"
 
 [[kv_namespaces]]
 binding = "CACHE"

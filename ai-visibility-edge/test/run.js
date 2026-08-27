@@ -7,6 +7,13 @@ import { clearConfigCache, getCachedConfig, setCachedConfig } from '../src/confi
 import { verifyFixtures } from './adapter-fixtures.js';
 import { parseModelResponse } from '../src/citations/extract.js';
 import { testVerifyClassify, testVerifyCitationMockFetch } from './verify-classify.js';
+import {
+  testPassageAutonomy,
+  testComputeDiagnosticScore,
+  testDisplacementExtract,
+  testPerplexityAdapter,
+  testReportTemplate,
+} from './diagnose.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -98,6 +105,11 @@ async function run() {
   testAdapterFixtures();
   testVerifyClassify();
   await testVerifyCitationMockFetch();
+  testPassageAutonomy();
+  testComputeDiagnosticScore();
+  testDisplacementExtract();
+  testPerplexityAdapter();
+  testReportTemplate();
   console.log('All tests passed');
 }
 

@@ -1,6 +1,6 @@
 import { parseModelResponse } from './extract.js';
 
-const DEFAULT_MODELS = ['openai', 'gemini'];
+const DEFAULT_MODELS = ['openai', 'gemini', 'perplexity'];
 
 export async function askQuestion(text, env, options = {}) {
   const models = options.models ?? DEFAULT_MODELS.filter((m) => hasKey(env, m));
@@ -29,6 +29,7 @@ function hasKey(env, model) {
 async function callModel(model, text, env) {
   if (model === 'openai') return callOpenAI(text, env.OPENAI_API_KEY);
   if (model === 'gemini') return callGemini(text, env.GEMINI_API_KEY);
+  if (model === 'perplexity') return callPerplexity(text, env.PERPLEXITY_API_KEY);
   throw new Error(`Unsupported model: ${model}`);
 }
 
@@ -47,6 +48,23 @@ async function callOpenAI(text, apiKey) {
   });
   const raw = await res.json();
   if (!res.ok) throw new Error(`OpenAI ${res.status}: ${JSON.stringify(raw).slice(0, 200)}`);
+  return raw;
+}
+
+async function callPerplexity(text, apiKey) {
+  const res = await fetch('https://api.perplexity.ai/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'sonar',
+      messages: [{ role: 'user', content: text }],
+    }),
+  });
+  const raw = await res.json();
+  if (!res.ok) throw new Error(`Perplexity ${res.status}: ${JSON.stringify(raw).slice(0, 200)}`);
   return raw;
 }
 

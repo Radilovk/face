@@ -1,9 +1,11 @@
 import * as openai from './adapters/openai.js';
 import * as gemini from './adapters/gemini.js';
+import * as perplexity from './adapters/perplexity.js';
 
 const ADAPTERS = {
   openai,
   gemini,
+  perplexity,
 };
 
 export function getAdapter(model) {

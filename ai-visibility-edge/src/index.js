@@ -3,6 +3,10 @@ import { loadTenantConfig } from './config/loader.js';
 import { runCitationBatch } from './citations/runner.js';
 import { reprocessRuns } from './citations/reprocess.js';
 import { computeSov, currentPeriod } from './index/sov.js';
+import { probeDomain, persistDiagnostic } from './diagnose/probe.js';
+import { passageAutonomy, computeDiagnosticScore } from './diagnose/score.js';
+import { analyzeDisplacement } from './diagnose/displacement.js';
+import { buildDomainReport } from './diagnose/report.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -61,6 +65,19 @@ async function handleRequest(request, env) {
 
   if (url.pathname === '/api/citations/reprocess' && request.method === 'POST') {
     return reprocessEndpoint(request, env);
+  }
+
+  if (url.pathname === '/api/diagnose/probe' && env.DB) {
+    return probeEndpoint(env, url);
+  }
+
+  if (url.pathname === '/api/diagnose/displacement' && env.DB) {
+    return displacementEndpoint(env, url);
+  }
+
+  const reportMatch = url.pathname.match(/^\/(?:api\/)?report\/([^/]+)$/);
+  if (reportMatch && env.DB) {
+    return reportEndpoint(env, reportMatch[1], url, request);
   }
 
   const config = await loadTenantConfig(request, env);
@@ -144,6 +161,56 @@ async function reprocessEndpoint(request, env) {
 
   const summary = await reprocessRuns(env, { limit: 50 });
   return json(summary);
+}
+
+async function probeEndpoint(env, url) {
+  const domain = url.searchParams.get('domain');
+  if (!domain) return json({ error: 'domain required' }, 400);
+
+  const probeResult = await probeDomain(domain);
+  const passage = passageAutonomy(probeResult.raw_json?.text_sample ?? '');
+  const score = computeDiagnosticScore(probeResult, passage);
+  const saved = await persistDiagnostic(env.DB, probeResult, score);
+
+  return json({ ...saved, passage });
+}
+
+async function displacementEndpoint(env, url) {
+  const domain = url.searchParams.get('domain');
+  const verticalId = url.searchParams.get('vertical_id');
+  const model = url.searchParams.get('model');
+
+  if (!domain || !verticalId) {
+    return json({ error: 'domain and vertical_id required' }, 400);
+  }
+
+  const result = await analyzeDisplacement(env.DB, { domain, verticalId, model: model || null });
+  return json(result);
+}
+
+async function reportEndpoint(env, domain, url, request) {
+  const format = url.searchParams.get('format') ?? 'html';
+  const model = url.searchParams.get('model');
+
+  const report = await buildDomainReport(env, decodeURIComponent(domain), {
+    model: model || null,
+    includeSov: url.searchParams.get('sov') !== '0',
+  });
+
+  if (report.error) return json(report, 404);
+
+  if (format === 'json') {
+    const { html, ...rest } = report;
+    return json(rest);
+  }
+
+  return new Response(report.html, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'public, max-age=300',
+    },
+  });
 }
 
 function json(body, status = 200) {

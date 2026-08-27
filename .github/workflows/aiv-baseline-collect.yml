@@ -9,7 +9,7 @@ on:
         default: '20'
         type: string
       model:
-        description: 'openai | gemini | all'
+        description: 'openai | gemini | perplexity | all'
         required: false
         default: 'all'
         type: choice
@@ -17,6 +17,7 @@ on:
           - all
           - openai
           - gemini
+          - perplexity
   schedule:
     # Понеделник 06:00 UTC — седмичен baseline snapshot
     - cron: '0 6 * * 1'
@@ -39,8 +40,8 @@ jobs:
       KV_NAMESPACE_ID: ${{ secrets.KV_NAMESPACE_ID }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
       BASELINE_ID: '2026-08-27'
-    steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -61,8 +62,8 @@ jobs:
               missing=1
             fi
           done
-          if [ -z "$OPENAI_API_KEY" ] && [ -z "$GEMINI_API_KEY" ]; then
-            echo "::error::Add OPENAI_API_KEY and/or GEMINI_API_KEY to GitHub Secrets (same values as Cloudflare)"
+          if [ -z "$OPENAI_API_KEY" ] && [ -z "$GEMINI_API_KEY" ] && [ -z "$PERPLEXITY_API_KEY" ]; then
+            echo "::error::Add OPENAI_API_KEY, GEMINI_API_KEY and/or PERPLEXITY_API_KEY to GitHub Secrets"
             missing=1
           fi
           exit $missing
@@ -100,7 +101,7 @@ jobs:
           echo "- Baseline ID: \`$BASELINE_ID\`" >> $GITHUB_STEP_SUMMARY
           echo "- KV prefix: \`aiv/baseline/$BASELINE_ID/\`" >> $GITHUB_STEP_SUMMARY
           echo "- Namespace: face KV (\`KV_NAMESPACE_ID\`)" >> $GITHUB_STEP_SUMMARY
-          for model in openai gemini; do
+          for model in openai gemini perplexity; do
             count=$(find baseline/$BASELINE_ID/$model -name '*.json' 2>/dev/null | wc -l || echo 0)
             echo "- $model files: $count" >> $GITHUB_STEP_SUMMARY
           done

@@ -1,7 +1,7 @@
 import { askQuestion, persistRuns } from './ask.js';
 import { reprocessRuns } from './reprocess.js';
 
-const CORE_QUESTION_LIMIT = 10;
+const REPETITIONS = 3;
 
 export async function runCitationBatch(env) {
   if (!env.DB) {
@@ -10,22 +10,22 @@ export async function runCitationBatch(env) {
   }
 
   const { results: questions } = await env.DB.prepare(
-    `SELECT id, text FROM questions ORDER BY id LIMIT ?`,
-  )
-    .bind(CORE_QUESTION_LIMIT)
-    .all();
+    `SELECT id, text FROM questions ORDER BY id`,
+  ).all();
 
   const summary = { asked: 0, runs: 0, errors: [], reprocess: null };
 
   for (const q of questions ?? []) {
-    summary.asked++;
-    try {
-      const answers = await askQuestion(q.text, env);
-      const saved = await persistRuns(env.DB, q.id, answers, 1);
-      summary.runs += saved.length;
-      await sleep(2000);
-    } catch (err) {
-      summary.errors.push({ question_id: q.id, error: err.message });
+    for (let rep = 1; rep <= REPETITIONS; rep++) {
+      summary.asked++;
+      try {
+        const answers = await askQuestion(q.text, env);
+        const saved = await persistRuns(env.DB, q.id, answers, rep);
+        summary.runs += saved.length;
+        await sleep(2000);
+      } catch (err) {
+        summary.errors.push({ question_id: q.id, repetition: rep, error: err.message });
+      }
     }
   }
 

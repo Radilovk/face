@@ -34,7 +34,7 @@ for (const q of questions) {
   );
 }
 
-for (const model of ['openai', 'gemini']) {
+for (const model of ['openai', 'gemini', 'perplexity']) {
   const dir = join(BASE, model);
   if (!existsSync(dir)) {
     console.warn(`skip ${model}: no directory`);

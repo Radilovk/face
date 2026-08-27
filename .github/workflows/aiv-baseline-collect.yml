@@ -78,13 +78,13 @@ jobs:
       - name: Upload to Cloudflare KV (face namespace)
         run: npm run baseline:upload-kv
 
-      - name: Import runs to D1 (remote)
+      - name: Patch wrangler.toml (KV + account)
         run: |
           sed -i 's/local-kv-placeholder/${{ secrets.KV_NAMESPACE_ID }}/' wrangler.toml
-          if ! grep -q '^account_id' wrangler.toml; then
-            echo "account_id = \"${{ secrets.CF_ACCOUNT_ID }}\"" >> wrangler.toml
-          fi
-          node scripts/baseline-import-d1.js
+          sed -i 's/account_id = "placeholder"/account_id = "${{ secrets.CF_ACCOUNT_ID }}"/' wrangler.toml
+
+      - name: Import runs to D1 (remote)
+        run: node scripts/baseline-import-d1.js
 
       - name: Upload artifact backup
         uses: actions/upload-artifact@v4

@@ -1,5 +1,15 @@
 export const SCHEMA_VERSION = '2026-08';
-export const FIXTURE = new URL('./fixtures/openai-2026-08.json', import.meta.url);
+export const FIXTURE = (() => {
+  try {
+    return new URL('./fixtures/openai-2026-08.json', import.meta.url);
+  } catch (e) {
+    // Some build/runtime environments (esbuild/wrangler) don't provide a valid
+    // import.meta.url at module-evaluation time and `new URL(..., import.meta.url)`
+    // throws `TypeError: Invalid URL string`.
+    // Fall back to a plain relative path string which tests/tools can resolve.
+    return './fixtures/openai-2026-08.json';
+  }
+})();
 
 /**
  * @param {object} raw — OpenAI Responses API body

@@ -7,7 +7,7 @@ import { probeDomain, persistDiagnostic } from './diagnose/probe.js';
 import { passageAutonomy, computeDiagnosticScore } from './diagnose/score.js';
 import { analyzeDisplacement } from './diagnose/displacement.js';
 import { buildDomainReport } from './diagnose/report.js';
-import { fetchDashboardSummary, renderDashboardPage } from './ui/dashboard.js';
+import { fetchDashboardSummary, fetchDashboardRecommendations, renderDashboardPage } from './ui/dashboard.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -48,6 +48,13 @@ async function handleRequest(request, env, ctx) {
   if (url.pathname === '/api/dashboard/summary') {
     const summary = await fetchDashboardSummary(env);
     return json(summary);
+  }
+
+  if (url.pathname === '/api/dashboard/recommendations') {
+    const domain = url.searchParams.get('domain');
+    const result = await fetchDashboardRecommendations(env, { domain });
+    if (result.error) return json(result, 404);
+    return json(result);
   }
 
   if (url.pathname === '/api/baseline-info') {

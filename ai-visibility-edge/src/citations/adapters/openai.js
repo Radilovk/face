@@ -1,12 +1,20 @@
 export const SCHEMA_VERSION = '2026-08';
 export const FIXTURE = (() => {
+  // Some runtimes (esbuild, wrangler, Cloudflare Workers) may provide
+  // import.meta but not a usable import.meta.url string. Avoid calling
+  // `new URL(..., import.meta.url)` unless we have a valid string to use
+  // as the base; otherwise fall back to the plain relative path string.
+  const base = (typeof import.meta === 'object' && typeof import.meta.url === 'string')
+    ? import.meta.url
+    : null;
+
+  if (!base) return './fixtures/openai-2026-08.json';
+
   try {
-    return new URL('./fixtures/openai-2026-08.json', import.meta.url);
+    return new URL('./fixtures/openai-2026-08.json', base);
   } catch (e) {
-    // Some build/runtime environments (esbuild/wrangler) don't provide a valid
-    // import.meta.url at module-evaluation time and `new URL(..., import.meta.url)`
-    // throws `TypeError: Invalid URL string`.
-    // Fall back to a plain relative path string which tests/tools can resolve.
+    // If constructing the URL still fails for some reason, fall back to
+    // the relative path so tests/tools can resolve it.
     return './fixtures/openai-2026-08.json';
   }
 })();

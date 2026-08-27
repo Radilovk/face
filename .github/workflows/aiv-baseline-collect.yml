@@ -18,6 +18,11 @@ on:
           - openai
           - gemini
           - perplexity
+      import_only:
+        description: 'Skip API collect — fetch from KV + D1 import only'
+        required: false
+        default: false
+        type: boolean
   schedule:
     # Понеделник 06:00 UTC — седмичен baseline snapshot
     - cron: '0 6 * * 1'
@@ -70,22 +75,40 @@ jobs:
           exit $missing
 
       - name: Collect baseline responses
+        if: ${{ github.event.inputs.import_only != 'true' }}
         run: |
           LIMIT="${{ github.event.inputs.limit || '20' }}"
           MODEL="${{ github.event.inputs.model || 'all' }}"
           npm run baseline:collect -- --limit "$LIMIT" --model "$MODEL"
 
+      - name: Fetch baseline from KV (import-only)
+        if: ${{ github.event.inputs.import_only == 'true' }}
+        run: npm run baseline:fetch-kv
+
       - name: Upload to Cloudflare KV (face namespace)
+        if: ${{ github.event.inputs.import_only != 'true' }}
         run: npm run baseline:upload-kv
 
       - name: Patch wrangler.toml (KV + account)
         run: |
-          sed -i 's/local-kv-placeholder/${{ secrets.KV_NAMESPACE_ID }}/' wrangler.toml
-          sed -i 's/account_id = "placeholder"/account_id = "${{ secrets.CF_ACCOUNT_ID }}"/' wrangler.toml
-          if grep -q 'account_id = "placeholder"' wrangler.toml; then
-            echo "::error::CF_ACCOUNT_ID secret missing or empty — cannot patch wrangler.toml"
+          ACCOUNT_ID="${{ secrets.CF_ACCOUNT_ID }}"
+          if [ -z "$ACCOUNT_ID" ]; then
+            echo "::error::GitHub secret CF_ACCOUNT_ID is empty — add your Cloudflare account ID"
             exit 1
           fi
+          sed -i 's/local-kv-placeholder/${{ secrets.KV_NAMESPACE_ID }}/' wrangler.toml
+          sed -i '/^account_id = "placeholder"/d' wrangler.toml
+          if ! grep -q '^account_id' wrangler.toml; then
+            sed -i "0,/^name = /s//account_id = \"${ACCOUNT_ID}\"\n&/" wrangler.toml
+          else
+            sed -i "s/^account_id = .*/account_id = \"${ACCOUNT_ID}\"/" wrangler.toml
+          fi
+          if grep -q placeholder wrangler.toml; then
+            echo "::error::wrangler.toml still contains placeholder"
+            exit 1
+          fi
+          echo "wrangler.toml patched OK"
+          grep '^account_id' wrangler.toml
 
       - name: Import runs to D1 (remote)
         run: node scripts/baseline-import-d1.js

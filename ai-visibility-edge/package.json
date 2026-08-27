@@ -10,7 +10,10 @@
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply aiv --local",
     "baseline:collect": "node scripts/baseline-collect.js",
-    "baseline:upload-kv": "node scripts/baseline-upload-kv.js"
+    "baseline:upload-kv": "node scripts/baseline-upload-kv.js",
+    "baseline:fetch-kv": "node scripts/baseline-fetch-kv.js",
+    "db:import-baseline": "node scripts/baseline-import-d1.js",
+    "db:migrate:remote": "wrangler d1 migrations apply aiv --remote"
   },
   "devDependencies": {
     "wrangler": "^4.0.0"

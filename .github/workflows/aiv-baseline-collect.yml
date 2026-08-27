@@ -37,6 +37,8 @@ jobs:
       CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
       CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
       KV_NAMESPACE_ID: ${{ secrets.KV_NAMESPACE_ID }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
       BASELINE_ID: '2026-08-27'
     steps:
       - uses: actions/checkout@v4
@@ -73,6 +75,15 @@ jobs:
 
       - name: Upload to Cloudflare KV (face namespace)
         run: npm run baseline:upload-kv
+
+      - name: Import runs to D1 (remote)
+        if: ${{ secrets.D1_DATABASE_ID != '' }}
+        run: |
+          sed -i 's/local-d1-placeholder/${{ secrets.D1_DATABASE_ID }}/' wrangler.toml
+          if ! grep -q '^account_id' wrangler.toml; then
+            echo "account_id = \"${{ secrets.CF_ACCOUNT_ID }}\"" >> wrangler.toml
+          fi
+          node scripts/baseline-import-d1.js
 
       - name: Upload artifact backup
         uses: actions/upload-artifact@v4

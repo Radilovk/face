@@ -15,6 +15,11 @@ import {
   testReportTemplate,
 } from './diagnose.js';
 import { testDashboardPage } from './dashboard.js';
+import {
+  testBuildRecommendationsRobots,
+  testBuildRecommendationsCanaryEdge,
+  testInfoModulesAndChecklist,
+} from './recommendations.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -112,6 +117,9 @@ async function run() {
   testPerplexityAdapter();
   testReportTemplate();
   testDashboardPage();
+  testBuildRecommendationsRobots();
+  testBuildRecommendationsCanaryEdge();
+  testInfoModulesAndChecklist();
   console.log('All tests passed');
 }
 

@@ -29,7 +29,7 @@ on:
 
 concurrency:
   group: aiv-baseline
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   collect:

@@ -1,3 +1,5 @@
+import { isEdgeEnabled } from './tenantEdge.js';
+
 const moduleCache = new Map();
 
 export function getCachedConfig(hostname) {
@@ -54,6 +56,8 @@ export async function loadTenantConfig(request, env) {
     apexHost: row.apex_host,
     plan: row.plan,
     status: row.status,
+    isCanary: Boolean(row.is_canary),
+    edgeEnabled: isEdgeEnabled(hostname),
   };
 
   setCachedConfig(hostname, config);

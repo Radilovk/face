@@ -3,8 +3,7 @@ main = "src/index.js"
 compatibility_date = "2026-08-01"
 compatibility_flags = ["nodejs_compat"]
 
-# Account ID: set via CF_ACCOUNT_ID env or wrangler deploy
-account_id = "placeholder"
+# account_id: via CLOUDFLARE_ACCOUNT_ID env (GitHub secret CF_ACCOUNT_ID in CI)
 
 [[d1_databases]]
 binding = "DB"

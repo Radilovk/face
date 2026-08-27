@@ -92,17 +92,28 @@ function ensureWranglerConfig(root) {
     process.exit(1);
   }
 
-  if (accountId) {
-    toml = toml.replace(/account_id = "placeholder"/, `account_id = "${accountId}"`);
+  // Never let a stale placeholder reach wrangler
+  toml = toml.replace(/^account_id = "placeholder"\n/m, '');
+
+  if (accountId && !/^account_id\s*=/m.test(toml)) {
+    toml = toml.replace(
+      /^(name = "ai-visibility-edge"\n)/m,
+      `$1account_id = "${accountId}"\n`,
+    );
   }
+
   if (kvId) {
     toml = toml.replace(/id = "local-kv-placeholder"/, `id = "${kvId}"`);
   }
 
   writeFileSync(tomlPath, toml);
 
+  if (accountId) {
+    process.env.CLOUDFLARE_ACCOUNT_ID = accountId;
+  }
+
   if (!local && /account_id = "placeholder"/.test(toml)) {
-    console.error('wrangler.toml still has account_id = "placeholder" — check CF_ACCOUNT_ID secret');
+    console.error('wrangler.toml still has account_id = "placeholder"');
     process.exit(1);
   }
 }

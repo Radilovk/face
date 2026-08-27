@@ -8,6 +8,7 @@ on:
       - 'ai-visibility-edge/src/**'
       - 'ai-visibility-edge/wrangler.toml'
       - 'ai-visibility-edge/migrations/**'
+      - '.github/workflows/aiv-deploy.yml'
 
 jobs:
   deploy:

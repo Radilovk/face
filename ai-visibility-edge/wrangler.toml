@@ -1,0 +1,24 @@
+name = "ai-visibility-edge"
+main = "src/index.js"
+compatibility_date = "2026-08-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Account ID: set via CF_ACCOUNT_ID env or wrangler deploy
+# account_id = "..."
+
+[[d1_databases]]
+binding = "DB"
+database_name = "aiv"
+database_id = "local-dev-placeholder"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "local-dev-placeholder"
+
+# Production: override via wrangler secret / CI env KV_NAMESPACE_ID
+
+[vars]
+BASELINE_ID = "2026-08-27"
+
+[triggers]
+crons = ["0 3 * * 1"]

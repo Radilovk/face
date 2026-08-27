@@ -1,0 +1,21 @@
+{
+  "baseline_id": "2026-08-27",
+  "created_at": "2026-08-27T00:00:00Z",
+  "status": "questions_ready",
+  "models_planned": ["openai", "gemini", "perplexity"],
+  "models_collected": [],
+  "question_count": 20,
+  "repetitions_per_question": 1,
+  "note": "Първи snapshot. Пусни: npm run baseline:collect (OpenAI + Gemini). Perplexity — след PERPLEXITY_API_KEY.",
+  "tenant_domains": [
+    "daotslabna.com",
+    "biocode-bg.com",
+    "life-protocols.com",
+    "biocode-peptides.com"
+  ],
+  "gates": {
+    "minimum_questions": 20,
+    "minimum_models": 2,
+    "raw_response_required": true
+  }
+}

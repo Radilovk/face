@@ -1,23 +1,54 @@
 # AI Visibility Edge
 
-Платформа за измерване, диагностика и подобрение на видимостта в AI (ChatGPT, Gemini, Perplexity и др.).
+Платформа за измерване, диагностика и подобрение на AI видимост.
+
+## Tenant домейни (baseline 2026-08-27)
+
+| Домейн | Фокус |
+|--------|--------|
+| [daotslabna.com](https://daotslabna.com) | Отслабване, добавки |
+| [biocode-bg.com](https://biocode-bg.com) | Протеини, витамини, каталог BG |
+| [life-protocols.com](https://life-protocols.com) | Протоколи здраве / дълголетие |
+| [biocode-peptides.com](https://biocode-peptides.com) | Research пептиди |
+
+**Canary tenant:** `biocode-bg.com`
+
+## Бърз старт
+
+```bash
+cd ai-visibility-edge
+npm install
+npm test
+npm run dev          # /health → 200
+npm run db:migrate:local
+```
+
+## Baseline (Блок 0.1)
+
+20 въпроса в `baseline/2026-08-27/questions.json`. Събиране:
+
+```bash
+export OPENAI_API_KEY=...
+export GEMINI_API_KEY=...
+npm run baseline:collect
+npm run baseline:collect -- --limit 5   # пилот, ~$1-3
+```
+
+## Secrets
+
+| Къде | Име | Статус |
+|------|-----|--------|
+| GitHub | `CF_ACCOUNT_ID`, `CF_API_TOKEN`, `KV_NAMESPACE_ID` | ✓ |
+| Cloudflare Worker | `OPENAI_API_KEY`, `GEMINI_API_KEY`, `FACE_ADVICE_KV` | ✓ |
+| Липсва | `PERPLEXITY_API_KEY` | за пълен 3× модел |
+| Липсва | D1 `database_id` в wrangler.toml | при remote deploy |
 
 ## Документация
 
-| Документ | Аудитория | Роля |
-|----------|-----------|------|
-| **[СТРАТЕГИЯ](docs/СТРАТЕГИЯ.md)** | Всички при планиране | Пълен план за създаване на проекта |
-| [MASTER](docs/MASTER.md) | Ти, Cursor, екип | Източник на истина — решения и блокове |
-| [Обяснение за всеки](docs/обяснение-за-всеки.md) | Клиенти, партньори | Концепция без IT/AI език |
-| CURSOR_SPEC v1 / v2 | Разработка | Код, миграции, acceptance |
-| «Механизмът» (PDF) | Справка | Защо работи конвейерът |
+| Документ | Роля |
+|----------|------|
+| [СТРАТЕГИЯ](docs/СТРАТЕГИЯ.md) | Пълен план |
+| [MASTER](docs/MASTER.md) | Източник на истина |
+| [Обяснение за всеки](docs/обяснение-за-всеки.md) | Нетехнически |
+| [baseline/README.md](baseline/README.md) | Базова линия |
 
-## Старт
-
-1. **Планиране:** [docs/СТРАТЕГИЯ.md](docs/СТРАТЕГИЯ.md) → Блок 0.1 (базова линия) **днес**
-2. **Разбиране:** [docs/обяснение-за-всеки.md](docs/обяснение-за-всеки.md)
-3. **Код:** Блок 1 — scaffolding (`wrangler dev`, `/health`)
-
-## Архитектура (една линия)
-
-Измерване → логове → AI-SOV + кеш индекс | Edge поправка | Консултиране достъп

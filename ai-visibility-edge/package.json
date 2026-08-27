@@ -1,0 +1,17 @@
+{
+  "name": "ai-visibility-edge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Edge платформа за AI видимост — измерване, диагностика, enhance",
+  "scripts": {
+    "test": "node test/run.js",
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate:local": "wrangler d1 migrations apply aiv --local",
+    "baseline:collect": "node scripts/baseline-collect.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

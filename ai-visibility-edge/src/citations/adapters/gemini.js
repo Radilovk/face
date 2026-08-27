@@ -1,5 +1,4 @@
 export const SCHEMA_VERSION = '2026-08';
-export const FIXTURE = new URL('./fixtures/gemini-2026-08.json', import.meta.url);
 
 /**
  * @param {object} raw — Gemini generateContent response

@@ -6,6 +6,7 @@ import { withFailOpen } from '../src/middleware/failOpen.js';
 import { clearConfigCache, getCachedConfig, setCachedConfig } from '../src/config/loader.js';
 import { verifyFixtures } from './adapter-fixtures.js';
 import { parseModelResponse } from '../src/citations/extract.js';
+import { testVerifyClassify, testVerifyCitationMockFetch } from './verify-classify.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -95,6 +96,8 @@ async function run() {
   testModuleCacheSkipsD1();
   testBaselineQuestions();
   testAdapterFixtures();
+  testVerifyClassify();
+  await testVerifyCitationMockFetch();
   console.log('All tests passed');
 }
 

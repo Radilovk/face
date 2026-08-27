@@ -23,6 +23,26 @@ npx wrangler d1 migrations apply aiv --remote
 
 След baseline collect — import автоматично в CI.
 
+### Reprocess (runs → observations)
+
+След като има `runs` в D1:
+
+```bash
+curl -X POST https://<worker>/api/citations/reprocess \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+```
+
+Или автоматично след **cron citations** (понеделник 03:00 UTC).
+
+### API endpoints
+
+| Endpoint | Описание |
+|----------|----------|
+| `/api/runs/stats` | Брой runs по model |
+| `/api/observations/stats` | Класове + misattributions |
+| `/api/sov?domain=&vertical_id=&model=` | AI-SOV snapshot |
+| `/api/citations/reprocess` | POST — verify + classify |
+
 ## Cloudflare Worker secrets
 
 | Secret | Роля |

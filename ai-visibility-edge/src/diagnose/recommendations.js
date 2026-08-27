@@ -126,9 +126,9 @@ export const USER_CHECKLIST = [
     owner: 'you',
     done_when: 'CNAME + deploy → robots от Edge',
     items: [
-      'CNAME biocode-bg.com → Worker (направено ✓)',
-      'Merge + aiv-deploy за robots от git config',
-      'Ако сайтът не се зарежда: origin_host в tenant config',
+      'CNAME www/apex → ai-visibility-edge (направено ✓)',
+      'port Worker остава deploy-нат — backend origin (workers.dev или origin.* custom domain)',
+      'git origin.type=worker → merge + aiv-deploy',
     ],
   },
 ];

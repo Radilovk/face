@@ -1,0 +1,16 @@
+{
+  "id": "ppx_fixture_001",
+  "model": "sonar",
+  "choices": [
+    {
+      "message": {
+        "role": "assistant",
+        "content": "Популярни онлайн магазини за спортни добавки в България включват MyProtein и специализирани каталози."
+      }
+    }
+  ],
+  "citations": [
+    "https://myprotein.bg/",
+    "https://zdrave.net/"
+  ]
+}

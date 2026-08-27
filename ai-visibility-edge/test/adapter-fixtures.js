@@ -2,6 +2,7 @@
 export const FIXTURE_PATHS = {
   openai: 'src/citations/adapters/fixtures/openai-2026-08.json',
   gemini: 'src/citations/adapters/fixtures/gemini-2026-08.json',
+  perplexity: 'src/citations/adapters/fixtures/perplexity-2026-08.json',
 };
 
 export function verifyFixtures(readJson, parseModelResponse) {

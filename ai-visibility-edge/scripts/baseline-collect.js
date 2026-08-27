@@ -17,11 +17,16 @@ const limitArg = args.includes('--limit') ? Number(args[args.indexOf('--limit') 
 
 const models =
   modelArg === 'all'
-    ? ['openai', 'gemini'].filter((m) => (m === 'openai' ? process.env.OPENAI_API_KEY : process.env.GEMINI_API_KEY))
+    ? ['openai', 'gemini', 'perplexity'].filter((m) => {
+        if (m === 'openai') return process.env.OPENAI_API_KEY;
+        if (m === 'gemini') return process.env.GEMINI_API_KEY;
+        if (m === 'perplexity') return process.env.PERPLEXITY_API_KEY;
+        return false;
+      })
     : [modelArg];
 
 if (models.length === 0) {
-  console.error('No API keys. Set OPENAI_API_KEY and/or GEMINI_API_KEY');
+  console.error('No API keys. Set OPENAI_API_KEY, GEMINI_API_KEY and/or PERPLEXITY_API_KEY');
   process.exit(1);
 }
 
@@ -59,9 +64,27 @@ async function askGemini(text) {
   return raw;
 }
 
+async function askPerplexity(text) {
+  const res = await fetch('https://api.perplexity.ai/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'sonar',
+      messages: [{ role: 'user', content: text }],
+    }),
+  });
+  const raw = await res.json();
+  if (!res.ok) throw new Error(`Perplexity ${res.status}: ${JSON.stringify(raw)}`);
+  return raw;
+}
+
 const askers = {
   openai: askOpenAI,
   gemini: askGemini,
+  perplexity: askPerplexity,
 };
 
 for (const model of models) {
@@ -109,6 +132,10 @@ function updateManifest(collectedModels) {
     const existing = new Set(manifest.models_collected || []);
     for (const m of collectedModels) existing.add(m);
     manifest.models_collected = [...existing];
+    manifest.status =
+      manifest.models_collected.length >= (manifest.gates?.minimum_models ?? 2)
+        ? 'collected'
+        : 'partial';
     manifest.last_collected_at = new Date().toISOString();
     writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   } catch (err) {

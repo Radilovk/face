@@ -1,0 +1,24 @@
+name: ai-visibility-edge
+
+on:
+  pull_request:
+    paths:
+      - 'ai-visibility-edge/**'
+  push:
+    branches: [main]
+    paths:
+      - 'ai-visibility-edge/**'
+
+defaults:
+  run:
+    working-directory: ai-visibility-edge
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm test

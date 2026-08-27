@@ -1,0 +1,58 @@
+{
+  "version": "2026-08-27",
+  "description": "Собствени домейни за baseline и canary — група BIOCODE / здраве и добавки",
+  "tenants": [
+    {
+      "id": "tenant-daotslabna",
+      "name": "Да отслабна",
+      "apex_host": "daotslabna.com",
+      "vertical_id": "weight-loss-supplements-bg",
+      "role": "tenant",
+      "focus": "Отслабване, fat burners, хранителни добавки за контрол на тегло"
+    },
+    {
+      "id": "tenant-biocode",
+      "name": "BIOCODE Nutrition",
+      "apex_host": "biocode-bg.com",
+      "vertical_id": "sports-nutrition-supplements-bg",
+      "role": "tenant",
+      "focus": "Протеини, витамини, аминокиселини, каталог добавки България"
+    },
+    {
+      "id": "tenant-life-protocols",
+      "name": "Life Protocols",
+      "apex_host": "life-protocols.com",
+      "vertical_id": "longevity-protocols-bg",
+      "role": "tenant",
+      "focus": "Протоколи за здраве, дълголетие, anti-aging добавки"
+    },
+    {
+      "id": "tenant-biocode-peptides",
+      "name": "BIOCODE Peptides",
+      "apex_host": "biocode-peptides.com",
+      "vertical_id": "peptides-research-bg",
+      "role": "tenant",
+      "focus": "Пептиди, research peptides, възстановяване, biohacking"
+    }
+  ],
+  "watched_competitors": [
+    { "domain": "zdrave.net", "vertical_id": "weight-loss-supplements-bg", "role": "competitor" },
+    { "domain": "apteka.framar.bg", "vertical_id": "weight-loss-supplements-bg", "role": "competitor" },
+    { "domain": "myprotein.bg", "vertical_id": "sports-nutrition-supplements-bg", "role": "competitor" },
+    { "domain": "haya.bg", "vertical_id": "sports-nutrition-supplements-bg", "role": "competitor" },
+    { "domain": "hollandandbarrett.bg", "vertical_id": "longevity-protocols-bg", "role": "competitor" },
+    { "domain": "iherb.com", "vertical_id": "longevity-protocols-bg", "role": "competitor" },
+    { "domain": "peptide.shop", "vertical_id": "peptides-research-bg", "role": "competitor" },
+    { "domain": "purepeptidelabs.com", "vertical_id": "peptides-research-bg", "role": "competitor" }
+  ],
+  "control_domains": [
+    { "domain": "wikipedia.org", "vertical_id": "weight-loss-supplements-bg", "role": "control" },
+    { "domain": "nih.gov", "vertical_id": "weight-loss-supplements-bg", "role": "control" },
+    { "domain": "wikipedia.org", "vertical_id": "sports-nutrition-supplements-bg", "role": "control" },
+    { "domain": "examine.com", "vertical_id": "sports-nutrition-supplements-bg", "role": "control" },
+    { "domain": "pubmed.ncbi.nlm.nih.gov", "vertical_id": "longevity-protocols-bg", "role": "control" },
+    { "domain": "mayoclinic.org", "vertical_id": "longevity-protocols-bg", "role": "control" },
+    { "domain": "ncbi.nlm.nih.gov", "vertical_id": "peptides-research-bg", "role": "control" },
+    { "domain": "fda.gov", "vertical_id": "peptides-research-bg", "role": "control" }
+  ]
+}

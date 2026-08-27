@@ -1,0 +1,207 @@
+{
+  "version": "2026-08-27",
+  "formula_version": "baseline-v1",
+  "note": "20 въпроса × 3 модела. 5 на домейн/вертикал. Ръчно curated за BG пазар на добавки.",
+  "questions": [
+    {
+      "id": "q001",
+      "vertical_id": "weight-loss-supplements-bg",
+      "tenant_domain": "daotslabna.com",
+      "text": "Кои хранителни добавки за отслабване се препоръчват в България през 2026?",
+      "qtype": "informational",
+      "intent": "informational",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q002",
+      "vertical_id": "weight-loss-supplements-bg",
+      "tenant_domain": "daotslabna.com",
+      "text": "Къде да купя онлайн добавки за отслабване с доставка в България?",
+      "qtype": "product",
+      "intent": "product",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q003",
+      "vertical_id": "weight-loss-supplements-bg",
+      "tenant_domain": "daotslabna.com",
+      "text": "Каква е разликата между термогенни fat burners и добавки за потискане на апетита?",
+      "qtype": "comparative",
+      "intent": "comparative",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q004",
+      "vertical_id": "weight-loss-supplements-bg",
+      "tenant_domain": "daotslabna.com",
+      "text": "daotslabna.com отзиви — надежден ли е магазин за добавки за отслабване?",
+      "qtype": "brand",
+      "intent": "brand",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q005",
+      "vertical_id": "weight-loss-supplements-bg",
+      "tenant_domain": "daotslabna.com",
+      "text": "Имам около 15 kg излишно тегло, работя седнала работа, тренирам 2 пъти седмично и мога да отделя до 80 € месечно за добавки. Какви продукти за отслабване имат смисъл и от кои български онлайн магазини да поръчам с доставка до адрес или офис?",
+      "qtype": "informational",
+      "intent": "product",
+      "source": "manual",
+      "situational": true
+    },
+    {
+      "id": "q006",
+      "vertical_id": "sports-nutrition-supplements-bg",
+      "tenant_domain": "biocode-bg.com",
+      "text": "Къде да купя протеин, витамини и аминокиселини онлайн в България?",
+      "qtype": "product",
+      "intent": "product",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q007",
+      "vertical_id": "sports-nutrition-supplements-bg",
+      "tenant_domain": "biocode-bg.com",
+      "text": "Кои са най-популярните марки хранителни добавки и протеини в България?",
+      "qtype": "comparative",
+      "intent": "comparative",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q008",
+      "vertical_id": "sports-nutrition-supplements-bg",
+      "tenant_domain": "biocode-bg.com",
+      "text": "BIOCODE biocode-bg.com — какво предлагат и дали е надежден каталог за добавки?",
+      "qtype": "brand",
+      "intent": "brand",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q009",
+      "vertical_id": "sports-nutrition-supplements-bg",
+      "tenant_domain": "biocode-bg.com",
+      "text": "Как да избера whey протеин според цел — качване на мускулна маса срещу отслабване?",
+      "qtype": "informational",
+      "intent": "informational",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q010",
+      "vertical_id": "sports-nutrition-supplements-bg",
+      "tenant_domain": "biocode-bg.com",
+      "text": "Тренирам 4 пъти седмично силово, търся протеин и креатин с доставка до офис на куриер в България, бюджет около 120 €. Кои магазини и продукти препоръчвате?",
+      "qtype": "informational",
+      "intent": "product",
+      "source": "manual",
+      "situational": true
+    },
+    {
+      "id": "q011",
+      "vertical_id": "longevity-protocols-bg",
+      "tenant_domain": "life-protocols.com",
+      "text": "Какви протоколи и добавки за дълголетие и biohacking се обсъждат като полезни?",
+      "qtype": "informational",
+      "intent": "informational",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q012",
+      "vertical_id": "longevity-protocols-bg",
+      "tenant_domain": "life-protocols.com",
+      "text": "Къде онлайн да намеря готови health протоколи и добавки за anti-aging с доставка в ЕС?",
+      "qtype": "product",
+      "intent": "product",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q013",
+      "vertical_id": "longevity-protocols-bg",
+      "tenant_domain": "life-protocols.com",
+      "text": "Life Protocols life-protocols.com — какви продукти и протоколи предлагат?",
+      "qtype": "brand",
+      "intent": "brand",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q014",
+      "vertical_id": "longevity-protocols-bg",
+      "tenant_domain": "life-protocols.com",
+      "text": "NAD+ и CoQ10 добавки — къде да купя онлайн с доставка в България?",
+      "qtype": "product",
+      "intent": "product",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q015",
+      "vertical_id": "longevity-protocols-bg",
+      "tenant_domain": "life-protocols.com",
+      "text": "На 45 години, искам структуриран протокол за енергия, сън и дълголетие с добавки без рецепта, бюджет до 150 € месечно, доставка в България. Какво и от кои сайтове има смисъл да разгледам?",
+      "qtype": "informational",
+      "intent": "product",
+      "source": "manual",
+      "situational": true
+    },
+    {
+      "id": "q016",
+      "vertical_id": "peptides-research-bg",
+      "tenant_domain": "biocode-peptides.com",
+      "text": "Какво представляват research пептидите и за какви цели се използват?",
+      "qtype": "informational",
+      "intent": "informational",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q017",
+      "vertical_id": "peptides-research-bg",
+      "tenant_domain": "biocode-peptides.com",
+      "text": "Къде да купя пептиди онлайн с доставка в България или ЕС?",
+      "qtype": "product",
+      "intent": "product",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q018",
+      "vertical_id": "peptides-research-bg",
+      "tenant_domain": "biocode-peptides.com",
+      "text": "biocode-peptides.com отзиви и качество на продуктите",
+      "qtype": "brand",
+      "intent": "brand",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q019",
+      "vertical_id": "peptides-research-bg",
+      "tenant_domain": "biocode-peptides.com",
+      "text": "BPC-157 срещу TB-500 — каква е разликата и кога се споменават?",
+      "qtype": "comparative",
+      "intent": "comparative",
+      "source": "manual",
+      "situational": false
+    },
+    {
+      "id": "q020",
+      "vertical_id": "peptides-research-bg",
+      "tenant_domain": "biocode-peptides.com",
+      "text": "Търся пептиди за възстановяване след интензивни тренировки, с декларирана чистота и доставка в България. Кои онлайн доставчици и продукти се цитират най-често?",
+      "qtype": "informational",
+      "intent": "product",
+      "source": "manual",
+      "situational": true
+    }
+  ]
+}

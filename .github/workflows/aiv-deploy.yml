@@ -1,0 +1,35 @@
+name: aiv-deploy
+
+on:
+  workflow_dispatch:
+  # Push deploy — активирай след D1 database_id в wrangler.toml
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-visibility-edge
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: ai-visibility-edge/package-lock.json
+
+      - run: npm ci
+      - run: npm test
+
+      - name: Patch wrangler KV (face namespace)
+        run: |
+          sed -i 's/local-kv-placeholder/${{ secrets.KV_NAMESPACE_ID }}/' wrangler.toml
+          if ! grep -q '^account_id' wrangler.toml; then
+            echo "account_id = \"${{ secrets.CF_ACCOUNT_ID }}\"" >> wrangler.toml
+          fi
+
+      - name: Deploy Worker
+        run: npx wrangler deploy

@@ -4,11 +4,15 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { withFailOpen } from '../src/middleware/failOpen.js';
 import { clearConfigCache, getCachedConfig, setCachedConfig } from '../src/config/loader.js';
-import { verifyFixtures, parseModelResponse } from '../src/citations/extract.js';
-import * as openaiAdapter from '../src/citations/adapters/openai.js';
-import * as geminiAdapter from '../src/citations/adapters/gemini.js';
+import { verifyFixtures } from './adapter-fixtures.js';
+import { parseModelResponse } from '../src/citations/extract.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const ROOT = join(__dirname, '..');
+
+function readJson(relPath) {
+  return JSON.parse(readFileSync(join(ROOT, relPath), 'utf8'));
+}
 
 async function testFailOpenThrowReturnsOriginal() {
   const body = 'original-body';
@@ -72,15 +76,15 @@ function testBaselineQuestions() {
 }
 
 function testAdapterFixtures() {
-  const errors = verifyFixtures();
+  const errors = verifyFixtures(readJson, parseModelResponse);
   assert.equal(errors.length, 0, errors.join('; '));
 
-  const openaiFixture = JSON.parse(readFileSync(openaiAdapter.FIXTURE, 'utf8'));
+  const openaiFixture = readJson('src/citations/adapters/fixtures/openai-2026-08.json');
   const parsed = parseModelResponse('openai', openaiFixture);
   assert(parsed.citations.length >= 1, 'openai citations');
   assert(parsed.citations[0].url.includes('biocode'), 'openai url');
 
-  const geminiFixture = JSON.parse(readFileSync(geminiAdapter.FIXTURE, 'utf8'));
+  const geminiFixture = readJson('src/citations/adapters/fixtures/gemini-2026-08.json');
   const g = parseModelResponse('gemini', geminiFixture);
   assert(g.citations.length >= 1, 'gemini citations');
 }

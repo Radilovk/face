@@ -26,7 +26,7 @@ const models =
     : [modelArg];
 
 if (models.length === 0) {
-  console.error('No API keys. Set OPENAI_API_KEY, GEMINI_API_KEY and/or PERPLEXITY_API_KEY');
+  console.error('No API keys. Set OPENAI_API_KEY and/or GEMINI_API_KEY (Perplexity optional)');
   process.exit(1);
 }
 

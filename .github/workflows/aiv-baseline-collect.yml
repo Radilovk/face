@@ -63,8 +63,8 @@ jobs:
               missing=1
             fi
           done
-          if [ -z "$OPENAI_API_KEY" ] && [ -z "$GEMINI_API_KEY" ] && [ -z "$PERPLEXITY_API_KEY" ]; then
-            echo "::error::Add OPENAI_API_KEY, GEMINI_API_KEY and/or PERPLEXITY_API_KEY to GitHub Secrets"
+          if [ -z "$OPENAI_API_KEY" ] && [ -z "$GEMINI_API_KEY" ]; then
+            echo "::error::Add OPENAI_API_KEY and/or GEMINI_API_KEY (Perplexity optional)"
             missing=1
           fi
           exit $missing
@@ -82,6 +82,10 @@ jobs:
         run: |
           sed -i 's/local-kv-placeholder/${{ secrets.KV_NAMESPACE_ID }}/' wrangler.toml
           sed -i 's/account_id = "placeholder"/account_id = "${{ secrets.CF_ACCOUNT_ID }}"/' wrangler.toml
+          if grep -q 'account_id = "placeholder"' wrangler.toml; then
+            echo "::error::CF_ACCOUNT_ID secret missing or empty — cannot patch wrangler.toml"
+            exit 1
+          fi
 
       - name: Import runs to D1 (remote)
         run: node scripts/baseline-import-d1.js

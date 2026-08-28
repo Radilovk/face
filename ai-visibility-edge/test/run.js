@@ -56,6 +56,13 @@ import {
 } from './drift.js';
 import { testBaselineSeedAndClosePilot } from './baseline-gate.js';
 import {
+  testExtractTitleAndH1,
+  testBuildSiteBrief,
+  testParseQuestionsBlock,
+  testGenerateQuestionDraftsSmartFallback,
+  testParseQuestionsBlockInvalid,
+} from './site-brief-questions.js';
+import {
   testModelRegistryCurrent,
   testGeminiModelOverride,
   testModelsStatus,
@@ -240,6 +247,11 @@ async function run() {
   await testBotDriftHighUnverified();
   await testFetchDriftStatusAggregate();
   testBaselineSeedAndClosePilot();
+  testExtractTitleAndH1();
+  testBuildSiteBrief();
+  testParseQuestionsBlock();
+  testParseQuestionsBlockInvalid();
+  await testGenerateQuestionDraftsSmartFallback();
   await testFetchSiteStats();
   await testFetchSiteStatsPendingReprocess();
   await testComputeSovSessionsAndCap();

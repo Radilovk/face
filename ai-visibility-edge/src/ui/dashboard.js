@@ -3,7 +3,6 @@ import {
   USER_CHECKLIST,
   fetchTenantRecommendations,
 } from '../diagnose/recommendations.js';
-import { getTenantEdgeConfig } from '../config/tenantEdge.js';
 
 export { INFO_MODULES, USER_CHECKLIST };
 
@@ -279,10 +278,10 @@ export function renderDashboardPage(origin) {
           <span class="done">Блок 1 Worker + D1 ✓</span>
           <span class="done">Блок 2 Citations ✓</span>
           <span class="done">Блок 3 Диагностика ✓</span>
-          <span class="current">Блок 4 Edge — robots от git ✓ canary</span>
+          <span class="current">Блок 4 Edge Optimizer → canary</span>
           <span class="next">Блок 5–7 Мониторинг + индекс</span>
         </div>
-        <p><strong>Следваща стъпка:</strong> Merge + <strong>aiv-deploy</strong> → robots.txt автоматично от <code>config/tenants/biocode-bg.com.json</code>. CNAME е направен ✓</p>
+        <p><strong>Следваща стъпка:</strong> CNAME на <code>biocode-bg.com</code> към Worker (canary), след on-site поправки от probe (robots, JSON-LD, съдържание).</p>
       </div>
     </section>
 
@@ -310,7 +309,7 @@ export function renderDashboardPage(origin) {
           <span>Observations</span><span class="arrow">→</span>
           <span>Report</span>
         </div>
-        <p>Edge (Блок 4): <strong>robots.txt от git</strong> за biocode-bg.com след deploy. JSON-LD inject — следваща стъпка.</p>
+        <p>Edge поправка (Блок 4) — <em>не е активна</em>. Първо натрупваме данни 4+ седмици.</p>
       </div>
     </section>
 
@@ -363,7 +362,7 @@ export function renderDashboardPage(origin) {
     </section>
 
     <footer>
-      AI Visibility Edge · Block 1–4 robots canary · Документация <code>ai-visibility-edge/docs/</code>
+      AI Visibility Edge · Block 1–3 MVP · Блок 4 canary pending · Документация <code>ai-visibility-edge/docs/</code>
     </footer>
   </div>
   <script>

@@ -39,6 +39,10 @@ import {
 } from './edge.js';
 import { testParseAdvisorActions, testParseAdvisorIgnoresInvalidActions } from './advisor.js';
 import {
+  testFetchSiteStats,
+  testFetchSiteStatsPendingReprocess,
+} from './site-stats.js';
+import {
   testComputeSovSessionsAndCap,
   testComputeSovPeriodFilter,
   testComputeSovPersistOptional,
@@ -168,6 +172,8 @@ async function run() {
   testPeriodHelpers();
   testClassifyLowOverlapMisattributed();
   testClassifyPassageNotFound();
+  await testFetchSiteStats();
+  await testFetchSiteStatsPendingReprocess();
   await testComputeSovSessionsAndCap();
   await testComputeSovPeriodFilter();
   await testComputeSovPersistOptional();

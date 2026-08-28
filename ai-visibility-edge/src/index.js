@@ -1,6 +1,6 @@
 import { withFailOpen } from './middleware/failOpen.js';
 import { requireAdmin } from './middleware/requireAdmin.js';
-import { getAuthStatus } from './api/auth.js';
+import { fetchSiteStats } from './api/siteStats.js';
 import { loadTenantConfig } from './config/loader.js';
 import { runCitationBatch } from './citations/runner.js';
 import { reprocessRuns } from './citations/reprocess.js';
@@ -95,6 +95,15 @@ async function handleRequest(request, env, ctx) {
     const result = await fetchDashboardRecommendations(env, { domain });
     if (result.error) return json(result, 404);
     return json(result);
+  }
+
+  if (url.pathname === '/api/dashboard/site-stats') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const domain = url.searchParams.get('domain');
+    if (!domain) return json({ error: 'domain required' }, 400);
+    const stats = await fetchSiteStats(env, domain);
+    return json(stats, stats.error ? 404 : 200);
   }
 
   if (url.pathname === '/api/sites') {

@@ -122,11 +122,20 @@ jobs:
       - name: Import runs to D1 (remote)
         run: node scripts/baseline-import-d1.js
 
-      - name: Reprocess → observations
+      - name: Reprocess → observations (remote D1)
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        run: npm run baseline:reprocess-d1
+
+      - name: Reprocess via Worker (fallback)
         env:
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
           WORKER_URL: ${{ secrets.AIV_WORKER_URL }}
         run: npm run baseline:reprocess
+        continue-on-error: true
 
       - name: Commit baseline artifacts
         if: ${{ github.event.inputs.import_only != 'true' }}

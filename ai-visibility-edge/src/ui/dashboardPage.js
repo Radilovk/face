@@ -56,8 +56,17 @@ export function renderDashboardPage(origin) {
       <button type="button" class="btn btn-lg" id="btn-analyze">🚀 1. Анализ</button>
       <button type="button" class="btn btn-lg" id="btn-edge-activate">⚡ 2. Приложи Edge</button>
       <button type="button" class="btn btn-ghost" id="btn-refresh">↻ Обнови</button>
+      <button type="button" class="btn btn-ghost" id="btn-reprocess">↻ Reprocess</button>
       <a class="btn btn-ghost" id="btn-report" href="#" target="_blank" rel="noopener">📄 Отчет</a>
     </div>
+    <section id="site-stats" class="site-stats hidden" aria-label="Измерване">
+      <div class="stat-grid">
+        <div class="stat"><strong id="stat-runs">—</strong><small>Runs</small></div>
+        <div class="stat"><strong id="stat-obs">—</strong><small>Observations</small></div>
+        <div class="stat"><strong id="stat-sov">—</strong><small>SOV</small></div>
+        <div class="stat"><strong id="stat-pending">—</strong><small>Чака reprocess</small></div>
+      </div>
+    </section>
     <p id="status-line" class="status-line">…</p>
 
     <!-- Baseline + Block 0.1 gate -->
@@ -461,7 +470,45 @@ function script(origin) {
       }
     }
 
-    async function loadStrategy() {
+    async function loadSiteStats() {
+      if (!selectedDomain) return;
+      const panel = $('site-stats');
+      try {
+        const res = await fetch(API('/api/dashboard/site-stats?domain=' + encodeURIComponent(selectedDomain)));
+        const data = await res.json();
+        if (!res.ok) { panel.classList.add('hidden'); return; }
+        panel.classList.remove('hidden');
+        $('stat-runs').textContent = data.runs ?? 0;
+        $('stat-obs').textContent = data.observations ?? 0;
+        $('stat-sov').textContent = data.sov?.sov != null ? (data.sov.sov.toFixed(1) + '%') : '—';
+        $('stat-pending').textContent = data.pending_reprocess ?? 0;
+        if (data.needs_reprocess) {
+          $('stat-pending').parentElement.classList.add('stat-warn');
+        } else {
+          $('stat-pending').parentElement.classList.remove('stat-warn');
+        }
+      } catch {
+        panel.classList.add('hidden');
+      }
+    }
+
+    async function runReprocess() {
+      if (busy) return;
+      busy = true;
+      log('Reprocess: verify + classify…');
+      try {
+        const res = await apiFetch('/api/citations/reprocess', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(authErrorHint(res, data));
+        log('Reprocess: ' + (data.observations ?? 0) + ' observations');
+        await loadSiteStats();
+        await loadStrategy();
+      } catch (e) {
+        log('Reprocess: ' + e.message);
+      } finally {
+        busy = false;
+      }
+    }
       if (!selectedDomain) return;
       log('Зареждане на стратегия…');
       try {
@@ -476,6 +523,7 @@ function script(origin) {
         log('Обновено ' + new Date().toLocaleTimeString('bg-BG'));
         loadQuestionsQuiet();
         loadEdgeDecision();
+        loadSiteStats();
       } catch (e) {
         log('Грешка: ' + e.message);
       }
@@ -567,7 +615,8 @@ function script(origin) {
     $('btn-add-run').onclick = () => submitAddSite(true);
     $('btn-analyze').onclick = runFullAnalysis;
     $('btn-edge-activate').onclick = activateEdge;
-    $('btn-refresh').onclick = () => { loadStrategy(); loadEdgeDecision(); };
+    $('btn-refresh').onclick = () => { loadStrategy(); loadEdgeDecision(); loadSiteStats(); };
+    $('btn-reprocess').onclick = runReprocess;
     $('btn-gen-q').onclick = async () => {
       if (!selectedDomain) return;
       log('Генериране на въпроси…');
@@ -604,7 +653,7 @@ function script(origin) {
     loadAuthStatus();
     loadBaselineStatus();
     loadAdvisorStatus();
-    loadSites().then(() => { if (selectedDomain) { loadStrategy(); loadEdgeDecision(); } });
+    loadSites().then(() => { if (selectedDomain) { loadStrategy(); loadEdgeDecision(); loadSiteStats(); } });
   `;
 }
 
@@ -657,6 +706,12 @@ h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted);text-transform:uppercase
 .baseline-banner{background:#2a2210;border:1px solid #78350f;border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem}
 .baseline-banner.hidden{display:none}
 .baseline-banner .sub{margin:.35rem 0 0}
+.site-stats{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem}
+.site-stats.hidden{display:none}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;text-align:center}
+.stat strong{display:block;font-size:1.25rem;color:var(--accent)}
+.stat small{color:var(--muted);font-size:.7rem;text-transform:uppercase}
+.stat-warn strong{color:var(--warn)}
 .admin-token-label{display:flex;flex-direction:column;gap:.25rem;font-size:.8rem;color:var(--muted);margin:.5rem 0}
 .admin-token-label input{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.45rem .6rem;border-radius:8px;max-width:420px}
 .section{margin-bottom:1.75rem}

@@ -10,8 +10,8 @@ export async function handleTenantRequest(request, env, tenantConfig) {
   const edgeConfig = getTenantEdgeConfig(url.hostname);
 
   if (edgeConfig?.edge?.enabled && url.pathname === '/robots.txt') {
-    return handleRobotsRequest(request, edgeConfig, (req) => fetchOrigin(req, edgeConfig, env));
+    return handleRobotsRequest(request, edgeConfig, (req) => fetchOrigin(req, edgeConfig));
   }
 
-  return fetchOrigin(request, edgeConfig, env);
+  return fetchOrigin(request, edgeConfig);
 }

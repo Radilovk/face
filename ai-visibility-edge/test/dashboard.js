@@ -13,6 +13,9 @@ export function testDashboardV2Page() {
   assert(html.includes('/api/edge/'));
   assert(html.includes('loadEdgeDecision'));
   assert(html.includes('activateEdge'));
+  assert(html.includes('apiFetch'));
+  assert(html.includes('baseline-banner'));
+  assert(html.includes('admin-token'));
   assert(html.includes('Gemini'));
   assert(html.includes('/api/advisor/chat'));
   assert(!html.includes('data-tab="workflow"'));

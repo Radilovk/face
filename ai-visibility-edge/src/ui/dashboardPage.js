@@ -60,6 +60,12 @@ export function renderDashboardPage(origin) {
     </div>
     <p id="status-line" class="status-line">…</p>
 
+    <!-- Baseline + Block 0.1 gate -->
+    <section id="baseline-banner" class="baseline-banner hidden">
+      <strong>Блок 0.1 — Baseline</strong>
+      <p id="baseline-msg" class="sub">…</p>
+    </section>
+
     <!-- Edge decision (Block 4 — optimization via Cloudflare Worker) -->
     <section class="section edge-panel" id="edge-panel">
       <div class="apply-head">
@@ -119,6 +125,17 @@ export function renderDashboardPage(origin) {
     </details>
 
     <details class="extra">
+      <summary>🔐 Admin достъп (production)</summary>
+      <div class="extra-body">
+        <p class="sub" id="auth-hint">…</p>
+        <label class="admin-token-label">ADMIN_TOKEN
+          <input type="password" id="admin-token" placeholder="Bearer token от Worker secrets" autocomplete="off">
+        </label>
+        <button type="button" class="btn btn-sm" id="btn-save-token">Запази в сесията</button>
+      </div>
+    </details>
+
+    <details class="extra">
       <summary>🔧 Технически детайли</summary>
       <div class="extra-body"><pre id="tech-detail">—</pre></div>
     </details>
@@ -134,16 +151,74 @@ function script(origin) {
   return `
     const ORIGIN = ${JSON.stringify(origin)};
     const API = (p) => ORIGIN + p;
+    const ADMIN_KEY = 'aiv_admin_token';
 
     let sites = [];
     let selectedDomain = '';
     let strategy = null;
     let busy = false;
+    let adminRequired = false;
 
     let chatHistory = [];
     let advisorReady = false;
 
     const $ = (id) => document.getElementById(id);
+
+    function getAdminToken() {
+      return sessionStorage.getItem(ADMIN_KEY) || '';
+    }
+
+    function setAdminToken(value) {
+      const v = String(value || '').trim();
+      if (v) sessionStorage.setItem(ADMIN_KEY, v);
+      else sessionStorage.removeItem(ADMIN_KEY);
+    }
+
+    async function apiFetch(path, opts = {}) {
+      const headers = { ...(opts.headers || {}) };
+      if (opts.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+      const token = getAdminToken();
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      return fetch(API(path), { ...opts, headers });
+    }
+
+    function authErrorHint(res, data) {
+      if (res.status === 401) return data?.hint || 'Нужен ADMIN_TOKEN (🔐 Admin достъп)';
+      return data?.error || data?.hint || res.status;
+    }
+
+    async function loadAuthStatus() {
+      try {
+        const res = await fetch(API('/api/auth/status'));
+        const data = await res.json();
+        adminRequired = Boolean(data.admin_required);
+        $('auth-hint').textContent = data.hint || '';
+        const saved = getAdminToken();
+        if (saved) $('admin-token').value = saved;
+      } catch {
+        $('auth-hint').textContent = 'Auth status offline';
+      }
+    }
+
+    async function loadBaselineStatus() {
+      const banner = $('baseline-banner');
+      const msg = $('baseline-msg');
+      try {
+        const res = await fetch(API('/api/baseline/status'));
+        const data = await res.json();
+        if (data.ready) {
+          banner.classList.add('hidden');
+          return;
+        }
+        banner.classList.remove('hidden');
+        const models = (data.models_collected || []).join(', ') || '—';
+        msg.textContent = 'Baseline ' + (data.baseline_id || '') + ': status=' + (data.status || '?') +
+          ', models=[' + models + ']. Пуснете GitHub Action aiv-baseline-collect (Block 0.1).';
+      } catch {
+        banner.classList.remove('hidden');
+        msg.textContent = 'Baseline статус недостъпен — проверете deploy.';
+      }
+    }
 
     function log(msg) {
       $('status-line').textContent = msg;
@@ -287,13 +362,12 @@ function script(origin) {
       log('Gemini мисли…');
 
       try {
-        const res = await fetch(API('/api/advisor/chat'), {
+        const res = await apiFetch('/api/advisor/chat', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ domain: selectedDomain, message: msg, history: chatHistory.slice(0, -1) })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || data.hint || res.status);
+        if (!res.ok) throw new Error(authErrorHint(res, data));
         renderChatMessage('model', data.reply);
         chatHistory.push({ role: 'model', content: data.reply });
         renderChatActions(data.actions);
@@ -371,11 +445,11 @@ function script(origin) {
       $('btn-edge-activate').disabled = true;
       log('Прилагане на Edge конфигурация (KV)…');
       try {
-        const res = await fetch(API('/api/edge/' + encodeURIComponent(selectedDomain) + '/activate'), {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+        const res = await apiFetch('/api/edge/' + encodeURIComponent(selectedDomain) + '/activate', {
+          method: 'POST', body: '{}'
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || data.hint || data.message || res.status);
+        if (!res.ok) throw new Error(authErrorHint(res, data));
         log(data.message || 'Edge конфигурация записана');
         await loadEdgeDecision();
         await loadStrategy();
@@ -414,13 +488,12 @@ function script(origin) {
       log('Анализ: одит → въпроси → AI измерване… (~2 мин)');
 
       try {
-        const res = await fetch(API('/api/pipeline/' + encodeURIComponent(selectedDomain) + '/run'), {
+        const res = await apiFetch('/api/pipeline/' + encodeURIComponent(selectedDomain) + '/run', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ measure: true, question_limit: 5, repetitions: 1 })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || data.hint || res.status);
+        if (!res.ok) throw new Error(authErrorHint(res, data));
         log('Готов! Презареждам стратегия…');
         await loadStrategy();
         await loadEdgeDecision();
@@ -442,13 +515,12 @@ function script(origin) {
       const box = $('add-result');
       box.classList.remove('hidden');
       box.textContent = 'Регистрация…';
-      const res = await fetch(API('/api/sites'), {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+      const res = await apiFetch('/api/sites', {
+        method: 'POST', body: JSON.stringify(body)
       });
       const data = await res.json();
       if (!res.ok) {
-        box.textContent = 'Грешка: ' + (data.error || data.hint || res.status);
+        box.textContent = 'Грешка: ' + authErrorHint(res, data);
         return;
       }
       box.textContent = '✓ ' + data.domain + ' добавен';
@@ -478,8 +550,8 @@ function script(origin) {
         el.querySelectorAll('.save-q').forEach(btn => {
           btn.onclick = async () => {
             const text = btn.closest('.q-item').querySelector('.q-text').textContent.trim();
-            await fetch(API('/api/questions/' + btn.dataset.id), {
-              method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            await apiFetch('/api/questions/' + btn.dataset.id, {
+              method: 'PUT',
               body: JSON.stringify({ text })
             });
             log('Въпрос запазен');
@@ -499,8 +571,8 @@ function script(origin) {
     $('btn-gen-q').onclick = async () => {
       if (!selectedDomain) return;
       log('Генериране на въпроси…');
-      await fetch(API('/api/questions/generate'), {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      await apiFetch('/api/questions/generate', {
+        method: 'POST',
         body: JSON.stringify({ domain: selectedDomain, replace_auto: true })
       });
       loadQuestionsQuiet();
@@ -509,8 +581,8 @@ function script(origin) {
     $('btn-add-q').onclick = async () => {
       const text = prompt('Нов въпрос:');
       if (!text?.trim()) return;
-      await fetch(API('/api/questions'), {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      await apiFetch('/api/questions', {
+        method: 'POST',
         body: JSON.stringify({ domain: selectedDomain, text: text.trim(), source: 'manual' })
       });
       loadQuestionsQuiet();
@@ -524,6 +596,13 @@ function script(origin) {
       btn.onclick = () => sendChatMessage(btn.dataset.q);
     });
 
+    $('btn-save-token').onclick = () => {
+      setAdminToken($('admin-token').value);
+      log('Admin token запазен за сесията');
+    };
+
+    loadAuthStatus();
+    loadBaselineStatus();
     loadAdvisorStatus();
     loadSites().then(() => { if (selectedDomain) { loadStrategy(); loadEdgeDecision(); } });
   `;
@@ -575,6 +654,11 @@ h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted);text-transform:uppercase
 .btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
 .btn-sm{padding:.25rem .55rem;font-size:.75rem}
 .status-line{font-size:.8rem;color:var(--muted);margin:0 0 1.25rem;min-height:1.2rem}
+.baseline-banner{background:#2a2210;border:1px solid #78350f;border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem}
+.baseline-banner.hidden{display:none}
+.baseline-banner .sub{margin:.35rem 0 0}
+.admin-token-label{display:flex;flex-direction:column;gap:.25rem;font-size:.8rem;color:var(--muted);margin:.5rem 0}
+.admin-token-label input{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.45rem .6rem;border-radius:8px;max-width:420px}
 .section{margin-bottom:1.75rem}
 .pillars{display:grid;gap:.55rem}
 .pillar{display:flex;gap:.65rem;padding:.75rem 1rem;border-radius:10px;background:var(--surface);border:1px solid var(--border)}

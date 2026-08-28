@@ -122,6 +122,27 @@ jobs:
       - name: Import runs to D1 (remote)
         run: node scripts/baseline-import-d1.js
 
+      - name: Reprocess → observations
+        env:
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+          WORKER_URL: ${{ secrets.AIV_WORKER_URL }}
+        run: npm run baseline:reprocess
+
+      - name: Commit baseline artifacts
+        if: ${{ github.event.inputs.import_only != 'true' }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add baseline/
+          if git diff --staged --quiet; then
+            echo "No baseline file changes to commit"
+          else
+            git commit -m "chore(baseline): collect ${{ env.BASELINE_ID }} [skip ci]"
+            git push
+          fi
+        working-directory: ai-visibility-edge
+        continue-on-error: true
+
       - name: Upload artifact backup
         uses: actions/upload-artifact@v4
         if: always()

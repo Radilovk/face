@@ -1,5 +1,6 @@
 import { withFailOpen } from './middleware/failOpen.js';
 import { requireAdmin } from './middleware/requireAdmin.js';
+import { getAuthStatus } from './api/auth.js';
 import { loadTenantConfig } from './config/loader.js';
 import { runCitationBatch } from './citations/runner.js';
 import { reprocessRuns } from './citations/reprocess.js';
@@ -61,6 +62,10 @@ async function handleRequest(request, env, ctx) {
 
   if (url.pathname === '/health') {
     return json({ ok: true, service: 'ai-visibility-edge', db: Boolean(env.DB), kv: Boolean(env.CACHE) }, 200);
+  }
+
+  if (url.pathname === '/api/auth/status') {
+    return json(getAuthStatus(env));
   }
 
   if (url.pathname === '/' || url.pathname === '/dashboard') {
@@ -317,7 +322,12 @@ async function baselineStatus(env) {
   if (env.CACHE) {
     const manifest = await env.CACHE.get(key, 'json');
     if (manifest) {
-      return json({ source: 'kv', baseline_id: baselineId, ...manifest });
+      return json({
+        source: 'kv',
+        baseline_id: baselineId,
+        ready: (manifest.models_collected?.length ?? 0) >= (manifest.gates?.minimum_models ?? 2),
+        ...manifest,
+      });
     }
   }
 
@@ -325,6 +335,8 @@ async function baselineStatus(env) {
     source: 'default',
     baseline_id: baselineId,
     status: 'questions_ready',
+    models_collected: [],
+    ready: false,
     hint: 'Run aiv-baseline-collect workflow or npm run baseline:collect',
   });
 }

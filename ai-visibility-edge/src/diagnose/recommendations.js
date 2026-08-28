@@ -3,8 +3,6 @@
  * Separates what the user fixes on-site vs what the edge layer can do (Block 4).
  */
 
-import { getTenantEdgeConfig } from '../config/tenantEdge.js';
-
 export const INFO_MODULES = [
   {
     id: 'measurement',
@@ -50,9 +48,9 @@ export const INFO_MODULES = [
     id: 'edge',
     title: 'Edge Optimizer (Блок 4)',
     icon: '⚡',
-    what: 'Worker на CNAME — robots.txt от git config (config/tenants/*.json), deploy с aiv-deploy. Скоро: JSON-LD inject в HTML.',
-    why: 'Промяна в GitHub → deploy → live. Без CMS, без ръчни FTP. Вашата намеса: CNAME + merge/deploy.',
-    status: 'active',
+    what: 'Worker на CNAME на tenant домейна — инжектира JSON-LD, маркери за версия и структурирани данни в HTML отговора.',
+    why: 'Поправя извличане без cloaking. Работи само след CNAME и не замества on-site поправки (robots, съдържание).',
+    status: 'planned',
   },
 ];
 
@@ -99,36 +97,25 @@ export const USER_CHECKLIST = [
     ],
   },
   {
-    id: 'git_config',
-    title: 'Git config → автоматичен deploy',
-    owner: 'system',
-    done_when: 'aiv-deploy след merge обновява Worker',
-    items: [
-      'robots.txt: config/tenants/{domain}.json — без CMS',
-      'Промяна → merge в main → GitHub aiv-deploy',
-      'Проверка: header X-AIV-Robots-Source: edge-config на /robots.txt',
-    ],
-  },
-  {
     id: 'onsite_fixes',
-    title: 'On-site (само ако Edge не покрива)',
+    title: 'On-site поправки (ваша отговорност)',
     owner: 'you',
-    done_when: 'Probe score > 70',
+    done_when: 'Probe score > 70, robots allow',
     items: [
-      'JSON-LD, canonical, цени в HTML (Edge inject — следваща стъпка)',
-      'Самостоятелни пасажи с марка + цена',
-      'Домейни без CNAME: CNAME + edge.enabled в config/tenants/*.json',
+      'robots.txt — махни disallow_all за AI ботове',
+      'Canonical тагове, JSON-LD Product/Organization',
+      'Самостоятелни пасажи с марка + цена (не „това“, „той“)',
     ],
   },
   {
     id: 'edge_canary',
-    title: 'Edge canary — biocode-bg.com',
+    title: 'Edge Optimizer — canary (Блок 4)',
     owner: 'you',
-    done_when: 'CNAME + deploy → robots от Edge',
+    done_when: 'biocode-bg.com минава през Worker',
     items: [
-      'CNAME biocode-bg.com → Worker (направено ✓)',
-      'Merge + aiv-deploy за robots от git config',
-      'Ако сайтът не се зарежда: origin_host в tenant config',
+      'CNAME biocode-bg.com → Worker custom hostname в Cloudflare',
+      'Достъп до DNS зоната на домейна',
+      'След canary → останалите 3 домейна',
     ],
   },
 ];
@@ -147,42 +134,15 @@ export function buildRecommendations(input = {}) {
 
   if (probe) {
     if (probe.robots_ai_policy === 'disallow_all') {
-      if (edgeActive) {
-        items.push(reco({
-          id: 'robots_edge_deploy',
-          severity: 'warning',
-          owner: 'system',
-          layer: 'edge',
-          title: 'robots.txt още от origin — нужен deploy',
-          what: 'CNAME е активен, но probe вижда disallow_all (origin или преди deploy).',
-          why: 'Edge ще сервира robots от git след aiv-deploy.',
-          action: 'Merge + aiv-deploy. Проверете /robots.txt → X-AIV-Robots-Source: edge-config',
-        }));
-      } else {
-        items.push(reco({
-          id: 'robots_disallow_all',
-          severity: 'critical',
-          owner: 'you',
-          layer: 'on_site',
-          title: 'robots.txt блокира всички ботове',
-          what: 'User-agent: * с Disallow: / — AI crawlers не могат да четат сайта.',
-          why: 'Нулева AI видимост докато трафикът не минава през Edge.',
-          action: 'CNAME към Worker + config/tenants/{domain}.json (edge.enabled) + deploy — без CMS.',
-        }));
-      }
-    } else if (
-      edgeActive &&
-      (probe.robots_ai_policy === 'allow' || probe.robots_ai_policy === 'ai_rules_present')
-    ) {
       items.push(reco({
-        id: 'robots_edge_ok',
-        severity: 'ok',
-        owner: 'system',
-        layer: 'edge',
-        title: 'robots.txt — управляван от Edge/git',
-        what: 'Probe вижда allow правила (Edge или origin).',
-        why: 'Промени в config/tenants/*.json → deploy — без ръчна CMS намеса.',
-        action: 'Няма действие за robots. Следва: JSON-LD inject.',
+        id: 'robots_disallow_all',
+        severity: 'critical',
+        owner: 'you',
+        layer: 'on_site',
+        title: 'robots.txt блокира всички ботове',
+        what: 'User-agent: * с Disallow: / — AI crawlers не могат да четат сайта.',
+        why: 'Нулева AI видимост. Edge layer не може да поправи това без reverse proxy на целия сайт.',
+        action: 'Редактирайте robots.txt — премахнете глобалния Disallow: / или добавете Allow за GPTBot, Google-Extended.',
       }));
     } else if (probe.robots_ai_policy === 'ai_rules_present') {
       const blocked = probe.blocked_bots ?? [];
@@ -311,18 +271,7 @@ export function buildRecommendations(input = {}) {
     }
   }
 
-  if (tenant?.canary && edgeActive) {
-    items.push(reco({
-      id: 'edge_canary_live',
-      severity: 'ok',
-      owner: 'system',
-      layer: 'edge',
-      title: 'Edge canary активен',
-      what: `${tenant.domain} — CNAME + edge.enabled, robots от git config.`,
-      why: 'Промени в repo → aiv-deploy → live без CMS.',
-      action: 'Проверете сайта и /robots.txt. Следва: JSON-LD inject.',
-    }));
-  } else if (tenant?.canary && !edgeActive) {
+  if (tenant?.canary && !edgeActive) {
     items.push(reco({
       id: 'edge_canary_pending',
       severity: 'info',
@@ -376,22 +325,18 @@ export async function fetchTenantRecommendations(env, tenant, options = {}) {
     }
   }
 
-  const edgeCfg = getTenantEdgeConfig(domain);
-  const edgeActive = Boolean(edgeCfg?.edge?.enabled);
-
   const recommendations = buildRecommendations({
     probe,
     displacement,
     sov,
     tenant,
-    edgeActive,
+    edgeActive: false,
   });
 
   return {
     domain,
     name: tenant.name,
     canary: tenant.canary,
-    edge_enabled: edgeActive,
     probe_summary: probe
       ? {
           score_hint: probe.robots_ai_policy,

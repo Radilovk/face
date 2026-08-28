@@ -1,8 +1,5 @@
 import { withFailOpen } from './middleware/failOpen.js';
 import { loadTenantConfig } from './config/loader.js';
-import { isPlatformHost } from './config/platform.js';
-import { isEdgeEnabled } from './config/tenantEdge.js';
-import { handleTenantRequest } from './enhance/handleTenant.js';
 import { runCitationBatch } from './citations/runner.js';
 import { reprocessRuns } from './citations/reprocess.js';
 import { computeSov, currentPeriod } from './index/sov.js';
@@ -16,7 +13,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     // Platform API/report routes bypass fail-open (probe/report take >50ms)
-    if (isPlatformRoute(url.pathname, url.hostname)) {
+    if (isPlatformRoute(url.pathname)) {
       return handleRequest(request, env, ctx);
     }
     return withFailOpen(request, env, ctx, (req, environment) =>
@@ -125,7 +122,7 @@ async function handleRequest(request, env, ctx) {
     return fetch(request);
   }
 
-  return handleTenantRequest(request, env, config);
+  return fetch(request);
 }
 
 async function baselineStatus(env) {
@@ -267,17 +264,14 @@ function html(body, status = 200) {
   });
 }
 
-function isPlatformRoute(pathname, hostname) {
-  const apiOrReport =
+function isPlatformRoute(pathname) {
+  return (
+    pathname === '/' ||
+    pathname === '/dashboard' ||
     pathname === '/health' ||
     pathname.startsWith('/api/') ||
-    /^\/(?:api\/)?report\//.test(pathname);
-
-  if (!isPlatformHost(hostname)) {
-    return apiOrReport;
-  }
-
-  return pathname === '/' || pathname === '/dashboard' || apiOrReport;
+    /^\/(?:api\/)?report\//.test(pathname)
+  );
 }
 
 function requireDb(env) {

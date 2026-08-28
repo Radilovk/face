@@ -1,9 +1,0 @@
-{
-  "domain": "daotslabna.com",
-  "edge": {
-    "enabled": false,
-    "robots_mode": "serve",
-    "origin_host": null
-  },
-  "robots_txt": "# Ready for edge — enable after CNAME to Worker\nUser-agent: *\nAllow: /\n\nUser-agent: GPTBot\nAllow: /\n\nUser-agent: Google-Extended\nAllow: /\n\nUser-agent: anthropic-ai\nAllow: /\n\nSitemap: https://daotslabna.com/sitemap.xml\n"
-}

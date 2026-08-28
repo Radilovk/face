@@ -6,6 +6,13 @@
 import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  openaiModelId,
+  geminiModelId,
+  geminiGenerateUrl,
+  perplexityModelId,
+  MODEL_REGISTRY,
+} from '../src/config/models.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BASELINE_DIR = join(__dirname, '../baseline/2026-08-27');
@@ -38,8 +45,8 @@ async function askOpenAI(text) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4.1-mini',
-      tools: [{ type: 'web_search_preview' }],
+      model: openaiModelId(process.env),
+      tools: MODEL_REGISTRY.openai.tools,
       input: text,
     }),
   });
@@ -50,13 +57,13 @@ async function askOpenAI(text) {
 
 async function askGemini(text) {
   const key = process.env.GEMINI_API_KEY;
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${key}`;
+  const url = geminiGenerateUrl(geminiModelId(process.env, 'citations'), key);
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text }] }],
-      tools: [{ google_search: {} }],
+      tools: [MODEL_REGISTRY.gemini.searchTool],
     }),
   });
   const raw = await res.json();
@@ -72,7 +79,7 @@ async function askPerplexity(text) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'sonar',
+      model: perplexityModelId(process.env),
       messages: [{ role: 'user', content: text }],
     }),
   });

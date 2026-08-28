@@ -43,6 +43,12 @@ import {
   testFetchSiteStatsPendingReprocess,
 } from './site-stats.js';
 import {
+  testModelRegistryCurrent,
+  testGeminiModelOverride,
+  testModelsStatus,
+  testGeminiGenerateUrl,
+} from './models-config.js';
+import {
   testComputeSovSessionsAndCap,
   testComputeSovPeriodFilter,
   testComputeSovPersistOptional,
@@ -172,6 +178,10 @@ async function run() {
   testPeriodHelpers();
   testClassifyLowOverlapMisattributed();
   testClassifyPassageNotFound();
+  testModelRegistryCurrent();
+  testGeminiModelOverride();
+  testModelsStatus();
+  testGeminiGenerateUrl();
   await testFetchSiteStats();
   await testFetchSiteStatsPendingReprocess();
   await testComputeSovSessionsAndCap();

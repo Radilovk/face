@@ -343,6 +343,20 @@ function script(origin) {
       if (action === 'generate_questions') { $('btn-gen-q').click(); return; }
     }
 
+    async function loadModelsStatus() {
+      try {
+        const res = await fetch(API('/api/models/status'));
+        const data = await res.json();
+        window.__aivModels = data;
+        if (data.gemini?.deprecated_warning) {
+          log('⚠ ' + data.gemini.deprecated_warning);
+        }
+        if (advisorReady && data.gemini?.model) {
+          $('advisor-badge').textContent = 'Gemini · ' + data.gemini.model;
+        }
+      } catch { /* optional */ }
+    }
+
     async function loadAdvisorStatus() {
       try {
         const res = await fetch(API('/api/advisor/status'));
@@ -391,7 +405,7 @@ function script(origin) {
     }
 
     function renderTech(probe, stats) {
-      $('tech-detail').textContent = JSON.stringify({ probe, stats }, null, 2);
+      $('tech-detail').textContent = JSON.stringify({ probe, stats, models: window.__aivModels ?? null }, null, 2);
       $('btn-report').href = API('/report/' + encodeURIComponent(selectedDomain));
     }
 
@@ -652,6 +666,7 @@ function script(origin) {
 
     loadAuthStatus();
     loadBaselineStatus();
+    loadModelsStatus();
     loadAdvisorStatus();
     loadSites().then(() => { if (selectedDomain) { loadStrategy(); loadEdgeDecision(); loadSiteStats(); } });
   `;

@@ -1,6 +1,8 @@
 import { withFailOpen } from './middleware/failOpen.js';
 import { requireAdmin } from './middleware/requireAdmin.js';
+import { getAuthStatus } from './api/auth.js';
 import { fetchSiteStats } from './api/siteStats.js';
+import { getModelsStatus } from './config/models.js';
 import { loadTenantConfig } from './config/loader.js';
 import { runCitationBatch } from './citations/runner.js';
 import { reprocessRuns } from './citations/reprocess.js';
@@ -66,6 +68,10 @@ async function handleRequest(request, env, ctx) {
 
   if (url.pathname === '/api/auth/status') {
     return json(getAuthStatus(env));
+  }
+
+  if (url.pathname === '/api/models/status') {
+    return json(getModelsStatus(env));
   }
 
   if (url.pathname === '/' || url.pathname === '/dashboard') {

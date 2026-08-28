@@ -1,4 +1,11 @@
 import { parseModelResponse } from './extract.js';
+import {
+  openaiModelId,
+  geminiModelId,
+  geminiGenerateUrl,
+  perplexityModelId,
+  MODEL_REGISTRY,
+} from '../config/models.js';
 
 const DEFAULT_MODELS = ['openai', 'gemini', 'perplexity'];
 
@@ -27,22 +34,22 @@ function hasKey(env, model) {
 }
 
 async function callModel(model, text, env) {
-  if (model === 'openai') return callOpenAI(text, env.OPENAI_API_KEY);
-  if (model === 'gemini') return callGemini(text, env.GEMINI_API_KEY);
-  if (model === 'perplexity') return callPerplexity(text, env.PERPLEXITY_API_KEY);
+  if (model === 'openai') return callOpenAI(text, env);
+  if (model === 'gemini') return callGemini(text, env);
+  if (model === 'perplexity') return callPerplexity(text, env);
   throw new Error(`Unsupported model: ${model}`);
 }
 
-async function callOpenAI(text, apiKey) {
+async function callOpenAI(text, env) {
   const res = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4.1-mini',
-      tools: [{ type: 'web_search_preview' }],
+      model: openaiModelId(env),
+      tools: MODEL_REGISTRY.openai.tools,
       input: text,
     }),
   });
@@ -51,15 +58,15 @@ async function callOpenAI(text, apiKey) {
   return raw;
 }
 
-async function callPerplexity(text, apiKey) {
+async function callPerplexity(text, env) {
   const res = await fetch('https://api.perplexity.ai/chat/completions', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${env.PERPLEXITY_API_KEY}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'sonar',
+      model: perplexityModelId(env),
       messages: [{ role: 'user', content: text }],
     }),
   });
@@ -68,14 +75,14 @@ async function callPerplexity(text, apiKey) {
   return raw;
 }
 
-async function callGemini(text, apiKey) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`;
+async function callGemini(text, env) {
+  const url = geminiGenerateUrl(geminiModelId(env, 'citations'), env.GEMINI_API_KEY);
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text }] }],
-      tools: [{ google_search: {} }],
+      tools: [MODEL_REGISTRY.gemini.searchTool],
     }),
   });
   const raw = await res.json();

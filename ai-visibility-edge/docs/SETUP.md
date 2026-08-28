@@ -9,6 +9,9 @@
 | `KV_NAMESPACE_ID` | ✅ (face KV) | baseline-collect, deploy |
 | `OPENAI_API_KEY` | **GitHub + Worker** | baseline-collect, citations cron |
 | `GEMINI_API_KEY` | **GitHub + Worker** | baseline-collect, citations cron |
+| `GEMINI_MODEL` | optional | default `gemini-3.6-flash` (GA 2026-07). **Не** `gemini-2.0-*` — shutdown |
+| `ADMIN_TOKEN` | **Worker + GitHub** | POST endpoints, dashboard mutations |
+| `AIV_WORKER_URL` | optional GitHub | baseline reprocess fallback |
 | `D1_DATABASE_ID` | **GitHub** | `b5d03061-7656-4c76-b7c6-699d711d07e4` (в wrangler.toml) |
 
 ### D1 база `aiv`
@@ -49,7 +52,21 @@ curl -X POST https://<worker>/api/citations/reprocess \
 |--------|------|
 | `OPENAI_API_KEY` | Runtime citations |
 | `GEMINI_API_KEY` | Runtime citations |
+| `GEMINI_MODEL` | Override (default `gemini-3.6-flash`) |
+| `OPENAI_MODEL` | Override (default `gpt-4.1-mini`) |
+| `ADMIN_TOKEN` | POST /api/* mutations |
 | `FACE_ADVICE_KV` | Binding name в face worker |
+
+### AI model IDs (2026-08-28)
+
+| Provider | Purpose | Model ID | Notes |
+|----------|---------|----------|-------|
+| Google | Citations + advisor | `gemini-3.6-flash` | GA, google_search grounding |
+| Google | High-volume | `gemini-3.5-flash-lite` | optional via `GEMINI_MODEL` |
+| OpenAI | Citations | `gpt-4.1-mini` | Responses API + web_search |
+| Perplexity | Citations | `sonar` | optional |
+
+`gemini-2.0-flash` и family — **shutdown** (Google changelog 2026-06). Registry: `src/config/models.js`, API: `GET /api/models/status`.
 
 AIV използва **същия KV namespace** чрез `KV_NAMESPACE_ID` в GitHub — binding `CACHE` в `wrangler.toml`.
 

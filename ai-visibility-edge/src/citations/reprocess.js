@@ -22,16 +22,19 @@ export async function reprocessRuns(env, options = {}) {
     .first();
   const thresholds = getThresholds(row?.value);
 
+  const tenantId = options.tenantId ?? null;
+
   const { results: runs } = await db
     .prepare(
       `SELECT r.id, r.model, r.raw_response, r.answer_text, q.tenant_id
        FROM runs r
        JOIN questions q ON q.id = r.question_id
        WHERE NOT EXISTS (SELECT 1 FROM observations o WHERE o.run_id = r.id)
+         AND (? IS NULL OR q.tenant_id = ?)
        ORDER BY r.run_at DESC
        LIMIT ?`,
     )
-    .bind(limit)
+    .bind(tenantId, tenantId, limit)
     .all();
 
   const summary = { processed: 0, observations: 0, misattributions: 0, parametric: 0 };

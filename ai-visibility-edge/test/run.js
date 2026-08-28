@@ -16,6 +16,7 @@ import {
 } from './diagnose.js';
 import { testDashboardV2Page } from './dashboard.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
+import { testNormalizeApexHost, testSlugId } from './sites-api.js';
 import {
   testBuildRecommendationsRobots,
   testBuildRecommendationsCanaryEdge,
@@ -120,6 +121,8 @@ async function run() {
   testDashboardV2Page();
   testGenerateQuestions();
   testStepStatus();
+  testNormalizeApexHost();
+  testSlugId();
   testBuildRecommendationsRobots();
   testInfoModulesAndChecklist();
   console.log('All tests passed');

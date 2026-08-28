@@ -7,7 +7,8 @@ export function testDashboardV2Page() {
   assert(html.includes('data-tab="workflow"'));
   assert(html.includes('data-tab="questions"'));
   assert(html.includes('/api/pipeline/'));
-  assert(html.includes('/api/questions'));
-  assert(html.includes('Авто-генерирай'));
+  assert(html.includes('data-tab="add-site"'));
+  assert(html.includes('/api/sites'));
+  assert(html.includes('Стартирай pipeline'));
   assert(!html.includes('id="info-modules"'));
 }

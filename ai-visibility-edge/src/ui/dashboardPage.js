@@ -29,6 +29,7 @@ export function renderDashboardPage(origin) {
 
     <nav class="tabs" role="tablist">
       <button type="button" class="tab active" data-tab="overview">📊 Обзор</button>
+      <button type="button" class="tab" data-tab="add-site">➕ Добави сайт</button>
       <button type="button" class="tab" data-tab="workflow">⚙️ Автоматизация</button>
       <button type="button" class="tab" data-tab="questions">❓ Въпроси</button>
       <button type="button" class="tab" data-tab="sites">🌐 Сайтове</button>
@@ -49,9 +50,32 @@ export function renderDashboardPage(origin) {
       <div id="log" class="log"></div>
     </section>
 
+    <!-- ADD SITE -->
+    <section id="panel-add-site" class="panel">
+      <p class="lead">Регистрирайте нов сайт за оптимизация. След това — таб „Автоматизация“ → „Стартирай pipeline“.</p>
+      <form id="add-site-form" class="form-grid">
+        <label>Домейн <input name="domain" type="text" placeholder="example.com" required></label>
+        <label>Марка / име <input name="name" type="text" placeholder="Example Shop" required></label>
+        <label>Вертикал (съществуваща)
+          <select name="vertical_id" id="vertical-select"><option value="">— изберете или нова по-долу —</option></select>
+        </label>
+        <label>Или нова вертикал <input name="vertical_name" type="text" placeholder="Спортни добавки"></label>
+        <label>Конкуренти (опционално) <input name="competitors" type="text" placeholder="shop1.bg, shop2.com"></label>
+        <div class="toolbar">
+          <button type="submit" class="btn">➕ Добави сайт</button>
+          <button type="button" class="btn btn-ghost" id="btn-add-and-run">Добави + стартирай pipeline</button>
+        </div>
+      </form>
+      <div id="add-site-result" class="detail-box hidden"></div>
+    </section>
+
     <!-- WORKFLOW -->
     <section id="panel-workflow" class="panel">
-      <p class="lead">Pipeline за нов или съществуващ сайт — автоматични стъпки + бутони за ръчна намеса.</p>
+      <p class="lead">Pipeline — автоматични стъпки. Използвайте „Стартирай pipeline“ за пълен цикъл.</p>
+      <div class="toolbar" style="margin-bottom:1rem">
+        <button type="button" class="btn" id="btn-run-pipeline">🚀 Стартирай pipeline</button>
+        <button type="button" class="btn btn-ghost" id="btn-measure">📡 Измерване (5 въпр.)</button>
+      </div>
       <div id="pipeline-steps" class="stepper"></div>
       <div id="pipeline-actions" class="toolbar"></div>
       <div id="pipeline-detail" class="detail-box hidden"></div>
@@ -109,6 +133,7 @@ function script(origin, stepsJson, infoJson) {
         if (btn.dataset.tab === 'workflow') loadPipeline();
         if (btn.dataset.tab === 'questions') loadQuestions();
         if (btn.dataset.tab === 'sites') renderSitesTable();
+        if (btn.dataset.tab === 'add-site') loadVerticals();
       };
     });
 
@@ -175,13 +200,17 @@ function script(origin, stepsJson, infoJson) {
 
       const actions = document.getElementById('pipeline-actions');
       actions.innerHTML =
+        '<button type="button" class="btn" id="pw-run">🚀 Pipeline</button>' +
         '<button type="button" class="btn" id="pw-audit">🩺 Одит</button>' +
-        '<button type="button" class="btn" id="pw-gen-q">✨ Генерирай въпроси</button>' +
+        '<button type="button" class="btn" id="pw-gen-q">✨ Въпроси</button>' +
+        '<button type="button" class="btn" id="pw-measure">📡 Измерване</button>' +
         '<button type="button" class="btn" id="pw-reprocess">▶ Reprocess</button>' +
         '<button type="button" class="btn btn-ghost" id="pw-report">📄 Отчет</button>' +
         '<button type="button" class="btn btn-ghost" id="pw-reco">💡 Препоръки</button>';
+      document.getElementById('pw-run').onclick = runFullPipeline;
       document.getElementById('pw-audit').onclick = runAudit;
       document.getElementById('pw-gen-q').onclick = generateQuestions;
+      document.getElementById('pw-measure').onclick = runMeasure;
       document.getElementById('pw-reprocess').onclick = reprocess;
       document.getElementById('pw-report').onclick = () => window.open(API('/report/' + selectedDomain), '_blank');
       document.getElementById('pw-reco').onclick = loadRecommendations;
@@ -200,6 +229,98 @@ function script(origin, stepsJson, infoJson) {
         }
       } catch (e) { log('Pipeline: ' + e.message); }
     }
+
+    async function runFullPipeline() {
+      if (!selectedDomain) return;
+      log('Pipeline старт… (одит → въпроси → measure → reprocess) ~1-2 мин');
+      const box = document.getElementById('pipeline-detail');
+      box.classList.remove('hidden');
+      box.textContent = 'Изпълнява се…';
+      try {
+        const res = await fetch(API('/api/pipeline/' + encodeURIComponent(selectedDomain) + '/run'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ measure: true, question_limit: 5, repetitions: 1 })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.status);
+        box.innerHTML = '<pre>' + escHtml(JSON.stringify(data.steps, null, 2)) + '</pre>';
+        log('Pipeline готов');
+        await refreshAll();
+        loadPipeline();
+      } catch (e) {
+        box.textContent = 'Грешка: ' + e.message;
+        log('Pipeline: ' + e.message);
+      }
+    }
+
+    async function runMeasure() {
+      if (!selectedDomain) return;
+      log('Измерване…');
+      const res = await fetch(API('/api/measure/run'), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain: selectedDomain, question_limit: 5, repetitions: 1 })
+      });
+      const data = await res.json();
+      if (!res.ok) { log('Measure: ' + (data.error || res.status)); return; }
+      log('Runs: ' + data.runs + ' · asked: ' + data.asked);
+      await refreshAll();
+      loadPipeline();
+    }
+
+    async function loadVerticals() {
+      try {
+        const res = await fetch(API('/api/verticals'));
+        const data = await res.json();
+        const sel = document.getElementById('vertical-select');
+        const opts = (data.verticals || []).map(v =>
+          '<option value="' + v.id + '">' + escHtml(v.name) + '</option>'
+        ).join('');
+        sel.innerHTML = '<option value="">— изберете —</option>' + opts;
+      } catch (e) { /* optional */ }
+    }
+
+    async function submitAddSite(thenRunPipeline) {
+      const form = document.getElementById('add-site-form');
+      const fd = new FormData(form);
+      const body = {
+        domain: fd.get('domain'),
+        name: fd.get('name'),
+        vertical_id: fd.get('vertical_id') || undefined,
+        vertical_name: fd.get('vertical_name') || undefined,
+        competitors: fd.get('competitors') || undefined,
+      };
+      const box = document.getElementById('add-site-result');
+      box.classList.remove('hidden');
+      box.textContent = 'Регистрация…';
+      const res = await fetch(API('/api/sites'), {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        box.textContent = 'Грешка: ' + (data.error || data.hint || res.status);
+        return null;
+      }
+      box.innerHTML = '<p>✓ Добавен <strong>' + escHtml(data.domain) + '</strong> · tenant ' + escHtml(data.tenant_id) + '</p>';
+      selectedDomain = data.domain;
+      await refreshAll();
+      if (thenRunPipeline) {
+        switchTab('workflow');
+        await runFullPipeline();
+      }
+      return data;
+    }
+
+    document.getElementById('add-site-form').onsubmit = async (e) => {
+      e.preventDefault();
+      await submitAddSite(false);
+    };
+    document.getElementById('btn-add-and-run').onclick = async () => {
+      await submitAddSite(true);
+    };
+
+    document.getElementById('btn-run-pipeline').onclick = runFullPipeline;
+    document.getElementById('btn-measure').onclick = runMeasure;
 
     // --- Questions ---
     async function loadQuestions() {
@@ -471,6 +592,10 @@ th{color:var(--muted);font-size:.75rem}
 .reco.sev-critical{border-color:var(--err)}
 .reco.sev-warning{border-color:var(--warn)}
 .reco.sev-ok{border-color:var(--ok)}
+.pre{margin:0;overflow:auto;font-size:.75rem}
+.form-grid{display:grid;gap:.75rem;max-width:520px}
+.form-grid label{display:flex;flex-direction:column;gap:.3rem;font-size:.85rem;color:var(--muted)}
+.form-grid input,.form-grid select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.5rem .65rem;border-radius:8px;font-size:.9rem}
 .foot{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);color:var(--muted);font-size:.75rem}
 pre{margin:0;overflow:auto;font-size:.75rem}
 `;

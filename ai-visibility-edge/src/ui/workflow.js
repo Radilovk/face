@@ -43,11 +43,11 @@ export const PIPELINE_STEPS = [
   },
   {
     id: 'actions',
-    title: '6. Действия',
-    short: 'Оптимизация',
-    auto: false,
+    title: '6. Приложи',
+    short: 'Apply',
+    auto: true,
     manual: true,
-    desc: 'Стъпки от препоръките — on-site или edge (когато е активен).',
+    desc: 'Генерира JSON-LD, текст и robots — копирайте в сайта или Edge deploy.',
   },
   {
     id: 'monitor',
@@ -77,7 +77,7 @@ export function stepStatus(stepId, ctx) {
       return (ctx.obsCount ?? 0) > 0 ? 'done' : 'ready';
     case 'actions':
       if (!ctx.tenant) return 'locked';
-      return (ctx.recommendationCount ?? 0) > 0 ? 'ready' : 'pending';
+      return (ctx.applyFixCount ?? 0) > 0 ? 'ready' : 'pending';
     case 'monitor':
       if (!ctx.tenant) return 'locked';
       return (ctx.runCount ?? 0) >= 10 ? 'done' : 'pending';

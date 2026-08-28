@@ -13,6 +13,7 @@ import { getSitePipeline, listSitesFromDb } from './api/pipeline.js';
 import { runSitePipeline } from './api/pipelineRun.js';
 import { registerSite, listVerticals } from './api/sites.js';
 import { runCitationBatchForTenant } from './citations/runner.js';
+import { getApplyPlan, runApplyPrep } from './api/apply.js';
 import {
   listQuestions,
   generateAndSaveQuestions,
@@ -97,6 +98,20 @@ async function handleRequest(request, env, ctx) {
     const missing = requireDb(env);
     if (missing) return missing;
     return pipelineRunEndpoint(request, env, decodeURIComponent(pipelineRunMatch[1]));
+  }
+
+  const applyMatch = url.pathname.match(/^\/api\/apply\/([^/]+)(?:\/run)?$/);
+  if (applyMatch) {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const domain = decodeURIComponent(applyMatch[1]);
+    if (url.pathname.endsWith('/run') && request.method === 'POST') {
+      const body = await request.json().catch(() => ({}));
+      const result = await runApplyPrep(env, domain, body);
+      return json(result, result.error ? 404 : 200);
+    }
+    const plan = await getApplyPlan(env, domain);
+    return json(plan, plan.error ? 404 : 200);
   }
 
   const strategyMatch = url.pathname.match(/^\/api\/strategy\/([^/]+)$/);

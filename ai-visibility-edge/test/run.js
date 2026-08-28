@@ -23,6 +23,12 @@ import {
   testInfoModulesAndChecklist,
 } from './recommendations.js';
 import { testStrategyThinContent, testStrategyRobotsBlocked, testStrategyWithMeasurement } from './strategy.js';
+import {
+  testExtractClientRedirectMeta,
+  testExtractClientRedirectLocationReplace,
+  testBuildApplyPlanJsonLd,
+  testBuildApplyPlanRedirectHint,
+} from './apply-probe.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -129,6 +135,10 @@ async function run() {
   testStrategyThinContent();
   testStrategyRobotsBlocked();
   testStrategyWithMeasurement();
+  testExtractClientRedirectMeta();
+  testExtractClientRedirectLocationReplace();
+  testBuildApplyPlanJsonLd();
+  testBuildApplyPlanRedirectHint();
   console.log('All tests passed');
 }
 

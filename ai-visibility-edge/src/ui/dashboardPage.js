@@ -54,6 +54,7 @@ export function renderDashboardPage(origin) {
     <!-- Primary action -->
     <div class="hero-actions">
       <button type="button" class="btn btn-lg" id="btn-analyze">🚀 Стартирай пълен анализ</button>
+      <button type="button" class="btn" id="btn-apply-main">⚡ Приложи (генерирай)</button>
       <button type="button" class="btn btn-ghost" id="btn-refresh">↻ Обнови</button>
       <a class="btn btn-ghost" id="btn-report" href="#" target="_blank" rel="noopener">📄 Отчет</a>
     </div>
@@ -78,6 +79,16 @@ export function renderDashboardPage(origin) {
           <ol id="plan-month" class="plan-list muted-col"></ol>
         </div>
       </div>
+    </section>
+
+    <!-- Apply artifacts -->
+    <section class="section" id="apply-section">
+      <div class="apply-head">
+        <h3>Приложи поправки</h3>
+        <button type="button" class="btn btn-sm" id="btn-apply">⚡ Генерирай apply</button>
+      </div>
+      <p id="apply-summary" class="sub">След анализ — генерирайте готов JSON-LD и текст за copy-paste в сайта.</p>
+      <div id="apply-fixes" class="apply-fixes"></div>
     </section>
 
     <!-- Collapsible extras -->
@@ -199,6 +210,63 @@ function script(origin) {
       $('btn-report').href = API('/report/' + encodeURIComponent(selectedDomain));
     }
 
+    function renderApply(apply) {
+      $('apply-summary').textContent = apply?.summary || 'Натиснете „Генерирай apply“ след анализ.';
+      if (apply?.cname_hint) {
+        $('apply-summary').textContent += ' ' + apply.cname_hint;
+      }
+      const el = $('apply-fixes');
+      if (!apply?.fixes?.length) {
+        el.innerHTML = '<p class="sub">—</p>';
+        return;
+      }
+      el.innerHTML = apply.fixes.map(f =>
+        '<div class="apply-fix pri-' + f.priority + '">' +
+        '<div class="apply-fix-head"><strong>' + escHtml(f.title) + '</strong>' +
+        '<span class="apply-type">' + f.type + '</span></div>' +
+        '<p class="sub">' + escHtml(f.instructions) + '</p>' +
+        '<pre class="apply-artifact">' + escHtml(f.artifact) + '</pre>' +
+        '<button type="button" class="btn-sm copy-art">Копирай</button></div>'
+      ).join('');
+      el.querySelectorAll('.copy-art').forEach((btn, i) => {
+        btn.onclick = () => {
+          navigator.clipboard.writeText(apply.fixes[i].artifact).then(() => log('Копирано: ' + apply.fixes[i].id));
+        };
+      });
+    }
+
+    async function loadApply() {
+      if (!selectedDomain) return;
+      try {
+        const res = await fetch(API('/api/apply/' + encodeURIComponent(selectedDomain)));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.status);
+        renderApply(data);
+      } catch (e) {
+        $('apply-summary').textContent = 'Apply: ' + e.message;
+      }
+    }
+
+    async function runApply() {
+      if (!selectedDomain || busy) return;
+      busy = true;
+      log('Генериране на apply artifacts…');
+      try {
+        const res = await fetch(API('/api/apply/' + encodeURIComponent(selectedDomain) + '/run'), {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.status);
+        renderApply(data);
+        log(data.next_step || 'Apply готов');
+        await loadStrategy();
+      } catch (e) {
+        log('Apply: ' + e.message);
+      } finally {
+        busy = false;
+      }
+    }
+
     async function loadStrategy() {
       if (!selectedDomain) return;
       log('Зареждане на стратегия…');
@@ -234,6 +302,7 @@ function script(origin) {
         if (!res.ok) throw new Error(data.error || data.hint || res.status);
         log('Готов! Презареждам стратегия…');
         await loadStrategy();
+        await loadApply();
       } catch (e) {
         log('Грешка: ' + e.message);
       } finally {
@@ -304,7 +373,9 @@ function script(origin) {
     $('add-site-form').onsubmit = (e) => { e.preventDefault(); submitAddSite(false); };
     $('btn-add-run').onclick = () => submitAddSite(true);
     $('btn-analyze').onclick = runFullAnalysis;
-    $('btn-refresh').onclick = loadStrategy;
+    $('btn-apply').onclick = runApply;
+    $('btn-apply-main').onclick = runApply;
+    $('btn-refresh').onclick = () => { loadStrategy(); loadApply(); };
     $('btn-gen-q').onclick = async () => {
       if (!selectedDomain) return;
       log('Генериране на въпроси…');
@@ -325,7 +396,7 @@ function script(origin) {
       loadQuestionsQuiet();
     };
 
-    loadSites().then(() => { if (selectedDomain) loadStrategy(); });
+    loadSites().then(() => { if (selectedDomain) { loadStrategy(); loadApply(); } });
   `;
 }
 
@@ -409,5 +480,12 @@ h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted);text-transform:uppercase
 .q-src{font-size:.65rem;text-transform:uppercase;color:var(--muted)}
 .q-text{margin:.3rem 0;padding:.3rem;background:var(--bg);border-radius:4px;min-height:1.5rem}
 pre{margin:0;font-size:.75rem;color:var(--muted);overflow:auto;max-height:200px}
+.apply-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.5rem}
+.apply-fixes{display:grid;gap:.65rem}
+.apply-fix{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.85rem}
+.apply-fix.pri-critical{border-color:#7f1d1d}
+.apply-fix-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem}
+.apply-type{font-size:.65rem;text-transform:uppercase;color:var(--muted)}
+.apply-artifact{background:var(--surface2);padding:.5rem;border-radius:6px;font-size:.7rem;overflow:auto;max-height:160px;margin:.5rem 0}
 .foot{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);color:var(--muted);font-size:.75rem}
 `;

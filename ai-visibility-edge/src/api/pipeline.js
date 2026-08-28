@@ -36,6 +36,7 @@ export async function getSitePipeline(env, domain) {
   }
 
   let recommendationCount = 0;
+  let applyFixCount = 0;
   try {
     const tenantMeta = {
       domain: tenant.apex_host,
@@ -45,6 +46,10 @@ export async function getSitePipeline(env, domain) {
     };
     const rec = await fetchTenantRecommendations(env, tenantMeta);
     recommendationCount = rec.recommendations?.length ?? 0;
+
+    const { getApplyPlan } = await import('./apply.js');
+    const apply = await getApplyPlan(env, tenant.apex_host);
+    applyFixCount = apply.fixes?.length ?? 0;
   } catch {
     /* optional */
   }
@@ -56,6 +61,7 @@ export async function getSitePipeline(env, domain) {
     runCount: runRow?.n ?? 0,
     obsCount: obsRow?.n ?? 0,
     recommendationCount,
+    applyFixCount,
   };
 
   const steps = PIPELINE_STEPS.map((s) => ({

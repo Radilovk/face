@@ -473,6 +473,8 @@ export async function fetchDomainStrategy(env, domain, options = {}) {
       jsonld_blocks: probeResult.jsonld_blocks,
       robots_ai_policy: probeResult.robots_ai_policy,
       has_canonical: probeResult.has_canonical,
+      final_url: probeResult.raw_json?.final_url,
+      redirect_chain: probeResult.raw_json?.redirect_chain ?? [],
     },
     stats: { questionCount, runCount },
   };

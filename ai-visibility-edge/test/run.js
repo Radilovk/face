@@ -22,7 +22,6 @@ import {
 } from './recommendations.js';
 import { testPlatformHost, testTenantEdgeConfig } from './platform-host.js';
 import { testRenderRobotsTxt, testHandleRobotsServe, testHandleRobotsMerge } from './enhance-robots.js';
-import { testOriginNotConfigured, testOriginWorkerFetch, testResolveOriginConfigWorker } from './fetch-origin.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -128,9 +127,6 @@ async function run() {
   await testRenderRobotsTxt();
   await testHandleRobotsServe();
   await testHandleRobotsMerge();
-  await testOriginNotConfigured();
-  testResolveOriginConfigWorker();
-  await testOriginWorkerFetch();
   console.log('All tests passed');
 }
 

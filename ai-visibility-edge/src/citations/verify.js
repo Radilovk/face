@@ -19,6 +19,24 @@ export async function resolveUrl(inputUrl, fetchImpl = fetch) {
   }
 }
 
+export async function readPageFromResponse(res, baseUrl) {
+  if (!res || res.status < 200 || res.status >= 400) {
+    return { ok: false, status: res?.status ?? 0, html: '', text: '', canonical: null };
+  }
+
+  const html = await res.text();
+  const canonical = extractCanonical(html, baseUrl);
+  const text = htmlToText(html);
+
+  return {
+    ok: true,
+    status: res.status,
+    html,
+    text,
+    canonical: canonical ? stripTracking(canonical) : baseUrl,
+  };
+}
+
 export function stripTracking(url) {
   const u = new URL(url);
   for (const key of [...u.searchParams.keys()]) {
@@ -42,22 +60,7 @@ export async function fetchPage(url, fetchImpl = fetch) {
   const res = await fetchImpl(url, {
     headers: { 'User-Agent': 'AIVisibilityBot/1.0 (+https://ai-visibility-edge/verify)' },
   });
-
-  if (!res.ok) {
-    return { ok: false, status: res.status, html: '', text: '', canonical: null };
-  }
-
-  const html = await res.text();
-  const canonical = extractCanonical(html, url);
-  const text = htmlToText(html);
-
-  return {
-    ok: true,
-    status: res.status,
-    html,
-    text,
-    canonical: canonical ? stripTracking(canonical) : url,
-  };
+  return readPageFromResponse(res, url);
 }
 
 export function extractCanonical(html, baseUrl) {
@@ -112,6 +115,7 @@ export function extractPassageAroundClaim(pageText, supportedText, windowSize = 
           text: pageText.slice(start, end).trim(),
           offset: start,
           heading_context: null,
+          found: true,
         };
       }
     }
@@ -124,12 +128,17 @@ export function extractPassageAroundClaim(pageText, supportedText, windowSize = 
       if (idx >= 0) {
         const start = Math.max(0, idx - 80);
         const end = Math.min(pageText.length, idx + windowSize);
-        return { text: pageText.slice(start, end).trim(), offset: start, heading_context: null };
+        return {
+          text: pageText.slice(start, end).trim(),
+          offset: start,
+          heading_context: null,
+          found: true,
+        };
       }
     }
   }
 
-  return { text: pageText.slice(0, windowSize).trim(), offset: 0, heading_context: null };
+  return { text: null, offset: null, heading_context: null, found: false };
 }
 
 export function numericMatch(supportedText, passageText) {
@@ -168,7 +177,7 @@ export async function verifyCitation(citation, options = {}) {
     });
   }
 
-  const page = await fetchPage(resolved.finalUrl, fetchImpl);
+  const page = await readPageFromResponse(resolved.response, resolved.finalUrl);
   if (!page.ok) {
     return buildResult('FABRICATED_URL', citation, {
       url: resolved.finalUrl,
@@ -176,9 +185,30 @@ export async function verifyCitation(citation, options = {}) {
     });
   }
 
-  const passage = extractPassageAroundClaim(page.text, citation.supportedText || citation.snippet);
-  const numMatch = numericMatch(citation.supportedText || citation.snippet, passage.text);
-  const overlap = wordOverlapScore(citation.supportedText || citation.snippet, passage.text);
+  const claimText = citation.supportedText || citation.snippet || '';
+  const passage = extractPassageAroundClaim(page.text, claimText);
+
+  if (!passage.found) {
+    return {
+      url,
+      canonical_url: page.canonical,
+      domain: extractDomain(page.canonical || url),
+      cited_passage: null,
+      passage_offset: null,
+      heading_context: null,
+      numeric_match: null,
+      overlap: 0,
+      content_version: extractContentVersion(page.html),
+      cache_age_hours: null,
+      http_status: page.status,
+      needsSemantic: true,
+      passage_found: false,
+      supportedText: claimText,
+    };
+  }
+
+  const numMatch = numericMatch(claimText, passage.text);
+  const overlap = wordOverlapScore(claimText, passage.text);
   const contentVersion = extractContentVersion(page.html);
 
   return {
@@ -194,7 +224,8 @@ export async function verifyCitation(citation, options = {}) {
     cache_age_hours: null,
     http_status: page.status,
     needsSemantic: numMatch === false,
-    supportedText: citation.supportedText || citation.snippet || '',
+    passage_found: true,
+    supportedText: claimText,
   };
 }
 

@@ -78,8 +78,8 @@ export function renderReport(data) {
         : ''
     }
     ${
-      data.sov?.total_observations
-        ? `<p>SOV: ${((data.sov.share ?? data.sov.sov ?? 0) * 100).toFixed(1)}% (${data.sov.tenant_citations ?? 0} цитата)</p>`
+      data.sov?.observations_count || data.sov?.total_observations
+        ? `<p>SOV: ${(data.sov.sov ?? (data.sov.share ?? 0) * 100).toFixed(1)}% (${data.sov.tenant_citations ?? data.sov.observations_count ?? 0} цитата от ${data.sov.total_observations ?? 0} observations)</p>`
         : ''
     }
   </details>`

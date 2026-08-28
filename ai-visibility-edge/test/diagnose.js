@@ -77,9 +77,18 @@ export function testReportTemplate() {
         },
       ],
     },
+    sov: {
+      sov: 22.5,
+      share: 0.225,
+      observations_count: 3,
+      tenant_citations: 3,
+      total_observations: 40,
+    },
   });
 
   assert(html.includes('biocode-bg.com'));
+  assert(html.includes('22.5%'), 'SOV shown without double *100');
+  assert(html.includes('3 цитата'));
   assert(html.includes('Стратегия') || html.includes('вердикт') || html.includes('Тази седмица'));
   assert(html.includes('Къде сте сега') || html.includes('pillar'));
 }

@@ -46,6 +46,7 @@ export function testVerifyClassify() {
     overlap: 0,
     url: 'https://x.com',
     domain: 'x.com',
+    passage_found: true,
   });
   assert.equal(mis.class, 'MISATTRIBUTED');
   assert(isMisattribution(mis.class));
@@ -65,8 +66,11 @@ export function testVerifyClassify() {
 
 export async function testVerifyCitationMockFetch() {
   const html = `<!doctype html><html><body><p>Каталог протеин 2.5kg за 49.99€ доставка BG.</p></body></html>`;
-  const mockFetch = async () =>
-    new Response(html, { status: 200, url: 'https://biocode-bg.com/p' });
+  let fetchCalls = 0;
+  const mockFetch = async () => {
+    fetchCalls++;
+    return new Response(html, { status: 200, url: 'https://biocode-bg.com/p' });
+  };
 
   const result = await verifyCitation(
     {
@@ -76,6 +80,7 @@ export async function testVerifyCitationMockFetch() {
     { fetch: mockFetch },
   );
 
+  assert.equal(fetchCalls, 1, 'single HTTP fetch per citation');
   assert.equal(result.numeric_match, 1);
   assert(result.cited_passage.includes('49.99'));
   assert.equal(classifyFromVerify(result).class, 'GROUNDED_VERIFIED');
@@ -83,4 +88,17 @@ export async function testVerifyCitationMockFetch() {
   const mock404 = async () => new Response('', { status: 404 });
   const bad = await verifyCitation({ url: 'https://biocode-bg.com/missing' }, { fetch: mock404 });
   assert.equal(classifyFromVerify(bad).class, 'FABRICATED_URL');
+
+  const unrelatedHtml = async () =>
+    new Response('<html><body><p>Completely different page content here.</p></body></html>', {
+      status: 200,
+      url: 'https://biocode-bg.com/x',
+    });
+  const weak = await verifyCitation(
+    { url: 'https://biocode-bg.com/x', supportedText: 'quantum blockchain synergy platform' },
+    { fetch: unrelatedHtml },
+  );
+  assert.equal(weak.passage_found, false);
+  assert.equal(weak.cited_passage, null);
+  assert.equal(classifyFromVerify(weak).class, 'MISATTRIBUTED');
 }

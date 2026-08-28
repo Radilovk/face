@@ -1,4 +1,5 @@
 import { withFailOpen } from './middleware/failOpen.js';
+import { requireAdmin } from './middleware/requireAdmin.js';
 import { loadTenantConfig } from './config/loader.js';
 import { runCitationBatch } from './citations/runner.js';
 import { reprocessRuns } from './citations/reprocess.js';
@@ -30,8 +31,12 @@ import {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    // Platform API/report routes bypass fail-open (probe/report take >50ms)
+    // Platform API/report routes — no fail-open race
     if (isPlatformRoute(url.pathname, url.hostname)) {
+      return handleRequest(request, env, ctx);
+    }
+    // Tenant CNAME traffic — origin fetch must not hit 50ms budget
+    if (!isPlatformHost(url.hostname)) {
       return handleRequest(request, env, ctx);
     }
     return withFailOpen(request, env, ctx, (req, environment) =>
@@ -69,6 +74,8 @@ async function handleRequest(request, env, ctx) {
   }
 
   if (url.pathname === '/api/advisor/chat' && request.method === 'POST') {
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
     const result = await handleAdvisorChat(request, env);
     return json(result, result.error ? (result.error === 'gemini_not_configured' ? 503 : 400) : 200);
   }
@@ -89,6 +96,8 @@ async function handleRequest(request, env, ctx) {
     const missing = requireDb(env);
     if (missing) return missing;
     if (request.method === 'POST') {
+      const denied = requireAdmin(request, env);
+      if (denied) return denied;
       return sitesCreateEndpoint(request, env);
     }
     const sites = await listSitesFromDb(env);
@@ -105,6 +114,8 @@ async function handleRequest(request, env, ctx) {
   if (url.pathname === '/api/measure/run' && request.method === 'POST') {
     const missing = requireDb(env);
     if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
     return measureRunEndpoint(request, env);
   }
 
@@ -112,6 +123,8 @@ async function handleRequest(request, env, ctx) {
   if (pipelineRunMatch && request.method === 'POST') {
     const missing = requireDb(env);
     if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
     return pipelineRunEndpoint(request, env, decodeURIComponent(pipelineRunMatch[1]));
   }
 
@@ -127,6 +140,8 @@ async function handleRequest(request, env, ctx) {
   if (edgeActivateMatch && request.method === 'POST') {
     const missing = requireDb(env);
     if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
     const result = await activateEdgeOptimization(env, decodeURIComponent(edgeActivateMatch[1]));
     return json(result, result.error ? 400 : 200);
   }
@@ -145,6 +160,8 @@ async function handleRequest(request, env, ctx) {
     if (missing) return missing;
     const domain = decodeURIComponent(applyMatch[1]);
     if (url.pathname.endsWith('/run') && request.method === 'POST') {
+      const denied = requireAdmin(request, env);
+      if (denied) return denied;
       const body = await request.json().catch(() => ({}));
       const result = await runApplyPrep(env, domain, body);
       return json(result, result.error ? 404 : 200);
@@ -179,12 +196,16 @@ async function handleRequest(request, env, ctx) {
   if (url.pathname === '/api/questions/generate' && request.method === 'POST') {
     const missing = requireDb(env);
     if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
     return questionsGenerateEndpoint(request, env);
   }
 
   if (url.pathname === '/api/questions' && request.method === 'POST') {
     const missing = requireDb(env);
     if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
     return questionsCreateEndpoint(request, env);
   }
 
@@ -192,6 +213,8 @@ async function handleRequest(request, env, ctx) {
   if (questionMatch && request.method === 'PUT') {
     const missing = requireDb(env);
     if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
     const body = await request.json().catch(() => ({}));
     const result = await updateQuestion(env.DB, decodeURIComponent(questionMatch[1]), body);
     return json(result, result.error ? 404 : 200);
@@ -200,6 +223,8 @@ async function handleRequest(request, env, ctx) {
   if (questionMatch && request.method === 'DELETE') {
     const missing = requireDb(env);
     if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
     const result = await deleteQuestion(env.DB, decodeURIComponent(questionMatch[1]));
     return json(result);
   }
@@ -351,10 +376,8 @@ async function sovQuery(env, url) {
 }
 
 async function reprocessEndpoint(request, env) {
-  const token = request.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
-  if (env.ADMIN_TOKEN && token !== env.ADMIN_TOKEN) {
-    return json({ error: 'unauthorized' }, 401);
-  }
+  const denied = requireAdmin(request, env);
+  if (denied) return denied;
 
   const summary = await reprocessRuns(env, { limit: 50 });
   return json(summary);

@@ -3,6 +3,7 @@ import { passageAutonomy, computeDiagnosticScore } from '../diagnose/score.js';
 import { analyzeDisplacement } from '../diagnose/displacement.js';
 import { computeSov, currentPeriod } from '../index/sov.js';
 import { renderReport } from '../report/template.js';
+import { buildStrategy } from './strategy.js';
 
 /**
  * Build full diagnostic report for a tenant domain.
@@ -51,6 +52,31 @@ export async function buildDomainReport(env, domain, options = {}) {
     });
   }
 
+  let questionCount = 0;
+  let runCount = 0;
+  if (env.DB) {
+    const qc = await env.DB.prepare(`SELECT COUNT(*) as n FROM questions WHERE tenant_id = ?`).bind(tenant.id).first();
+    questionCount = qc?.n ?? 0;
+    const rc = await env.DB.prepare(
+      `SELECT COUNT(*) as n FROM runs r JOIN questions q ON q.id = r.question_id WHERE q.tenant_id = ?`,
+    )
+      .bind(tenant.id)
+      .first();
+    runCount = rc?.n ?? 0;
+  }
+
+  const strategy = buildStrategy({
+    probe: probeResult,
+    passage,
+    diagnostic_score: diagnosticScore,
+    displacement,
+    sov,
+    tenant,
+    registered: true,
+    questionCount,
+    runCount,
+  });
+
   const payload = {
     domain: tenant.apex_host,
     vertical_id: tenant.vertical_id,
@@ -60,6 +86,10 @@ export async function buildDomainReport(env, domain, options = {}) {
     diagnostic_score: diagnosticScore,
     displacement,
     sov,
+    tenant,
+    registered: true,
+    strategy,
+    stats: { questionCount, runCount },
   };
 
   return {

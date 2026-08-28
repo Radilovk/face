@@ -22,6 +22,7 @@ import {
   testBuildRecommendationsCanaryEdge,
   testInfoModulesAndChecklist,
 } from './recommendations.js';
+import { testStrategyThinContent, testStrategyRobotsBlocked, testStrategyWithMeasurement } from './strategy.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -125,6 +126,9 @@ async function run() {
   testSlugId();
   testBuildRecommendationsRobots();
   testInfoModulesAndChecklist();
+  testStrategyThinContent();
+  testStrategyRobotsBlocked();
+  testStrategyWithMeasurement();
   console.log('All tests passed');
 }
 

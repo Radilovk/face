@@ -8,7 +8,11 @@ export function testDashboardV2Page() {
   assert(html.includes('id="pillars"'));
   assert(html.includes('id="plan-week"'));
   assert(html.includes('/api/strategy/'));
-  assert(html.includes('Стартирай пълен анализ'));
+  assert(html.includes('1. Анализ'));
+  assert(html.includes('edge-panel'));
+  assert(html.includes('/api/edge/'));
+  assert(html.includes('loadEdgeDecision'));
+  assert(html.includes('activateEdge'));
   assert(html.includes('Gemini'));
   assert(html.includes('/api/advisor/chat'));
   assert(!html.includes('data-tab="workflow"'));

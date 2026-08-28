@@ -29,6 +29,14 @@ import {
   testBuildApplyPlanJsonLd,
   testBuildApplyPlanRedirectHint,
 } from './apply-probe.js';
+import {
+  testBuildEdgeDecisionMissingJsonLd,
+  testBuildEdgeDecisionRobotsDisallow,
+  testBuildEdgeDecisionActive,
+  testBuildEdgeDecisionThinContentBlocker,
+  testRenderRobotsTxt,
+  testIsPlatformHost,
+} from './edge.js';
 import { testParseAdvisorActions, testParseAdvisorIgnoresInvalidActions } from './advisor.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -132,7 +140,14 @@ async function run() {
   testNormalizeApexHost();
   testSlugId();
   testBuildRecommendationsRobots();
+  testBuildRecommendationsCanaryEdge();
   testInfoModulesAndChecklist();
+  testBuildEdgeDecisionMissingJsonLd();
+  testBuildEdgeDecisionRobotsDisallow();
+  testBuildEdgeDecisionActive();
+  testBuildEdgeDecisionThinContentBlocker();
+  testRenderRobotsTxt();
+  testIsPlatformHost();
   testStrategyThinContent();
   testStrategyRobotsBlocked();
   testStrategyWithMeasurement();

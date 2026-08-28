@@ -53,31 +53,23 @@ export function renderDashboardPage(origin) {
 
     <!-- Primary action -->
     <div class="hero-actions">
-      <button type="button" class="btn btn-lg" id="btn-analyze">🚀 Стартирай пълен анализ</button>
-      <button type="button" class="btn" id="btn-apply-main">⚡ Приложи (генерирай)</button>
+      <button type="button" class="btn btn-lg" id="btn-analyze">🚀 1. Анализ</button>
+      <button type="button" class="btn btn-lg" id="btn-edge-activate">⚡ 2. Приложи Edge</button>
       <button type="button" class="btn btn-ghost" id="btn-refresh">↻ Обнови</button>
       <a class="btn btn-ghost" id="btn-report" href="#" target="_blank" rel="noopener">📄 Отчет</a>
     </div>
     <p id="status-line" class="status-line">…</p>
 
-    <!-- Gemini advisor -->
-    <section class="section advisor-panel" id="advisor-panel">
-      <div class="advisor-head">
-        <h3>💬 Gemini съветник</h3>
-        <span id="advisor-badge" class="advisor-badge">…</span>
+    <!-- Edge decision (Block 4 — optimization via Cloudflare Worker) -->
+    <section class="section edge-panel" id="edge-panel">
+      <div class="apply-head">
+        <h3>⚡ Edge решение</h3>
+        <span id="edge-status-badge" class="advisor-badge">…</span>
       </div>
-      <p class="sub">Питайте какво да направите — Gemini вижда одит, стратегия и pipeline за избрания сайт.</p>
-      <div id="chat-messages" class="chat-messages"></div>
-      <div id="chat-actions" class="chat-actions"></div>
-      <div class="chat-quick">
-        <button type="button" class="btn-sm btn-ghost chat-quick-btn" data-q="Какво да направя сега с този сайт? Дай ми 3 конкретни стъпки по приоритет.">Какво сега?</button>
-        <button type="button" class="btn-sm btn-ghost chat-quick-btn" data-q="Обясни score-а и вердикта на прост език. Кое е най-големият проблем?">Обясни score</button>
-        <button type="button" class="btn-sm btn-ghost chat-quick-btn" data-q="Как да приложа поправките — JSON-LD, текст, redirect? Какво copy-paste и къде?">Как да приложа?</button>
-      </div>
-      <form id="chat-form" class="chat-form">
-        <textarea id="chat-input" rows="2" placeholder="Напишете въпрос или инструкция…" required></textarea>
-        <button type="submit" class="btn" id="btn-chat-send">Изпрати</button>
-      </form>
+      <p class="sub">Оптимизацията минава през наш Cloudflare Worker — не през CMS. След CNAME поправките са автоматични.</p>
+      <div id="edge-verdict" class="edge-verdict sub">Стартирайте анализ за решение.</div>
+      <ul id="edge-fixes" class="edge-fix-list"></ul>
+      <ul id="edge-prereq" class="edge-prereq-list"></ul>
     </section>
 
     <!-- Pillars -->
@@ -101,17 +93,20 @@ export function renderDashboardPage(origin) {
       </div>
     </section>
 
-    <!-- Apply artifacts -->
-    <section class="section" id="apply-section">
-      <div class="apply-head">
-        <h3>Приложи поправки</h3>
-        <button type="button" class="btn btn-sm" id="btn-apply">⚡ Генерирай apply</button>
-      </div>
-      <p id="apply-summary" class="sub">След анализ — генерирайте готов JSON-LD и текст за copy-paste в сайта.</p>
-      <div id="apply-fixes" class="apply-fixes"></div>
-    </section>
-
     <!-- Collapsible extras -->
+    <details class="extra">
+      <summary>💬 Gemini съветник (опционално)</summary>
+      <div class="extra-body">
+        <span id="advisor-badge" class="advisor-badge">…</span>
+        <div id="chat-messages" class="chat-messages"></div>
+        <div id="chat-actions" class="chat-actions"></div>
+        <form id="chat-form" class="chat-form">
+          <textarea id="chat-input" rows="2" placeholder="Въпрос към Gemini…"></textarea>
+          <button type="submit" class="btn btn-sm" id="btn-chat-send">Изпрати</button>
+        </form>
+      </div>
+    </details>
+
     <details class="extra">
       <summary>❓ Въпроси за AI (редакция)</summary>
       <div class="extra-body">
@@ -258,8 +253,8 @@ function script(origin) {
 
     async function executeAdvisorAction(action) {
       if (action === 'run_analysis') return runFullAnalysis();
-      if (action === 'generate_apply') return runApply();
-      if (action === 'refresh_strategy') { await loadStrategy(); await loadApply(); return; }
+      if (action === 'generate_apply') return activateEdge();
+      if (action === 'refresh_strategy') { await loadStrategy(); await loadEdgeDecision(); return; }
       if (action === 'open_report') { window.open(API('/report/' + encodeURIComponent(selectedDomain)), '_blank'); return; }
       if (action === 'generate_questions') { $('btn-gen-q').click(); return; }
     }
@@ -317,58 +312,76 @@ function script(origin) {
       $('btn-report').href = API('/report/' + encodeURIComponent(selectedDomain));
     }
 
-    function renderApply(apply) {
-      $('apply-summary').textContent = apply?.summary || 'Натиснете „Генерирай apply“ след анализ.';
-      if (apply?.cname_hint) {
-        $('apply-summary').textContent += ' ' + apply.cname_hint;
-      }
-      const el = $('apply-fixes');
-      if (!apply?.fixes?.length) {
-        el.innerHTML = '<p class="sub">—</p>';
+    function renderEdgeDecision(decision) {
+      const badge = $('edge-status-badge');
+      const verdictEl = $('edge-verdict');
+      const fixesEl = $('edge-fixes');
+      const prereqEl = $('edge-prereq');
+      const btn = $('btn-edge-activate');
+
+      if (!decision || decision.error) {
+        badge.textContent = '—';
+        badge.className = 'advisor-badge';
+        verdictEl.textContent = decision?.hint || 'Стартирайте анализ за Edge решение.';
+        fixesEl.innerHTML = '';
+        prereqEl.innerHTML = '';
+        btn.disabled = true;
         return;
       }
-      el.innerHTML = apply.fixes.map(f =>
-        '<div class="apply-fix pri-' + f.priority + '">' +
-        '<div class="apply-fix-head"><strong>' + escHtml(f.title) + '</strong>' +
-        '<span class="apply-type">' + f.type + '</span></div>' +
-        '<p class="sub">' + escHtml(f.instructions) + '</p>' +
-        '<pre class="apply-artifact">' + escHtml(f.artifact) + '</pre>' +
-        '<button type="button" class="btn-sm copy-art">Копирай</button></div>'
+
+      const statusLabels = {
+        active: 'активен',
+        pending_cname: 'чака CNAME',
+        measurement_only: 'само измерване',
+      };
+      badge.textContent = statusLabels[decision.status] || decision.status || '—';
+      badge.className = 'advisor-badge ' + (decision.edge_active ? 'ok' : (decision.fixes?.length ? 'warn' : ''));
+
+      const v = decision.verdict || {};
+      verdictEl.innerHTML = '<strong>' + escHtml(v.headline || '—') + '</strong><br>' + escHtml(v.summary || '');
+
+      fixesEl.innerHTML = (decision.fixes || []).map(f =>
+        '<li class="edge-fix"><span class="edge-fix-layer">' + escHtml(f.layer) + '</span> ' +
+        '<strong>' + escHtml(f.title) + '</strong><br><small>' + escHtml(f.detail) + '</small></li>'
+      ).join('') || '<li class="sub">Няма pending edge поправки</li>';
+
+      prereqEl.innerHTML = (decision.prerequisites || []).map(p =>
+        '<li><strong>' + escHtml(p.title) + '</strong> — ' + escHtml(p.detail) + '</li>'
       ).join('');
-      el.querySelectorAll('.copy-art').forEach((btn, i) => {
-        btn.onclick = () => {
-          navigator.clipboard.writeText(apply.fixes[i].artifact).then(() => log('Копирано: ' + apply.fixes[i].id));
-        };
-      });
+
+      btn.disabled = !decision.fixes?.length || decision.edge_active;
+      btn.textContent = decision.edge_active ? '✓ Edge активен' : '⚡ 2. Приложи Edge';
     }
 
-    async function loadApply() {
+    async function loadEdgeDecision() {
       if (!selectedDomain) return;
       try {
-        const res = await fetch(API('/api/apply/' + encodeURIComponent(selectedDomain)));
+        const res = await fetch(API('/api/edge/' + encodeURIComponent(selectedDomain) + '/decision'));
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || res.status);
-        renderApply(data);
+        if (!res.ok) throw new Error(data.error || data.hint || res.status);
+        renderEdgeDecision(data);
       } catch (e) {
-        $('apply-summary').textContent = 'Apply: ' + e.message;
+        renderEdgeDecision({ error: true, hint: 'Edge: ' + e.message });
       }
     }
 
-    async function runApply() {
+    async function activateEdge() {
       if (!selectedDomain || busy) return;
       busy = true;
-      log('Генериране на apply artifacts…');
+      $('btn-edge-activate').disabled = true;
+      log('Прилагане на Edge конфигурация (KV)…');
       try {
-        const res = await fetch(API('/api/apply/' + encodeURIComponent(selectedDomain) + '/run'), {
+        const res = await fetch(API('/api/edge/' + encodeURIComponent(selectedDomain) + '/activate'), {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}'
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || res.status);
-        renderApply(data);
-        log(data.next_step || 'Apply готов');
+        if (!res.ok) throw new Error(data.error || data.hint || data.message || res.status);
+        log(data.message || 'Edge конфигурация записана');
+        await loadEdgeDecision();
         await loadStrategy();
       } catch (e) {
-        log('Apply: ' + e.message);
+        log('Edge: ' + e.message);
+        await loadEdgeDecision();
       } finally {
         busy = false;
       }
@@ -388,6 +401,7 @@ function script(origin) {
         renderTech(strategy.probe, strategy.stats);
         log('Обновено ' + new Date().toLocaleTimeString('bg-BG'));
         loadQuestionsQuiet();
+        loadEdgeDecision();
       } catch (e) {
         log('Грешка: ' + e.message);
       }
@@ -409,7 +423,7 @@ function script(origin) {
         if (!res.ok) throw new Error(data.error || data.hint || res.status);
         log('Готов! Презареждам стратегия…');
         await loadStrategy();
-        await loadApply();
+        await loadEdgeDecision();
       } catch (e) {
         log('Грешка: ' + e.message);
       } finally {
@@ -480,9 +494,8 @@ function script(origin) {
     $('add-site-form').onsubmit = (e) => { e.preventDefault(); submitAddSite(false); };
     $('btn-add-run').onclick = () => submitAddSite(true);
     $('btn-analyze').onclick = runFullAnalysis;
-    $('btn-apply').onclick = runApply;
-    $('btn-apply-main').onclick = runApply;
-    $('btn-refresh').onclick = () => { loadStrategy(); loadApply(); };
+    $('btn-edge-activate').onclick = activateEdge;
+    $('btn-refresh').onclick = () => { loadStrategy(); loadEdgeDecision(); };
     $('btn-gen-q').onclick = async () => {
       if (!selectedDomain) return;
       log('Генериране на въпроси…');
@@ -512,7 +525,7 @@ function script(origin) {
     });
 
     loadAdvisorStatus();
-    loadSites().then(() => { if (selectedDomain) { loadStrategy(); loadApply(); } });
+    loadSites().then(() => { if (selectedDomain) { loadStrategy(); loadEdgeDecision(); } });
   `;
 }
 
@@ -608,6 +621,13 @@ pre{margin:0;font-size:.75rem;color:var(--muted);overflow:auto;max-height:200px}
 .advisor-badge{font-size:.7rem;padding:.2rem .5rem;border-radius:999px;background:var(--surface2);color:var(--muted)}
 .advisor-badge.ok{background:#14532d;color:#86efac}
 .advisor-badge.err{background:#3f1515;color:#fca5a5}
+.advisor-badge.warn{background:#422006;color:#fcd34d}
+.edge-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1.75rem}
+.edge-verdict{margin:.75rem 0;padding:.65rem .85rem;background:var(--surface2);border-radius:8px;font-size:.875rem}
+.edge-fix-list,.edge-prereq-list{margin:.5rem 0;padding-left:1.25rem;font-size:.85rem}
+.edge-fix{margin-bottom:.45rem}
+.edge-fix-layer{font-size:.65rem;text-transform:uppercase;color:var(--accent);background:var(--surface2);padding:.1rem .35rem;border-radius:4px}
+.edge-prereq-list{color:var(--muted)}
 .chat-messages{max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:.65rem;margin:.75rem 0;padding:.5rem;background:var(--bg);border-radius:8px;min-height:80px}
 .chat-msg{padding:.55rem .65rem;border-radius:8px;font-size:.875rem}
 .chat-user{background:#1e3a5f;align-self:flex-end;max-width:92%}

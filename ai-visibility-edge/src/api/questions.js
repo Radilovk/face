@@ -67,7 +67,8 @@ export async function resolveTenantByDomain(db, domain) {
   const normalized = domain.replace(/^www\./, '').toLowerCase().split('/')[0];
   return db
     .prepare(
-      `SELECT t.id, t.name, t.apex_host, t.is_canary, wd.vertical_id, v.name as vertical_name
+      `SELECT t.id, t.name, t.apex_host, t.is_canary, t.edge_enabled, t.edge_status,
+              wd.vertical_id, v.name as vertical_name
        FROM tenants t
        LEFT JOIN watched_domains wd ON wd.tenant_id = t.id AND wd.role = 'tenant'
        LEFT JOIN verticals v ON v.id = wd.vertical_id

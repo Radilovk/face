@@ -60,32 +60,36 @@ export async function runSitePipeline(env, domain, options = {}) {
   }
 
   if (options.recommendations !== false) {
+    const edgeConfig = await import('../config/tenantEdge.js').then((m) =>
+      m.loadEdgeConfig(env, tenant.apex_host),
+    );
+    const edgeActive = Boolean(edgeConfig?.edge?.enabled) && Boolean(tenant.edge_enabled);
     const rec = await fetchTenantRecommendations(env, {
       domain: tenant.apex_host,
       name: tenant.name,
       vertical_id: tenant.vertical_id,
       canary: Boolean(tenant.is_canary),
-    });
+      apex_host: tenant.apex_host,
+    }, { edgeActive });
     result.steps.recommendations = {
       count: rec.recommendations?.length ?? 0,
       top: (rec.recommendations ?? []).slice(0, 5),
     };
   }
 
-  if (options.apply !== false) {
-    const { getApplyPlan } = await import('./apply.js');
-    const apply = await getApplyPlan(env, tenant.apex_host);
-    result.steps.apply = {
-      status: apply.error ? 'error' : 'ready',
-      fix_count: apply.fixes?.length ?? 0,
-      summary: apply.summary,
-      fixes: (apply.fixes ?? []).map((f) => ({
-        id: f.id,
-        title: f.title,
-        type: f.type,
-        priority: f.priority,
-      })),
-    };
+  if (options.edge !== false) {
+    try {
+      const { getEdgeDecision } = await import('./edge.js');
+      const decision = await getEdgeDecision(env, tenant.apex_host);
+      result.steps.edge = {
+        status: decision.edge_active ? 'active' : 'decision_ready',
+        verdict: decision.verdict?.headline,
+        fixes: (decision.fixes ?? []).map((f) => f.id),
+        pipeline_next: decision.pipeline_next,
+      };
+    } catch (err) {
+      result.steps.edge = { status: 'error', message: err.message };
+    }
   }
 
   result.finished_at = new Date().toISOString();

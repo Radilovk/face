@@ -20,7 +20,8 @@ export function testBuildRecommendationsRobots() {
 
   assert(items.some((r) => r.id === 'robots_disallow_all'));
   assert.equal(items.find((r) => r.id === 'robots_disallow_all').severity, 'critical');
-  assert(items.some((r) => r.owner === 'you'));
+  assert.equal(items.find((r) => r.id === 'robots_disallow_all').layer, 'edge');
+  assert(items.some((r) => r.id === 'edge_activate'));
 }
 
 export function testBuildRecommendationsCanaryEdge() {

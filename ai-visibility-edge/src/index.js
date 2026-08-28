@@ -2,6 +2,7 @@ import { withFailOpen } from './middleware/failOpen.js';
 import { requireAdmin } from './middleware/requireAdmin.js';
 import { getAuthStatus } from './api/auth.js';
 import { fetchSiteStats } from './api/siteStats.js';
+import { fetchCacheIndex } from './api/cacheIndex.js';
 import { getModelsStatus } from './config/models.js';
 import { loadTenantConfig } from './config/loader.js';
 import { runCitationBatch } from './citations/runner.js';
@@ -111,6 +112,13 @@ async function handleRequest(request, env, ctx) {
     if (!domain) return json({ error: 'domain required' }, 400);
     const stats = await fetchSiteStats(env, domain);
     return json(stats, stats.error ? 404 : 200);
+  }
+
+  if (url.pathname === '/api/cache-index') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const result = await fetchCacheIndex(env, url);
+    return json(result, result.error ? 400 : 200);
   }
 
   if (url.pathname === '/api/sites') {

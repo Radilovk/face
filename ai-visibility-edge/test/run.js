@@ -57,6 +57,17 @@ import {
   testFetchBotHitStats,
 } from './observe.js';
 import {
+  testHoursBetween,
+  testCorrelateFromBotHit,
+  testCorrelateFromDateModified,
+  testExtractDateModified,
+  testComputeDistribution,
+  testFindLastVerifiedBotHit,
+  testComputeCacheAgeTenantBot,
+  testBuildCacheIndexWithData,
+  testCorrelateWindowConstant,
+} from './cache-index.js';
+import {
   testComputeSovSessionsAndCap,
   testComputeSovPeriodFilter,
   testComputeSovPersistOptional,
@@ -196,6 +207,15 @@ async function run() {
   testVerifyBotGoogleExtendedAsn();
   await testScheduleBotLogNoQueryString();
   await testFetchBotHitStats();
+  testHoursBetween();
+  testCorrelateFromBotHit();
+  testCorrelateFromDateModified();
+  testExtractDateModified();
+  testComputeDistribution();
+  testCorrelateWindowConstant();
+  await testFindLastVerifiedBotHit();
+  await testComputeCacheAgeTenantBot();
+  await testBuildCacheIndexWithData();
   await testFetchSiteStats();
   await testFetchSiteStatsPendingReprocess();
   await testComputeSovSessionsAndCap();

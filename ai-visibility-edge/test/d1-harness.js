@@ -1,14 +1,14 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DatabaseSync } from 'node:sqlite';
+import Database from 'better-sqlite3';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
 
 /** In-memory SQLite with D1-compatible prepare/bind/all/first/run API. */
 export function createTestDb() {
-  const db = new DatabaseSync(':memory:');
+  const db = new Database(':memory:');
   applyMigrations(db);
   return wrapDb(db);
 }

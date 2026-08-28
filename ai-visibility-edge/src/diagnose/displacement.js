@@ -4,7 +4,7 @@ import { extractDomain } from '../citations/verify.js';
 /**
  * Displacement: AI lists competitors A,B,C but not the tenant domain.
  */
-export async function analyzeDisplacement(db, { domain, verticalId, model = null }) {
+export async function analyzeDisplacement(db, { domain, verticalId, model = null, limit = 500 }) {
   const tenantDomain = normalizeDomain(domain);
 
   const { results: competitors } = await db
@@ -19,14 +19,15 @@ export async function analyzeDisplacement(db, { domain, verticalId, model = null
 
   const { results: runs } = await db
     .prepare(
-      `SELECT r.id, r.model, r.raw_response, r.answer_text, q.id as question_id, q.text as question_text
+      `SELECT r.id, r.model, r.answer_text, r.raw_response, q.id as question_id, q.text as question_text
        FROM runs r
        JOIN questions q ON q.id = r.question_id
        WHERE q.vertical_id = ?
          AND (? IS NULL OR r.model = ?)
-       ORDER BY r.run_at DESC`,
+       ORDER BY r.run_at DESC
+       LIMIT ?`,
     )
-    .bind(verticalId, model, model)
+    .bind(verticalId, model, model, limit)
     .all();
 
   const events = [];

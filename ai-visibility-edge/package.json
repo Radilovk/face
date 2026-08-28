@@ -10,6 +10,7 @@
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply aiv --local",
     "baseline:collect": "node scripts/baseline-collect.js",
+    "baseline:reprocess": "node scripts/baseline-reprocess.js",
     "baseline:upload-kv": "node scripts/baseline-upload-kv.js",
     "baseline:fetch-kv": "node scripts/baseline-fetch-kv.js",
     "db:import-baseline": "node scripts/baseline-import-d1.js",
@@ -17,6 +18,7 @@
     "citations:reprocess": "node scripts/run-reprocess.js"
   },
   "devDependencies": {
+    "better-sqlite3": "^11.10.0",
     "wrangler": "^4.0.0"
   }
 }

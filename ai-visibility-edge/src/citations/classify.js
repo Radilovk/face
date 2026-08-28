@@ -27,25 +27,34 @@ export function classifyFromVerify(verifyResult, thresholds = DEFAULTS) {
     return { class: 'FABRICATED_URL', ...pickObs(verifyResult) };
   }
 
+  if (verifyResult.passage_found === false) {
+    return { class: 'MISATTRIBUTED', ...pickObs(verifyResult) };
+  }
+
   if (verifyResult.numeric_match === 1) {
     return { class: 'GROUNDED_VERIFIED', ...pickObs(verifyResult) };
   }
 
+  const overlap = verifyResult.overlap ?? 0;
+
   if (verifyResult.needsSemantic) {
-    if ((verifyResult.overlap ?? 0) >= thresholds.semantic_threshold) {
+    if (overlap >= thresholds.semantic_threshold) {
       return { class: 'GROUNDED_WEAK', ...pickObs(verifyResult) };
     }
-    if ((verifyResult.overlap ?? 0) >= thresholds.weak_overlap_min) {
+    if (overlap >= thresholds.weak_overlap_min) {
       return { class: 'GROUNDED_WEAK', ...pickObs(verifyResult) };
     }
     return { class: 'MISATTRIBUTED', ...pickObs(verifyResult) };
   }
 
-  if ((verifyResult.overlap ?? 0) >= thresholds.weak_overlap_min) {
+  if (overlap >= thresholds.semantic_threshold) {
+    return { class: 'GROUNDED_WEAK', ...pickObs(verifyResult) };
+  }
+  if (overlap >= thresholds.weak_overlap_min) {
     return { class: 'GROUNDED_WEAK', ...pickObs(verifyResult) };
   }
 
-  return { class: 'GROUNDED_WEAK', ...pickObs(verifyResult) };
+  return { class: 'MISATTRIBUTED', ...pickObs(verifyResult) };
 }
 
 function pickObs(v) {

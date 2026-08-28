@@ -38,6 +38,14 @@ import {
   testIsPlatformHost,
 } from './edge.js';
 import { testParseAdvisorActions, testParseAdvisorIgnoresInvalidActions } from './advisor.js';
+import {
+  testComputeSovSessionsAndCap,
+  testComputeSovPeriodFilter,
+  testComputeSovPersistOptional,
+  testPeriodHelpers,
+  testClassifyLowOverlapMisattributed,
+  testClassifyPassageNotFound,
+} from './sov-d1.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -157,6 +165,12 @@ async function run() {
   testBuildApplyPlanRedirectHint();
   testParseAdvisorActions();
   testParseAdvisorIgnoresInvalidActions();
+  testPeriodHelpers();
+  testClassifyLowOverlapMisattributed();
+  testClassifyPassageNotFound();
+  await testComputeSovSessionsAndCap();
+  await testComputeSovPeriodFilter();
+  await testComputeSovPersistOptional();
   console.log('All tests passed');
 }
 

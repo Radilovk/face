@@ -48,8 +48,8 @@ export const INFO_MODULES = [
     id: 'edge',
     title: 'Edge Optimizer (Блок 4)',
     icon: '⚡',
-    what: 'Worker на CNAME на tenant домейна — инжектира JSON-LD, маркери за версия и структурирани данни в HTML отговора.',
-    why: 'Поправя извличане без cloaking. Работи само след CNAME и не замества on-site поправки (robots, съдържание).',
+    what: 'Worker proxy + автоматични поправки (robots, JSON-LD) след CNAME.',
+    why: 'Git → deploy → live. Подходящ за serverless сайтове (Worker origin).',
     status: 'planned',
   },
 ];
@@ -108,14 +108,14 @@ export const USER_CHECKLIST = [
     ],
   },
   {
-    id: 'edge_canary',
-    title: 'Edge Optimizer — canary (Блок 4)',
-    owner: 'you',
-    done_when: 'biocode-bg.com минава през Worker',
+    id: 'workflow',
+    title: 'Автоматичен pipeline',
+    owner: 'system',
+    done_when: 'Всички стъпки зелени в таб Автоматизация',
     items: [
-      'CNAME biocode-bg.com → Worker custom hostname в Cloudflare',
-      'Достъп до DNS зоната на домейна',
-      'След canary → останалите 3 домейна',
+      'Изберете сайт → Pipeline показва статус',
+      'Одит + въпроси + reprocess от бутоните',
+      'Ръчна намеса: редакция на въпроси, одобрение на действия',
     ],
   },
 ];

@@ -60,6 +60,26 @@ export function renderDashboardPage(origin) {
     </div>
     <p id="status-line" class="status-line">…</p>
 
+    <!-- Gemini advisor -->
+    <section class="section advisor-panel" id="advisor-panel">
+      <div class="advisor-head">
+        <h3>💬 Gemini съветник</h3>
+        <span id="advisor-badge" class="advisor-badge">…</span>
+      </div>
+      <p class="sub">Питайте какво да направите — Gemini вижда одит, стратегия и pipeline за избрания сайт.</p>
+      <div id="chat-messages" class="chat-messages"></div>
+      <div id="chat-actions" class="chat-actions"></div>
+      <div class="chat-quick">
+        <button type="button" class="btn-sm btn-ghost chat-quick-btn" data-q="Какво да направя сега с този сайт? Дай ми 3 конкретни стъпки по приоритет.">Какво сега?</button>
+        <button type="button" class="btn-sm btn-ghost chat-quick-btn" data-q="Обясни score-а и вердикта на прост език. Кое е най-големият проблем?">Обясни score</button>
+        <button type="button" class="btn-sm btn-ghost chat-quick-btn" data-q="Как да приложа поправките — JSON-LD, текст, redirect? Какво copy-paste и къде?">Как да приложа?</button>
+      </div>
+      <form id="chat-form" class="chat-form">
+        <textarea id="chat-input" rows="2" placeholder="Напишете въпрос или инструкция…" required></textarea>
+        <button type="submit" class="btn" id="btn-chat-send">Изпрати</button>
+      </form>
+    </section>
+
     <!-- Pillars -->
     <section class="section">
       <h3>Къде сте сега</h3>
@@ -125,6 +145,9 @@ function script(origin) {
     let strategy = null;
     let busy = false;
 
+    let chatHistory = [];
+    let advisorReady = false;
+
     const $ = (id) => document.getElementById(id);
 
     function log(msg) {
@@ -161,7 +184,13 @@ function script(origin) {
         selectedDomain = sites[0].domain;
       }
       sel.value = selectedDomain;
-      sel.onchange = () => { selectedDomain = sel.value; loadStrategy(); };
+      sel.onchange = () => {
+        selectedDomain = sel.value;
+        chatHistory = [];
+        $('chat-messages').innerHTML = '';
+        $('chat-actions').innerHTML = '';
+        loadStrategy();
+      };
     }
 
     function renderPipeline(pipeline) {
@@ -203,6 +232,84 @@ function script(origin) {
 
       $('plan-week').innerHTML = renderItems(plan?.this_week);
       $('plan-month').innerHTML = renderItems(plan?.this_month);
+    }
+
+    function renderChatMessage(role, text) {
+      const el = $('chat-messages');
+      const div = document.createElement('div');
+      div.className = 'chat-msg chat-' + role;
+      div.innerHTML = '<span class="chat-role">' + (role === 'user' ? 'Вие' : 'Gemini') + '</span>' +
+        '<div class="chat-text">' + escHtml(text).replace(/\\n/g, '<br>') + '</div>';
+      el.appendChild(div);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function renderChatActions(actions) {
+      const el = $('chat-actions');
+      if (!actions?.length) { el.innerHTML = ''; return; }
+      el.innerHTML = actions.map(a =>
+        '<button type="button" class="btn btn-sm chat-action" data-action="' + escHtml(a.action) + '" title="' + escHtml(a.reason || '') + '">' +
+        escHtml(a.label) + '</button>'
+      ).join('');
+      el.querySelectorAll('.chat-action').forEach(btn => {
+        btn.onclick = () => executeAdvisorAction(btn.dataset.action);
+      });
+    }
+
+    async function executeAdvisorAction(action) {
+      if (action === 'run_analysis') return runFullAnalysis();
+      if (action === 'generate_apply') return runApply();
+      if (action === 'refresh_strategy') { await loadStrategy(); await loadApply(); return; }
+      if (action === 'open_report') { window.open(API('/report/' + encodeURIComponent(selectedDomain)), '_blank'); return; }
+      if (action === 'generate_questions') { $('btn-gen-q').click(); return; }
+    }
+
+    async function loadAdvisorStatus() {
+      try {
+        const res = await fetch(API('/api/advisor/status'));
+        const data = await res.json();
+        advisorReady = data.configured;
+        const badge = $('advisor-badge');
+        badge.textContent = data.configured ? ('Gemini · ' + (data.model || 'ok')) : 'няма API key';
+        badge.className = 'advisor-badge ' + (data.configured ? 'ok' : 'err');
+        if (!data.configured) {
+          renderChatMessage('model', data.hint || 'GEMINI_API_KEY не е конфигуриран в Worker.');
+        }
+      } catch {
+        $('advisor-badge').textContent = 'offline';
+      }
+    }
+
+    async function sendChatMessage(text) {
+      if (!selectedDomain) { log('Изберете сайт'); return; }
+      if (!advisorReady) { log('Gemini не е конфигуриран'); return; }
+      const msg = text.trim();
+      if (!msg) return;
+
+      renderChatMessage('user', msg);
+      chatHistory.push({ role: 'user', content: msg });
+      $('btn-chat-send').disabled = true;
+      log('Gemini мисли…');
+
+      try {
+        const res = await fetch(API('/api/advisor/chat'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ domain: selectedDomain, message: msg, history: chatHistory.slice(0, -1) })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.hint || res.status);
+        renderChatMessage('model', data.reply);
+        chatHistory.push({ role: 'model', content: data.reply });
+        renderChatActions(data.actions);
+        log('Gemini · score ' + (data.context_summary?.score ?? '—'));
+      } catch (e) {
+        renderChatMessage('model', 'Грешка: ' + e.message);
+        log('Gemini: ' + e.message);
+      } finally {
+        $('btn-chat-send').disabled = false;
+        $('chat-input').value = '';
+      }
     }
 
     function renderTech(probe, stats) {
@@ -396,6 +503,15 @@ function script(origin) {
       loadQuestionsQuiet();
     };
 
+    $('chat-form').onsubmit = (e) => {
+      e.preventDefault();
+      sendChatMessage($('chat-input').value);
+    };
+    document.querySelectorAll('.chat-quick-btn').forEach(btn => {
+      btn.onclick = () => sendChatMessage(btn.dataset.q);
+    });
+
+    loadAdvisorStatus();
     loadSites().then(() => { if (selectedDomain) { loadStrategy(); loadApply(); } });
   `;
 }
@@ -487,5 +603,20 @@ pre{margin:0;font-size:.75rem;color:var(--muted);overflow:auto;max-height:200px}
 .apply-fix-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem}
 .apply-type{font-size:.65rem;text-transform:uppercase;color:var(--muted)}
 .apply-artifact{background:var(--surface2);padding:.5rem;border-radius:6px;font-size:.7rem;overflow:auto;max-height:160px;margin:.5rem 0}
+.advisor-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1.75rem}
+.advisor-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.35rem}
+.advisor-badge{font-size:.7rem;padding:.2rem .5rem;border-radius:999px;background:var(--surface2);color:var(--muted)}
+.advisor-badge.ok{background:#14532d;color:#86efac}
+.advisor-badge.err{background:#3f1515;color:#fca5a5}
+.chat-messages{max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:.65rem;margin:.75rem 0;padding:.5rem;background:var(--bg);border-radius:8px;min-height:80px}
+.chat-msg{padding:.55rem .65rem;border-radius:8px;font-size:.875rem}
+.chat-user{background:#1e3a5f;align-self:flex-end;max-width:92%}
+.chat-model{background:var(--surface2);align-self:flex-start;max-width:96%}
+.chat-role{font-size:.65rem;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.2rem}
+.chat-text{line-height:1.45}
+.chat-actions{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem}
+.chat-quick{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.5rem}
+.chat-form{display:flex;gap:.5rem;align-items:flex-end}
+.chat-form textarea{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:.5rem;font-family:inherit;font-size:.875rem;resize:vertical;min-height:2.5rem}
 .foot{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);color:var(--muted);font-size:.75rem}
 `;

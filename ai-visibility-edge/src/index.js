@@ -14,6 +14,7 @@ import { runSitePipeline } from './api/pipelineRun.js';
 import { registerSite, listVerticals } from './api/sites.js';
 import { runCitationBatchForTenant } from './citations/runner.js';
 import { getApplyPlan, runApplyPrep } from './api/apply.js';
+import { handleAdvisorStatus, handleAdvisorChat } from './api/advisor.js';
 import {
   listQuestions,
   generateAndSaveQuestions,
@@ -56,6 +57,16 @@ async function handleRequest(request, env, ctx) {
   if (url.pathname === '/' || url.pathname === '/dashboard') {
     const origin = url.origin;
     return html(renderDashboardPage(origin));
+  }
+
+  if (url.pathname === '/api/advisor/status') {
+    const status = await handleAdvisorStatus(env);
+    return json(status);
+  }
+
+  if (url.pathname === '/api/advisor/chat' && request.method === 'POST') {
+    const result = await handleAdvisorChat(request, env);
+    return json(result, result.error ? (result.error === 'gemini_not_configured' ? 503 : 400) : 200);
   }
 
   if (url.pathname === '/api/dashboard/summary') {

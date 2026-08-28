@@ -29,6 +29,7 @@ import {
   testBuildApplyPlanJsonLd,
   testBuildApplyPlanRedirectHint,
 } from './apply-probe.js';
+import { testParseAdvisorActions, testParseAdvisorIgnoresInvalidActions } from './advisor.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -139,6 +140,8 @@ async function run() {
   testExtractClientRedirectLocationReplace();
   testBuildApplyPlanJsonLd();
   testBuildApplyPlanRedirectHint();
+  testParseAdvisorActions();
+  testParseAdvisorIgnoresInvalidActions();
   console.log('All tests passed');
 }
 

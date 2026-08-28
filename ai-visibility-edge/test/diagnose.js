@@ -80,6 +80,6 @@ export function testReportTemplate() {
   });
 
   assert(html.includes('biocode-bg.com'));
-  assert(html.includes('Извличане'));
-  assert(html.includes('displacement') || html.includes('Изместване'));
+  assert(html.includes('Стратегия') || html.includes('вердикт') || html.includes('Тази седмица'));
+  assert(html.includes('Къде сте сега') || html.includes('pillar'));
 }

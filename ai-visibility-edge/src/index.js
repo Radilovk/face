@@ -7,6 +7,7 @@ import { probeDomain, persistDiagnostic } from './diagnose/probe.js';
 import { passageAutonomy, computeDiagnosticScore } from './diagnose/score.js';
 import { analyzeDisplacement } from './diagnose/displacement.js';
 import { buildDomainReport } from './diagnose/report.js';
+import { fetchDomainStrategy } from './diagnose/strategy.js';
 import { fetchDashboardSummary, fetchDashboardRecommendations, renderDashboardPage } from './ui/dashboard.js';
 import { getSitePipeline, listSitesFromDb } from './api/pipeline.js';
 import { runSitePipeline } from './api/pipelineRun.js';
@@ -96,6 +97,12 @@ async function handleRequest(request, env, ctx) {
     const missing = requireDb(env);
     if (missing) return missing;
     return pipelineRunEndpoint(request, env, decodeURIComponent(pipelineRunMatch[1]));
+  }
+
+  const strategyMatch = url.pathname.match(/^\/api\/strategy\/([^/]+)$/);
+  if (strategyMatch) {
+    const strategy = await fetchDomainStrategy(env, decodeURIComponent(strategyMatch[1]));
+    return json(strategy);
   }
 
   const pipelineMatch = url.pathname.match(/^\/api\/pipeline\/([^/]+)$/);

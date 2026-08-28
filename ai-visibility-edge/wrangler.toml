@@ -20,3 +20,8 @@ BASELINE_ID = "2026-08-27"
 
 [triggers]
 crons = ["0 3 * * 1"]
+
+# Serverless origin: port Worker (same CF account). No public HTTP fetch — avoids Host loop / 522.
+[[services]]
+binding = "PORT"
+service = "port"

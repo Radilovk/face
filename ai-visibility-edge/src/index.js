@@ -23,6 +23,7 @@ import { handleAdvisorStatus, handleAdvisorChat } from './api/advisor.js';
 import { isPlatformHost } from './config/platform.js';
 import { loadEdgeConfig } from './config/tenantEdge.js';
 import { handleTenantRequest } from './enhance/handleTenant.js';
+import { scheduleBotLog } from './observe/botLog.js';
 import {
   listQuestions,
   generateAndSaveQuestions,
@@ -313,6 +314,8 @@ async function handleRequest(request, env, ctx) {
   const hostname = url.hostname;
 
   if (!isPlatformHost(hostname)) {
+    scheduleBotLog(request, env, ctx, config);
+
     const edgeConfig = await loadEdgeConfig(env, hostname);
     if (edgeConfig?.edge?.enabled) {
       return handleTenantRequest(request, env, edgeConfig);

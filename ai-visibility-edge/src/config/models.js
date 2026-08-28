@@ -1,6 +1,7 @@
 /**
  * Model registry — single source of truth (review monthly against provider changelogs).
  * @see https://ai.google.dev/gemini-api/docs/changelog
+ * @see https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-3-7-flash/
  * @updated 2026-08-28
  */
 export const MODEL_REGISTRY = {
@@ -11,9 +12,11 @@ export const MODEL_REGISTRY = {
     tools: [{ type: 'web_search_preview' }],
   },
   gemini: {
-    /** GA 2026-07-21 — citations + google_search grounding */
-    citations: 'gemini-3.6-flash',
-    advisor: 'gemini-3.6-flash',
+    /** GA 2026-08-13 — latest workhorse; citations + google_search grounding */
+    citations: 'gemini-3.7-flash',
+    advisor: 'gemini-3.7-flash',
+    /** Previous GA — still valid fallback */
+    previous: 'gemini-3.6-flash',
     /** High-volume / low-cost alternative */
     lite: 'gemini-3.5-flash-lite',
     api: 'generativelanguage.googleapis.com/v1beta',
@@ -70,7 +73,7 @@ export function getModelsStatus(env) {
       advisor_model: advisor,
       configured: Boolean(env.GEMINI_API_KEY),
       deprecated_warning: isDeprecatedGeminiModel(gemini)
-        ? `${gemini} is shut down — set GEMINI_MODEL=gemini-3.6-flash`
+        ? `${gemini} is shut down — set GEMINI_MODEL=gemini-3.7-flash`
         : null,
     },
     perplexity: {

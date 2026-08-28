@@ -49,6 +49,14 @@ import {
   testGeminiGenerateUrl,
 } from './models-config.js';
 import {
+  testMatchKnownBot,
+  testVerifyBotCfVerified,
+  testVerifyBotFakeGptbotFlagU,
+  testVerifyBotGoogleExtendedAsn,
+  testScheduleBotLogNoQueryString,
+  testFetchBotHitStats,
+} from './observe.js';
+import {
   testComputeSovSessionsAndCap,
   testComputeSovPeriodFilter,
   testComputeSovPersistOptional,
@@ -182,6 +190,12 @@ async function run() {
   testGeminiModelOverride();
   testModelsStatus();
   testGeminiGenerateUrl();
+  testMatchKnownBot();
+  testVerifyBotCfVerified();
+  testVerifyBotFakeGptbotFlagU();
+  testVerifyBotGoogleExtendedAsn();
+  await testScheduleBotLogNoQueryString();
+  await testFetchBotHitStats();
   await testFetchSiteStats();
   await testFetchSiteStatsPendingReprocess();
   await testComputeSovSessionsAndCap();

@@ -9,19 +9,19 @@ import {
 
 export function testModelRegistryCurrent() {
   assert.equal(MODEL_REGISTRY.updated, '2026-08-28');
-  assert.equal(MODEL_REGISTRY.gemini.citations, 'gemini-3.6-flash');
-  assert(!isDeprecatedGeminiModel('gemini-3.6-flash'));
+  assert.equal(MODEL_REGISTRY.gemini.citations, 'gemini-3.7-flash');
+  assert(!isDeprecatedGeminiModel('gemini-3.7-flash'));
   assert(isDeprecatedGeminiModel('gemini-2.0-flash'));
 }
 
 export function testGeminiModelOverride() {
-  assert.equal(geminiModelId({}, 'citations'), 'gemini-3.6-flash');
+  assert.equal(geminiModelId({}, 'citations'), 'gemini-3.7-flash');
   assert.equal(geminiModelId({ GEMINI_MODEL: 'gemini-3.5-flash-lite' }), 'gemini-3.5-flash-lite');
 }
 
 export function testModelsStatus() {
   const status = getModelsStatus({ GEMINI_API_KEY: 'x', OPENAI_API_KEY: 'y' });
-  assert.equal(status.gemini.model, 'gemini-3.6-flash');
+  assert.equal(status.gemini.model, 'gemini-3.7-flash');
   assert.equal(status.gemini.configured, true);
   assert.equal(status.openai.configured, true);
   assert.equal(status.gemini.deprecated_warning, null);
@@ -30,7 +30,7 @@ export function testModelsStatus() {
 }
 
 export function testGeminiGenerateUrl() {
-  const url = geminiGenerateUrl('gemini-3.6-flash', 'test-key');
-  assert(url.includes('gemini-3.6-flash'));
+  const url = geminiGenerateUrl('gemini-3.7-flash', 'test-key');
+  assert(url.includes('gemini-3.7-flash'));
   assert(url.includes('test-key'));
 }

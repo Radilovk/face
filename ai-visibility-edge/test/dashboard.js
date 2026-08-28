@@ -17,7 +17,8 @@ export function testDashboardV2Page() {
   assert(html.includes('site-stats'));
   assert(html.includes('cache-index-panel'));
   assert(html.includes('onboarding-panel'));
-  assert(html.includes('loadOnboarding'));
+  assert(html.includes('drift-panel'));
+  assert(html.includes('loadDriftStatus'));
   assert(html.includes('renderCacheIndex'));
   assert(html.includes('btn-reprocess'));
   assert(html.includes('loadSiteStats'));

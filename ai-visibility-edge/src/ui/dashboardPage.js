@@ -93,6 +93,13 @@ export function renderDashboardPage(origin) {
       <strong>Блок 0.1 — Baseline</strong>
       <p id="baseline-msg" class="sub">…</p>
     </section>
+    <section id="drift-panel" class="drift-panel hidden" aria-label="Drift alerts">
+      <div class="cache-head">
+        <h3>Drift детектори</h3>
+        <span id="drift-badge" class="advisor-badge">—</span>
+      </div>
+      <ul id="drift-alerts" class="drift-list"></ul>
+    </section>
 
     <!-- Edge decision (Block 4 — optimization via Cloudflare Worker) -->
     <section class="section edge-panel" id="edge-panel">
@@ -234,17 +241,42 @@ function script(origin) {
       try {
         const res = await fetch(API('/api/baseline/status'));
         const data = await res.json();
-        if (data.ready) {
+        if (data.ready && (data.block_0_1 === 'closed' || data.block_0_1 === 'pilot_closed')) {
           banner.classList.add('hidden');
           return;
         }
         banner.classList.remove('hidden');
         const models = (data.models_collected || []).join(', ') || '—';
-        msg.textContent = 'Baseline ' + (data.baseline_id || '') + ': status=' + (data.status || '?') +
-          ', models=[' + models + ']. Пуснете GitHub Action aiv-baseline-collect (Block 0.1).';
+        const gate = data.block_0_1 || data.status || '?';
+        msg.textContent = 'Baseline ' + (data.baseline_id || '') + ': ' + gate +
+          ', models=[' + models + ']. Action: GitHub aiv-baseline-collect или npm run baseline:seed-fixtures -- --limit 5';
       } catch {
         banner.classList.remove('hidden');
         msg.textContent = 'Baseline статус недостъпен — проверете deploy.';
+      }
+    }
+
+    async function loadDriftStatus() {
+      const panel = $('drift-panel');
+      try {
+        const res = await fetch(API('/api/drift/status'));
+        const data = await res.json();
+        if (!res.ok) { panel.classList.add('hidden'); return; }
+        const badge = $('drift-badge');
+        if (data.ok && !data.warning) {
+          panel.classList.add('hidden');
+          return;
+        }
+        panel.classList.remove('hidden');
+        badge.textContent = data.critical ? data.critical + ' critical' : data.warning + ' warn';
+        badge.className = 'advisor-badge ' + (data.critical ? 'warn' : '');
+        $('drift-alerts').innerHTML = (data.alerts || []).slice(0, 6).map(a =>
+          '<li class="drift-item drift-' + a.severity + '">' +
+          '<span class="drift-kind">' + escHtml(a.kind) + '</span> ' +
+          escHtml(a.message) + '</li>'
+        ).join('') || '<li class="sub">—</li>';
+      } catch {
+        panel.classList.add('hidden');
       }
     }
 
@@ -706,7 +738,7 @@ function script(origin) {
     $('btn-add-run').onclick = () => submitAddSite(true);
     $('btn-analyze').onclick = runFullAnalysis;
     $('btn-edge-activate').onclick = activateEdge;
-    $('btn-refresh').onclick = () => { loadStrategy(); loadEdgeDecision(); loadSiteStats(); loadOnboarding(); };
+    $('btn-refresh').onclick = () => { loadStrategy(); loadEdgeDecision(); loadSiteStats(); loadOnboarding(); loadDriftStatus(); };
     $('btn-reprocess').onclick = runReprocess;
     $('btn-gen-q').onclick = async () => {
       if (!selectedDomain) return;
@@ -743,6 +775,7 @@ function script(origin) {
 
     loadAuthStatus();
     loadBaselineStatus();
+    loadDriftStatus();
     loadModelsStatus();
     loadAdvisorStatus();
     loadSites().then(() => { if (selectedDomain) { loadStrategy(); loadEdgeDecision(); loadSiteStats(); loadOnboarding(); } });
@@ -798,6 +831,12 @@ h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted);text-transform:uppercase
 .baseline-banner{background:#2a2210;border:1px solid #78350f;border-radius:10px;padding:.85rem 1rem;margin-bottom:1rem}
 .baseline-banner.hidden{display:none}
 .baseline-banner .sub{margin:.35rem 0 0}
+.drift-panel{background:#1a1010;border:1px solid #7f1d1d;border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem}
+.drift-panel.hidden{display:none}
+.drift-list{list-style:none;padding:0;margin:.5rem 0 0}
+.drift-item{font-size:.82rem;padding:.3rem 0;color:var(--muted)}
+.drift-item.drift-critical{color:#fca5a5}
+.drift-kind{text-transform:uppercase;font-size:.7rem;color:var(--warn);margin-right:.35rem}
 .site-stats{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem}
 .site-stats.hidden{display:none}
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;text-align:center}

@@ -4,6 +4,8 @@ import { getAuthStatus } from './api/auth.js';
 import { fetchSiteStats } from './api/siteStats.js';
 import { fetchCacheIndex } from './api/cacheIndex.js';
 import { fetchOnboardingStatus } from './api/onboarding.js';
+import { getDriftStatus } from './api/drift.js';
+import { fetchDriftStatus } from './drift/index.js';
 import { getModelsStatus } from './config/models.js';
 import { loadTenantConfig } from './config/loader.js';
 import { runCitationBatch } from './citations/runner.js';
@@ -56,6 +58,10 @@ export default {
         if (event.cron === '0 3 * * 1') {
           const summary = await runCitationBatch(env);
           console.log('[cron] citations', JSON.stringify(summary));
+          if (env.DB) {
+            const drift = await fetchDriftStatus(env.DB);
+            console.log('[cron] drift', JSON.stringify({ ok: drift.ok, critical: drift.critical, warning: drift.warning }));
+          }
         }
       })(),
     );
@@ -284,6 +290,13 @@ async function handleRequest(request, env, ctx) {
     return baselineStatus(env);
   }
 
+  if (url.pathname === '/api/drift/status') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const result = await getDriftStatus(env, url);
+    return json(result, result.error ? 503 : 200);
+  }
+
   if (url.pathname === '/api/runs/stats') {
     const missing = requireDb(env);
     if (missing) return missing;
@@ -353,14 +366,22 @@ async function handleRequest(request, env, ctx) {
 async function baselineStatus(env) {
   const baselineId = env.BASELINE_ID ?? '2026-08-27';
   const key = `aiv/baseline/${baselineId}/manifest`;
+  const minModels = 2;
 
   if (env.CACHE) {
     const manifest = await env.CACHE.get(key, 'json');
     if (manifest) {
+      const ready =
+        manifest.block_0_1 === 'closed' ||
+        manifest.block_0_1 === 'pilot_closed' ||
+        manifest.status === 'closed' ||
+        manifest.status === 'pilot_closed' ||
+        (manifest.models_collected?.length ?? 0) >= minModels;
       return json({
         source: 'kv',
         baseline_id: baselineId,
-        ready: (manifest.models_collected?.length ?? 0) >= (manifest.gates?.minimum_models ?? 2),
+        ready,
+        block_0_1: manifest.block_0_1 ?? (ready ? 'partial' : 'open'),
         ...manifest,
       });
     }
@@ -370,9 +391,10 @@ async function baselineStatus(env) {
     source: 'default',
     baseline_id: baselineId,
     status: 'questions_ready',
+    block_0_1: 'open',
     models_collected: [],
     ready: false,
-    hint: 'Run aiv-baseline-collect workflow or npm run baseline:collect',
+    hint: 'Run aiv-baseline-collect, or npm run baseline:seed-fixtures && baseline:close --pilot',
   });
 }
 

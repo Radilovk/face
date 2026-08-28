@@ -45,6 +45,7 @@ curl -X POST https://<worker>/api/citations/reprocess \
 | `/api/observations/stats` | Класове + misattributions |
 | `/api/sov?domain=&vertical_id=&model=` | AI-SOV snapshot |
 | `/api/cache-index?domain=&vertical_id=&model=&window_hours=72` | Cache age distribution (median, p25, p75, coverage) |
+| `/api/drift/status` | Config/run/bot drift alerts (Block 6.3) |
 | `/api/onboarding/{domain}` | CNAME / Custom Hostname checklist |
 | `/api/citations/reprocess` | POST — verify + classify |
 
@@ -108,6 +109,8 @@ export CF_ACCOUNT_ID=...
 export CF_API_TOKEN=...
 export KV_NAMESPACE_ID=...
 npm run baseline:collect -- --limit 5
+npm run baseline:seed-fixtures -- --limit 5   # без API keys — fixture pilot
+npm run baseline:close -- --pilot             # затваря Block 0.1 MVP gate
 npm run baseline:upload-kv
 ```
 

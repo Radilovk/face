@@ -44,6 +44,18 @@ import {
 } from './site-stats.js';
 import { testOnboardingStatusSteps } from './onboarding.js';
 import {
+  testCheckAdapterParseOk,
+  testCheckAdapterParseEmpty,
+  testSchemaDriftFromFixtures,
+  testConfigDriftExpired,
+  testRunStalenessNoRuns,
+  testRunStalenessRecent,
+  testBotDriftHighUnverified,
+  testFetchDriftStatusAggregate,
+  testAdapterSchemaRegistry,
+} from './drift.js';
+import { testBaselineSeedAndClosePilot } from './baseline-gate.js';
+import {
   testModelRegistryCurrent,
   testGeminiModelOverride,
   testModelsStatus,
@@ -165,6 +177,10 @@ async function run() {
   testModuleCacheSkipsD1();
   testBaselineQuestions();
   testAdapterFixtures();
+  testCheckAdapterParseOk();
+  testCheckAdapterParseEmpty();
+  testSchemaDriftFromFixtures();
+  testAdapterSchemaRegistry();
   testVerifyClassify();
   await testVerifyCitationMockFetch();
   testPassageAutonomy();
@@ -218,6 +234,12 @@ async function run() {
   await testComputeCacheAgeTenantBot();
   await testBuildCacheIndexWithData();
   await testOnboardingStatusSteps();
+  await testConfigDriftExpired();
+  await testRunStalenessNoRuns();
+  await testRunStalenessRecent();
+  await testBotDriftHighUnverified();
+  await testFetchDriftStatusAggregate();
+  testBaselineSeedAndClosePilot();
   await testFetchSiteStats();
   await testFetchSiteStatsPendingReprocess();
   await testComputeSovSessionsAndCap();

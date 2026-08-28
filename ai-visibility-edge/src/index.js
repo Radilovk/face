@@ -3,6 +3,7 @@ import { requireAdmin } from './middleware/requireAdmin.js';
 import { getAuthStatus } from './api/auth.js';
 import { fetchSiteStats } from './api/siteStats.js';
 import { fetchCacheIndex } from './api/cacheIndex.js';
+import { fetchOnboardingStatus } from './api/onboarding.js';
 import { getModelsStatus } from './config/models.js';
 import { loadTenantConfig } from './config/loader.js';
 import { runCitationBatch } from './citations/runner.js';
@@ -119,6 +120,14 @@ async function handleRequest(request, env, ctx) {
     if (missing) return missing;
     const result = await fetchCacheIndex(env, url);
     return json(result, result.error ? 400 : 200);
+  }
+
+  const onboardingMatch = url.pathname.match(/^\/api\/onboarding\/([^/]+)$/);
+  if (onboardingMatch) {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const status = await fetchOnboardingStatus(env, decodeURIComponent(onboardingMatch[1]));
+    return json(status, status.error ? 404 : 200);
   }
 
   if (url.pathname === '/api/sites') {

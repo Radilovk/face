@@ -67,6 +67,25 @@ export function renderDashboardPage(origin) {
         <div class="stat"><strong id="stat-pending">—</strong><small>Чака reprocess</small></div>
       </div>
     </section>
+    <section id="cache-index-panel" class="cache-index hidden" aria-label="Кеш индекс">
+      <div class="cache-head">
+        <h3>Кеш индекс (Слой 8)</h3>
+        <span id="cache-coverage-badge" class="advisor-badge">—</span>
+      </div>
+      <div class="stat-grid stat-grid-5">
+        <div class="stat"><strong id="cache-median">—</strong><small>Median (ч)</small></div>
+        <div class="stat"><strong id="cache-p25">—</strong><small>P25</small></div>
+        <div class="stat"><strong id="cache-p75">—</strong><small>P75</small></div>
+        <div class="stat"><strong id="stat-bot-v">—</strong><small>Bot hits ✓</small></div>
+        <div class="stat"><strong id="stat-bot-u">—</strong><small>Bot fake</small></div>
+      </div>
+      <p id="cache-note" class="sub">Разпределение на cache age — не единично число.</p>
+    </section>
+    <section id="onboarding-panel" class="onboarding hidden" aria-label="Onboarding">
+      <h3>CNAME onboarding</h3>
+      <ol id="onboarding-steps" class="onboarding-list"></ol>
+      <p id="onboarding-dns" class="sub mono">…</p>
+    </section>
     <p id="status-line" class="status-line">…</p>
 
     <!-- Baseline + Block 0.1 gate -->
@@ -487,10 +506,11 @@ function script(origin) {
     async function loadSiteStats() {
       if (!selectedDomain) return;
       const panel = $('site-stats');
+      const cachePanel = $('cache-index-panel');
       try {
         const res = await fetch(API('/api/dashboard/site-stats?domain=' + encodeURIComponent(selectedDomain)));
         const data = await res.json();
-        if (!res.ok) { panel.classList.add('hidden'); return; }
+        if (!res.ok) { panel.classList.add('hidden'); cachePanel.classList.add('hidden'); return; }
         panel.classList.remove('hidden');
         $('stat-runs').textContent = data.runs ?? 0;
         $('stat-obs').textContent = data.observations ?? 0;
@@ -501,8 +521,84 @@ function script(origin) {
         } else {
           $('stat-pending').parentElement.classList.remove('stat-warn');
         }
+
+        renderCacheIndex(data.cache_index, data.bot_hits);
+        cachePanel.classList.remove('hidden');
       } catch {
         panel.classList.add('hidden');
+        cachePanel.classList.add('hidden');
+      }
+    }
+
+    function renderCacheIndex(cache, botHits) {
+      const badge = $('cache-coverage-badge');
+      const note = $('cache-note');
+      if (!cache || !cache.cache_age_hours) {
+        $('cache-median').textContent = '—';
+        $('cache-p25').textContent = '—';
+        $('cache-p75').textContent = '—';
+        badge.textContent = 'нето данни';
+        badge.className = 'advisor-badge';
+        note.textContent = cache?.note || 'Нужни observations + bot hits (tenant) или dateModified (external).';
+      } else {
+        const h = cache.cache_age_hours;
+        $('cache-median').textContent = h.median != null ? h.median.toFixed(1) : '—';
+        $('cache-p25').textContent = h.p25 != null ? h.p25.toFixed(1) : '—';
+        $('cache-p75').textContent = h.p75 != null ? h.p75.toFixed(1) : '—';
+        const cov = Math.round((cache.coverage ?? 0) * 100);
+        badge.textContent = cov + '% покритие';
+        badge.className = 'advisor-badge ' + (cov >= 50 ? 'ok' : 'warn');
+        note.textContent = (cache.observations_with_age ?? 0) + ' / ' + (cache.observations_total ?? 0) +
+          ' observations с cache age (72h прозорец).';
+      }
+      $('stat-bot-v').textContent = botHits?.verified_hits ?? 0;
+      $('stat-bot-u').textContent = botHits?.unverified_hits ?? 0;
+      if ((botHits?.unverified_hits ?? 0) > 0) {
+        $('stat-bot-u').parentElement.classList.add('stat-warn');
+      } else {
+        $('stat-bot-u').parentElement.classList.remove('stat-warn');
+      }
+    }
+
+    async function loadOnboarding() {
+      if (!selectedDomain) return;
+      const panel = $('onboarding-panel');
+      try {
+        const res = await fetch(API('/api/onboarding/' + encodeURIComponent(selectedDomain)));
+        const data = await res.json();
+        if (!res.ok) { panel.classList.add('hidden'); return; }
+        panel.classList.remove('hidden');
+        $('onboarding-steps').innerHTML = (data.steps || []).map(s =>
+          '<li class="onb-step ' + (s.done ? 'done' : '') + '">' +
+          '<span class="onb-check">' + (s.done ? '✓' : '○') + '</span> ' +
+          '<strong>' + escHtml(s.title) + '</strong> — ' + escHtml(s.detail) + '</li>'
+        ).join('');
+        const dns = data.dns || {};
+        $('onboarding-dns').textContent = dns.type + ' ' + dns.name + ' → ' + dns.target;
+      } catch {
+        panel.classList.add('hidden');
+      }
+    }
+
+    async function loadStrategy() {
+      if (!selectedDomain) return;
+      log('Зареждане на стратегия…');
+      try {
+        const res = await fetch(API('/api/strategy/' + encodeURIComponent(selectedDomain)));
+        strategy = await res.json();
+        if (!res.ok) throw new Error(strategy.error || res.status);
+        renderPipeline(strategy.pipeline);
+        renderVerdict(strategy.verdict, strategy.score);
+        renderPillars(strategy.pillars);
+        renderPlan(strategy.plan);
+        renderTech(strategy.probe, strategy.stats);
+        log('Обновено ' + new Date().toLocaleTimeString('bg-BG'));
+        loadQuestionsQuiet();
+        loadEdgeDecision();
+        loadSiteStats();
+        loadOnboarding();
+      } catch (e) {
+        log('Грешка: ' + e.message);
       }
     }
 
@@ -521,25 +617,6 @@ function script(origin) {
         log('Reprocess: ' + e.message);
       } finally {
         busy = false;
-      }
-    }
-      if (!selectedDomain) return;
-      log('Зареждане на стратегия…');
-      try {
-        const res = await fetch(API('/api/strategy/' + encodeURIComponent(selectedDomain)));
-        strategy = await res.json();
-        if (!res.ok) throw new Error(strategy.error || res.status);
-        renderPipeline(strategy.pipeline);
-        renderVerdict(strategy.verdict, strategy.score);
-        renderPillars(strategy.pillars);
-        renderPlan(strategy.plan);
-        renderTech(strategy.probe, strategy.stats);
-        log('Обновено ' + new Date().toLocaleTimeString('bg-BG'));
-        loadQuestionsQuiet();
-        loadEdgeDecision();
-        loadSiteStats();
-      } catch (e) {
-        log('Грешка: ' + e.message);
       }
     }
 
@@ -629,7 +706,7 @@ function script(origin) {
     $('btn-add-run').onclick = () => submitAddSite(true);
     $('btn-analyze').onclick = runFullAnalysis;
     $('btn-edge-activate').onclick = activateEdge;
-    $('btn-refresh').onclick = () => { loadStrategy(); loadEdgeDecision(); loadSiteStats(); };
+    $('btn-refresh').onclick = () => { loadStrategy(); loadEdgeDecision(); loadSiteStats(); loadOnboarding(); };
     $('btn-reprocess').onclick = runReprocess;
     $('btn-gen-q').onclick = async () => {
       if (!selectedDomain) return;
@@ -668,7 +745,7 @@ function script(origin) {
     loadBaselineStatus();
     loadModelsStatus();
     loadAdvisorStatus();
-    loadSites().then(() => { if (selectedDomain) { loadStrategy(); loadEdgeDecision(); loadSiteStats(); } });
+    loadSites().then(() => { if (selectedDomain) { loadStrategy(); loadEdgeDecision(); loadSiteStats(); loadOnboarding(); } });
   `;
 }
 
@@ -727,6 +804,19 @@ h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted);text-transform:uppercase
 .stat strong{display:block;font-size:1.25rem;color:var(--accent)}
 .stat small{color:var(--muted);font-size:.7rem;text-transform:uppercase}
 .stat-warn strong{color:var(--warn)}
+.cache-index,.onboarding{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem}
+.cache-index.hidden,.onboarding.hidden{display:none}
+.cache-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
+.cache-head h3{margin:0;font-size:.95rem}
+.stat-grid-5{grid-template-columns:repeat(5,1fr)}
+@media(max-width:640px){.stat-grid-5{grid-template-columns:repeat(2,1fr)}}
+.onboarding h3{font-size:.95rem;margin:0 0 .5rem}
+.onboarding-list{list-style:none;padding:0;margin:0 0 .5rem}
+.onb-step{padding:.35rem 0;font-size:.85rem;color:var(--muted);display:flex;gap:.5rem;align-items:flex-start}
+.onb-step.done{color:var(--text)}
+.onb-check{flex-shrink:0;width:1.1rem;color:var(--ok)}
+.onb-step:not(.done) .onb-check{color:var(--muted)}
+.mono{font-family:ui-monospace,monospace;font-size:.8rem}
 .admin-token-label{display:flex;flex-direction:column;gap:.25rem;font-size:.8rem;color:var(--muted);margin:.5rem 0}
 .admin-token-label input{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.45rem .6rem;border-radius:8px;max-width:420px}
 .section{margin-bottom:1.75rem}

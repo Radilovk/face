@@ -15,6 +15,10 @@ export function testDashboardV2Page() {
   assert(html.includes('activateEdge'));
   assert(html.includes('apiFetch'));
   assert(html.includes('site-stats'));
+  assert(html.includes('cache-index-panel'));
+  assert(html.includes('onboarding-panel'));
+  assert(html.includes('loadOnboarding'));
+  assert(html.includes('renderCacheIndex'));
   assert(html.includes('btn-reprocess'));
   assert(html.includes('loadSiteStats'));
   assert(html.includes('admin-token'));

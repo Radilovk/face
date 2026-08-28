@@ -1,5 +1,7 @@
 import { resolveTenantByDomain } from './questions.js';
 import { computeSov, currentPeriod } from '../index/sov.js';
+import { fetchBotHitStats } from '../observe/botLog.js';
+import { buildCacheIndex } from '../cache/index.js';
 
 /** Per-site measurement stats for dashboard (Layer 1 visibility). */
 export async function fetchSiteStats(env, domain) {
@@ -58,6 +60,15 @@ export async function fetchSiteStats(env, domain) {
   const observations = obsRow?.n ?? 0;
   const pendingReprocess = pendingRow?.n ?? 0;
 
+  let botHits = null;
+  let cacheIndex = null;
+  try {
+    botHits = await fetchBotHitStats(env.DB, tenant.id, { days: 7 });
+    cacheIndex = await buildCacheIndex(env.DB, { domain: tenant.apex_host, windowHours: 72 });
+  } catch {
+    /* optional aggregates */
+  }
+
   return {
     domain: tenant.apex_host,
     tenant_id: tenant.id,
@@ -76,6 +87,14 @@ export async function fetchSiteStats(env, domain) {
       : null,
     layer1_ready: runs > 0 && observations > 0,
     needs_reprocess: pendingReprocess > 0,
+    bot_hits: botHits?.error ? null : botHits,
+    cache_index: cacheIndex?.error ? null : {
+      coverage: cacheIndex?.coverage ?? 0,
+      observations_total: cacheIndex?.observations_total ?? 0,
+      observations_with_age: cacheIndex?.observations_with_age ?? 0,
+      cache_age_hours: cacheIndex?.cache_age_hours ?? null,
+      note: cacheIndex?.note ?? null,
+    },
     generated_at: new Date().toISOString(),
   };
 }

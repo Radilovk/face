@@ -45,6 +45,7 @@ curl -X POST https://<worker>/api/citations/reprocess \
 | `/api/observations/stats` | Класове + misattributions |
 | `/api/sov?domain=&vertical_id=&model=` | AI-SOV snapshot |
 | `/api/cache-index?domain=&vertical_id=&model=&window_hours=72` | Cache age distribution (median, p25, p75, coverage) |
+| `/api/onboarding/{domain}` | CNAME / Custom Hostname checklist |
 | `/api/citations/reprocess` | POST — verify + classify |
 
 ## Cloudflare Worker secrets

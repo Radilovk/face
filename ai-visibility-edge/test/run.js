@@ -42,6 +42,7 @@ import {
   testFetchSiteStats,
   testFetchSiteStatsPendingReprocess,
 } from './site-stats.js';
+import { testOnboardingStatusSteps } from './onboarding.js';
 import {
   testModelRegistryCurrent,
   testGeminiModelOverride,
@@ -216,6 +217,7 @@ async function run() {
   await testFindLastVerifiedBotHit();
   await testComputeCacheAgeTenantBot();
   await testBuildCacheIndexWithData();
+  await testOnboardingStatusSteps();
   await testFetchSiteStats();
   await testFetchSiteStatsPendingReprocess();
   await testComputeSovSessionsAndCap();

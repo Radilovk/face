@@ -1,39 +1,62 @@
 import assert from 'node:assert/strict';
-import { fetchOrigin, resolveOriginConfig } from '../src/enhance/fetchOrigin.js';
+import {
+  fetchOrigin,
+  resolveOriginConfig,
+  buildInternalOriginRequest,
+} from '../src/enhance/fetchOrigin.js';
 import biocode from '../config/tenants/biocode-bg.com.json' with { type: 'json' };
 
 export async function testOriginNotConfigured() {
   const req = new Request('https://www.biocode-bg.com/');
-  const res = await fetchOrigin(req, { edge: {} });
+  const res = await fetchOrigin(req, { edge: {} }, {});
   assert.equal(res.status, 503);
   assert.equal(res.headers.get('X-AIV-Error'), 'origin_not_configured');
-  const html = await res.text();
-  assert(html.includes('serverless'));
 }
 
-export async function testOriginWorkerFetch() {
+export function testResolveOriginConfigService() {
+  const cfg = resolveOriginConfig(biocode);
+  assert.equal(cfg.type, 'service');
+  assert.equal(cfg.binding, 'PORT');
+  assert.equal(cfg.host, 'www.biocode-bg.com');
+}
+
+export function testBuildInternalOriginRequestNoPublicHost() {
+  const req = new Request('https://www.biocode-bg.com/catalog?q=1', {
+    headers: { 'User-Agent': 'test', Host: 'www.biocode-bg.com' },
+  });
+  const origin = resolveOriginConfig(biocode);
+  const internal = buildInternalOriginRequest(req, new URL(req.url), origin);
+
+  assert.equal(internal.headers.get('Host'), null);
+  assert.equal(internal.headers.get('X-Forwarded-Host'), 'www.biocode-bg.com');
+  assert.equal(internal.headers.get('X-AIV-Host'), 'www.biocode-bg.com');
+  assert.equal(internal.headers.get('X-AIV-Internal'), '1');
+  assert(internal.url.includes('/catalog?q=1'));
+}
+
+export async function testOriginServiceBindingFetch() {
   const calls = [];
-  globalThis.fetch = async (url, init) => {
-    calls.push({ url: String(url), init });
-    return new Response('<html>shop</html>', {
-      status: 200,
-      headers: { 'Content-Type': 'text/html' },
-    });
+  const env = {
+    PORT: {
+      fetch: async (req) => {
+        calls.push(req);
+        return new Response('<html>shop</html>', { status: 200 });
+      },
+    },
   };
 
-  const req = new Request('https://www.biocode-bg.com/catalog?q=1');
-  const res = await fetchOrigin(req, biocode);
+  const req = new Request('https://www.biocode-bg.com/');
+  const res = await fetchOrigin(req, biocode, env);
 
   assert.equal(res.status, 200);
   assert.equal(calls.length, 1);
-  assert.equal(calls[0].url, 'https://port.radilov-k.workers.dev/catalog?q=1');
-  assert.equal(calls[0].init.headers.get('Host'), 'www.biocode-bg.com');
-  assert.equal(calls[0].init.cf, undefined);
+  assert.equal(calls[0].headers.get('X-Forwarded-Host'), 'www.biocode-bg.com');
+  assert.equal(calls[0].headers.get('Host'), null);
 }
 
-export function testResolveOriginConfigWorker() {
-  const cfg = resolveOriginConfig(biocode);
-  assert.equal(cfg.type, 'worker');
-  assert.equal(cfg.url, 'https://port.radilov-k.workers.dev');
-  assert.equal(cfg.host, 'www.biocode-bg.com');
+export async function testOriginServiceMissingBinding() {
+  const req = new Request('https://www.biocode-bg.com/');
+  const res = await fetchOrigin(req, biocode, {});
+  assert.equal(res.status, 502);
+  assert.equal(res.headers.get('X-AIV-Error'), 'origin_fetch_failed');
 }

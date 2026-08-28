@@ -1,11 +1,10 @@
 /**
- * Fetch tenant origin via Service Binding (preferred) or legacy HTTP resolve.
+ * Fetch tenant origin — serverless (Worker URL) or classic (resolveOverride).
  */
 
 const ORIGIN_TIMEOUT_MS = 25_000;
-const INTERNAL_ORIGIN = 'https://aiv-internal.local';
 
-export async function fetchOrigin(request, edgeConfig, env = {}) {
+export async function fetchOrigin(request, edgeConfig) {
   const url = new URL(request.url);
   const origin = resolveOriginConfig(edgeConfig);
 
@@ -14,9 +13,6 @@ export async function fetchOrigin(request, edgeConfig, env = {}) {
   }
 
   try {
-    if (origin.type === 'service') {
-      return await fetchServiceOrigin(request, origin, env);
-    }
     if (origin.type === 'worker') {
       return await fetchWorkerOrigin(request, origin);
     }
@@ -27,28 +23,17 @@ export async function fetchOrigin(request, edgeConfig, env = {}) {
 }
 
 /**
- * @returns {object | null}
+ * @returns {{ type: 'worker'|'resolve', url?: string, host: string, resolveHost?: string, label: string } | null}
  */
 export function resolveOriginConfig(edgeConfig) {
   const edge = edgeConfig?.edge ?? {};
   const nested = edge.origin ?? {};
-
-  if (nested.type === 'service' && nested.binding) {
-    return {
-      type: 'service',
-      binding: nested.binding,
-      host: nested.host_header ?? edge.origin_host_header ?? edgeConfig.domain,
-      forwardHeader: nested.forward_header ?? 'X-Forwarded-Host',
-      label: `service:${nested.binding}`,
-    };
-  }
 
   if (nested.type === 'worker' && nested.url) {
     return {
       type: 'worker',
       url: nested.url,
       host: nested.host_header ?? edge.origin_host_header ?? edgeConfig.domain,
-      forwardHeader: nested.forward_header ?? 'X-Forwarded-Host',
       label: nested.url,
     };
   }
@@ -58,7 +43,6 @@ export function resolveOriginConfig(edgeConfig) {
       type: 'worker',
       url: edge.origin_worker_url,
       host: edge.origin_host_header ?? edgeConfig.domain,
-      forwardHeader: 'X-Forwarded-Host',
       label: edge.origin_worker_url,
     };
   }
@@ -76,26 +60,20 @@ export function resolveOriginConfig(edgeConfig) {
   return null;
 }
 
-async function fetchServiceOrigin(request, origin, env) {
-  const service = env[origin.binding];
-  if (!service?.fetch) {
-    throw new Error(`Service binding "${origin.binding}" is not configured in wrangler.toml`);
-  }
-
-  const publicUrl = new URL(request.url);
-  const internalRequest = buildInternalOriginRequest(request, publicUrl, origin);
-
-  return service.fetch(internalRequest);
-}
-
 async function fetchWorkerOrigin(request, origin) {
   const publicUrl = new URL(request.url);
   const base = new URL(origin.url);
   const targetUrl = new URL(publicUrl.pathname + publicUrl.search, base);
 
-  const internalRequest = buildInternalOriginRequest(request, publicUrl, origin, targetUrl.toString());
+  const headers = new Headers(request.headers);
+  headers.set('Host', origin.host);
 
-  return fetch(internalRequest, {
+  const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
+
+  return fetch(targetUrl.toString(), {
+    method: request.method,
+    headers,
+    body: hasBody ? request.body : undefined,
     redirect: 'follow',
     signal: AbortSignal.timeout(ORIGIN_TIMEOUT_MS),
   });
@@ -116,40 +94,22 @@ async function fetchResolveOrigin(request, origin) {
   });
 }
 
-/**
- * Never set Host to the public tenant domain on outbound fetch — Cloudflare loops to edge.
- * Pass tenant hostname via X-Forwarded-Host / X-AIV-Host for port routing.
- */
-export function buildInternalOriginRequest(request, publicUrl, origin, targetUrl = null) {
-  const path = publicUrl.pathname + publicUrl.search;
-  const url = targetUrl ?? `${INTERNAL_ORIGIN}${path}`;
-
-  const headers = new Headers(request.headers);
-  headers.delete('Host');
-  headers.set(origin.forwardHeader ?? 'X-Forwarded-Host', origin.host);
-  headers.set('X-AIV-Host', origin.host);
-  headers.set('X-Forwarded-Proto', publicUrl.protocol.replace(':', ''));
-  headers.set('X-AIV-Internal', '1');
-
-  const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
-
-  return new Request(url, {
-    method: request.method,
-    headers,
-    body: hasBody ? request.body : undefined,
-    redirect: 'manual',
-  });
-}
-
 function originNotConfiguredResponse(hostname) {
+  const apex = apexFromHost(hostname);
   const body = `<!DOCTYPE html>
 <html lang="bg"><head><meta charset="utf-8"><title>Origin не е конфигуриран</title></head>
 <body style="font-family:system-ui;max-width:720px;margin:2rem auto;padding:0 1rem">
-<h1>AI Visibility Edge — origin липсва</h1>
-<p><strong>${hostname}</strong> — конфигурирайте Service Binding към <code>port</code> в wrangler.toml.</p>
-<pre style="background:#1a2332;padding:1rem;border-radius:8px">[[services]]
-binding = "PORT"
-service = "port"</pre>
+<h1>AI Visibility Edge — serverless origin липсва</h1>
+<p><strong>${hostname}</strong> минава през ai-visibility-edge, но няма конфигуриран backend Worker
+(напр. <code>port</code>).</p>
+<p>За Worker-only сайтове няма IP — origin е друг Worker URL.</p>
+<h2>Конфигурация (git)</h2>
+<pre style="background:#1a2332;padding:1rem;border-radius:8px;overflow:auto">"origin": {
+  "type": "worker",
+  "url": "https://port.radilov-k.workers.dev",
+  "host_header": "www.${apex}"
+}</pre>
+<p>Merge + aiv-deploy.</p>
 </body></html>`;
 
   return new Response(body, {
@@ -172,4 +132,8 @@ function originFetchErrorResponse(hostname, originLabel, err) {
       'X-AIV-Error': 'origin_fetch_failed',
     },
   });
+}
+
+function apexFromHost(hostname) {
+  return String(hostname).replace(/^www\./, '');
 }

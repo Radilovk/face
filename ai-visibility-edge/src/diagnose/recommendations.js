@@ -127,9 +127,8 @@ export const USER_CHECKLIST = [
     done_when: 'CNAME + deploy → robots от Edge',
     items: [
       'CNAME www/apex → ai-visibility-edge (направено ✓)',
-      'wrangler.toml: Service Binding PORT → port Worker',
-      'port: чете X-Forwarded-Host (виж docs/PORT-SERVICE-BINDING.md)',
-      'merge + aiv-deploy на двата Worker-а',
+      'port Worker остава deploy-нат — backend origin (workers.dev или origin.* custom domain)',
+      'git origin.type=worker → merge + aiv-deploy',
     ],
   },
 ];

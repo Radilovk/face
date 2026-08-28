@@ -3,6 +3,12 @@ import {
   extractCanonical,
 } from '../citations/verify.js';
 import { fetchProbePage } from './resolveLanding.js';
+import {
+  extractTitle,
+  extractMetaDescription,
+  extractFirstH1,
+  extractJsonLdTypes,
+} from './siteBrief.js';
 
 const PROBE_UA = 'AIVisibilityBot/1.0 (+https://ai-visibility-edge/probe)';
 
@@ -53,8 +59,12 @@ export async function probeDomain(domain, options = {}) {
     price_tokens: priceTokens,
     raw_json: {
       final_url: page.finalUrl ?? homepage,
-      text_sample: text.slice(0, 500),
+      text_sample: text.slice(0, 800),
       redirect_chain: page.redirect_chain ?? [],
+      title: extractTitle(html),
+      meta_description: extractMetaDescription(html),
+      h1: extractFirstH1(html),
+      jsonld_types: extractJsonLdTypes(html),
     },
   };
 }

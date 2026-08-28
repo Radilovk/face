@@ -82,6 +82,22 @@ export function extractContentVersion(html) {
   return c ? c[1] : null;
 }
 
+/** JSON-LD or meta freshness signal for external cache-index (Block 5.2). */
+export function extractDateModified(html) {
+  if (!html) return null;
+
+  const ld = html.match(/"dateModified"\s*:\s*"([^"]+)"/i);
+  if (ld?.[1]) return ld[1];
+
+  const og = html.match(/property=["']article:modified_time["'][^>]+content=["']([^"']+)["']/i);
+  if (og?.[1]) return og[1];
+
+  const ogRev = html.match(/content=["']([^"']+)["'][^>]+property=["']article:modified_time["']/i);
+  if (ogRev?.[1]) return ogRev[1];
+
+  return null;
+}
+
 export function htmlToText(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
@@ -187,6 +203,7 @@ export async function verifyCitation(citation, options = {}) {
 
   const claimText = citation.supportedText || citation.snippet || '';
   const passage = extractPassageAroundClaim(page.text, claimText);
+  const dateModified = extractDateModified(page.html);
 
   if (!passage.found) {
     return {
@@ -199,6 +216,7 @@ export async function verifyCitation(citation, options = {}) {
       numeric_match: null,
       overlap: 0,
       content_version: extractContentVersion(page.html),
+      date_modified: dateModified,
       cache_age_hours: null,
       http_status: page.status,
       needsSemantic: true,
@@ -221,6 +239,7 @@ export async function verifyCitation(citation, options = {}) {
     numeric_match: numMatch === null ? null : numMatch ? 1 : 0,
     overlap,
     content_version: contentVersion,
+    date_modified: dateModified,
     cache_age_hours: null,
     http_status: page.status,
     needsSemantic: numMatch === false,

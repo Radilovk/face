@@ -1,11 +1,11 @@
-const DEFAULT_MODEL = 'gemini-2.0-flash';
+import { geminiModelId, geminiGenerateUrl, MODEL_REGISTRY } from '../config/models.js';
 
 export function geminiConfigured(env) {
   return Boolean(env.GEMINI_API_KEY);
 }
 
 export function geminiModel(env) {
-  return env.GEMINI_MODEL ?? DEFAULT_MODEL;
+  return geminiModelId(env, 'advisor');
 }
 
 /**
@@ -16,7 +16,8 @@ export function geminiModel(env) {
  * @param {Array<{role: 'user'|'model', content: string}>} params.messages
  */
 export async function geminiChat({ apiKey, model, systemInstruction, messages }) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model ?? DEFAULT_MODEL}:generateContent?key=${apiKey}`;
+  const modelId = model ?? geminiModelId({}, 'advisor');
+  const url = geminiGenerateUrl(modelId, apiKey);
 
   const contents = messages.map((m) => ({
     role: m.role === 'model' ? 'model' : 'user',
@@ -48,7 +49,7 @@ export async function geminiChat({ apiKey, model, systemInstruction, messages })
     throw new Error('Gemini returned empty response');
   }
 
-  return { text, raw };
+  return { text, raw, model: modelId };
 }
 
 /** Extract optional action buttons from ```actions [...] ``` block. */
@@ -86,3 +87,5 @@ function normalizeActions(actions) {
       reason: a.reason ? String(a.reason).slice(0, 200) : undefined,
     }));
 }
+
+export { MODEL_REGISTRY };

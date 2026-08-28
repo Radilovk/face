@@ -14,7 +14,14 @@ export function testDashboardV2Page() {
   assert(html.includes('loadEdgeDecision'));
   assert(html.includes('activateEdge'));
   assert(html.includes('apiFetch'));
-  assert(html.includes('baseline-banner'));
+  assert(html.includes('site-stats'));
+  assert(html.includes('cache-index-panel'));
+  assert(html.includes('onboarding-panel'));
+  assert(html.includes('drift-panel'));
+  assert(html.includes('loadDriftStatus'));
+  assert(html.includes('renderCacheIndex'));
+  assert(html.includes('btn-reprocess'));
+  assert(html.includes('loadSiteStats'));
   assert(html.includes('admin-token'));
   assert(html.includes('Gemini'));
   assert(html.includes('/api/advisor/chat'));

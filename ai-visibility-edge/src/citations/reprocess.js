@@ -6,6 +6,7 @@ import {
   getThresholds,
   isMisattribution,
 } from './classify.js';
+import { computeCacheAgeForObservation } from './correlate.js';
 
 /**
  * Reprocess runs → observations (+ misattributions).
@@ -26,7 +27,7 @@ export async function reprocessRuns(env, options = {}) {
 
   const { results: runs } = await db
     .prepare(
-      `SELECT r.id, r.model, r.raw_response, r.answer_text, q.tenant_id
+      `SELECT r.id, r.model, r.raw_response, r.answer_text, r.run_at, q.tenant_id
        FROM runs r
        JOIN questions q ON q.id = r.question_id
        WHERE NOT EXISTS (SELECT 1 FROM observations o WHERE o.run_id = r.id)
@@ -62,6 +63,14 @@ export async function reprocessRuns(env, options = {}) {
       const verified = await verifyCitation(citation, { fetch: fetchImpl });
       const classified = classifyFromVerify(verified, thresholds);
 
+      const cacheMeta = await computeCacheAgeForObservation(db, {
+        domain: classified.domain || verified.domain || '',
+        runAt: run.run_at,
+        tenantId: run.tenant_id,
+        tenantDomain,
+        dateModified: verified.date_modified ?? null,
+      });
+
       const obsId = crypto.randomUUID();
       await db
         .prepare(
@@ -81,7 +90,7 @@ export async function reprocessRuns(env, options = {}) {
           classified.numeric_match ?? verified.numeric_match ?? null,
           null,
           classified.content_version ?? null,
-          null,
+          cacheMeta.cache_age_hours,
           new Date().toISOString(),
           classified.cited_passage ?? null,
           classified.passage_offset ?? null,

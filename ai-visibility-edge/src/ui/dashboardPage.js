@@ -22,8 +22,9 @@ export function renderDashboardPage(origin) {
       </div>
     </header>
 
-    <!-- Add site (collapsed by default) -->
-    <section id="add-panel" class="add-panel hidden">
+    <!-- Add site — primary entry when no sites yet -->
+    <section id="add-panel" class="add-panel">
+      <p class="lead" id="add-lead">Добавете сайт тук — всички домейни влизат през този интерфейс.</p>
       <form id="add-site-form" class="form-grid">
         <label>Домейн <input name="domain" type="text" placeholder="example.com" required></label>
         <label>Марка <input name="name" type="text" placeholder="Example" required></label>
@@ -128,10 +129,20 @@ function script(origin) {
       const data = await res.json();
       sites = data.sites || [];
       const sel = $('site-select');
+      const addPanel = $('add-panel');
+      const addLead = $('add-lead');
       if (!sites.length) {
-        sel.innerHTML = '<option value="">— няма сайтове —</option>';
+        sel.innerHTML = '<option value="">— добавете сайт —</option>';
+        selectedDomain = '';
+        addPanel.classList.remove('hidden');
+        addLead.textContent = 'Няма регистрирани сайтове. Добавете домейн по-долу — това е единственият вход.';
+        $('btn-analyze').disabled = true;
+        $('verdict-headline').textContent = 'Добавете първи сайт';
+        $('verdict-summary').textContent = 'Домейн, марка, вертикал — след това „Добави + анализ“.';
         return;
       }
+      addPanel.classList.add('hidden');
+      $('btn-analyze').disabled = false;
       sel.innerHTML = sites.map(s =>
         '<option value="' + s.domain + '">' + s.domain + '</option>'
       ).join('');
@@ -287,7 +298,9 @@ function script(origin) {
       } catch { el.innerHTML = ''; }
     }
 
-    $('btn-add-toggle').onclick = () => $('add-panel').classList.toggle('hidden');
+    $('btn-add-toggle').onclick = () => {
+      $('add-panel').classList.toggle('hidden');
+    };
     $('add-site-form').onsubmit = (e) => { e.preventDefault(); submitAddSite(false); };
     $('btn-add-run').onclick = () => submitAddSite(true);
     $('btn-analyze').onclick = runFullAnalysis;
@@ -312,7 +325,7 @@ function script(origin) {
       loadQuestionsQuiet();
     };
 
-    loadSites().then(loadStrategy);
+    loadSites().then(() => { if (selectedDomain) loadStrategy(); });
   `;
 }
 

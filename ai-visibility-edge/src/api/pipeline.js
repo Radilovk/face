@@ -41,7 +41,7 @@ export async function getSitePipeline(env, domain) {
       domain: tenant.apex_host,
       name: tenant.name,
       vertical_id: tenant.vertical_id,
-      canary: false,
+      canary: Boolean(tenant.is_canary),
     };
     const rec = await fetchTenantRecommendations(env, tenantMeta);
     recommendationCount = rec.recommendations?.length ?? 0;

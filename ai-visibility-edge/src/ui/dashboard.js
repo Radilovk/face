@@ -1,6 +1,5 @@
 export { renderDashboardPage } from './dashboardPage.js';
 export {
-  TENANTS,
   GITHUB_ACTIONS,
   INFO_MODULES,
   USER_CHECKLIST,

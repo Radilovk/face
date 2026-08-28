@@ -239,7 +239,7 @@ export function buildRecommendations(input = {}) {
         title: `Високо изместване (${Math.round(rate * 100)}%)`,
         what: `${displacement.displaced_count} от ${displacement.total_runs} runs — конкуренти изброени, вие липсвате.`,
         why: 'AI системно препоръчва други марки във вашата категория.',
-        action: 'Подобрете on-site съдържание + JSON-LD; след canary — Edge layer за biocode-bg.com.',
+        action: 'Подобрете on-site съдържание + JSON-LD; или активирайте Edge Optimizer (CNAME).',
       }));
     } else if (displacement.tenant_present_count > 0) {
       items.push(reco({
@@ -272,15 +272,16 @@ export function buildRecommendations(input = {}) {
   }
 
   if (tenant?.canary && !edgeActive) {
+    const host = tenant.domain ?? tenant.apex_host ?? 'домейна';
     items.push(reco({
       id: 'edge_canary_pending',
       severity: 'info',
       owner: 'you',
       layer: 'edge',
-      title: 'Edge Optimizer — следваща стъпка (canary)',
-      what: `${tenant.domain} е маркиран като canary за Блок 4.`,
+      title: 'Edge Optimizer — активирайте CNAME',
+      what: `${host} е маркиран за edge поправки.`,
       why: 'Edge поправка изисква CNAME — без него Worker не обслужва HTML на домейна.',
-      action: 'CNAME biocode-bg.com → Worker + Custom Hostname в Cloudflare.',
+      action: `CNAME ${host} → Worker + Custom Hostname в Cloudflare.`,
     }));
   }
 

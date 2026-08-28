@@ -14,6 +14,11 @@ import { runSitePipeline } from './api/pipelineRun.js';
 import { registerSite, listVerticals } from './api/sites.js';
 import { runCitationBatchForTenant } from './citations/runner.js';
 import { getApplyPlan, runApplyPrep } from './api/apply.js';
+import { getEdgeDecision, activateEdgeOptimization, getEdgeStatus } from './api/edge.js';
+import { handleAdvisorStatus, handleAdvisorChat } from './api/advisor.js';
+import { isPlatformHost } from './config/platform.js';
+import { loadEdgeConfig } from './config/tenantEdge.js';
+import { handleTenantRequest } from './enhance/handleTenant.js';
 import {
   listQuestions,
   generateAndSaveQuestions,
@@ -26,7 +31,7 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     // Platform API/report routes bypass fail-open (probe/report take >50ms)
-    if (isPlatformRoute(url.pathname)) {
+    if (isPlatformRoute(url.pathname, url.hostname)) {
       return handleRequest(request, env, ctx);
     }
     return withFailOpen(request, env, ctx, (req, environment) =>
@@ -56,6 +61,16 @@ async function handleRequest(request, env, ctx) {
   if (url.pathname === '/' || url.pathname === '/dashboard') {
     const origin = url.origin;
     return html(renderDashboardPage(origin));
+  }
+
+  if (url.pathname === '/api/advisor/status') {
+    const status = await handleAdvisorStatus(env);
+    return json(status);
+  }
+
+  if (url.pathname === '/api/advisor/chat' && request.method === 'POST') {
+    const result = await handleAdvisorChat(request, env);
+    return json(result, result.error ? (result.error === 'gemini_not_configured' ? 503 : 400) : 200);
   }
 
   if (url.pathname === '/api/dashboard/summary') {
@@ -98,6 +113,30 @@ async function handleRequest(request, env, ctx) {
     const missing = requireDb(env);
     if (missing) return missing;
     return pipelineRunEndpoint(request, env, decodeURIComponent(pipelineRunMatch[1]));
+  }
+
+  const edgeDecisionMatch = url.pathname.match(/^\/api\/edge\/([^/]+)\/decision$/);
+  if (edgeDecisionMatch) {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const decision = await getEdgeDecision(env, decodeURIComponent(edgeDecisionMatch[1]));
+    return json(decision, decision.error ? 404 : 200);
+  }
+
+  const edgeActivateMatch = url.pathname.match(/^\/api\/edge\/([^/]+)\/activate$/);
+  if (edgeActivateMatch && request.method === 'POST') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const result = await activateEdgeOptimization(env, decodeURIComponent(edgeActivateMatch[1]));
+    return json(result, result.error ? 400 : 200);
+  }
+
+  const edgeStatusMatch = url.pathname.match(/^\/api\/edge\/([^/]+)\/status$/);
+  if (edgeStatusMatch) {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const status = await getEdgeStatus(env, decodeURIComponent(edgeStatusMatch[1]));
+    return json(status);
   }
 
   const applyMatch = url.pathname.match(/^\/api\/apply\/([^/]+)(?:\/run)?$/);
@@ -226,6 +265,19 @@ async function handleRequest(request, env, ctx) {
   }
 
   const config = await loadTenantConfig(request, env);
+  const hostname = url.hostname;
+
+  if (!isPlatformHost(hostname)) {
+    const edgeConfig = await loadEdgeConfig(env, hostname);
+    if (edgeConfig?.edge?.enabled) {
+      return handleTenantRequest(request, env, edgeConfig);
+    }
+    if (config) {
+      return fetch(request);
+    }
+    return fetch(request);
+  }
+
   if (!config) {
     return fetch(request);
   }
@@ -418,7 +470,8 @@ function html(body, status = 200) {
   });
 }
 
-function isPlatformRoute(pathname) {
+function isPlatformRoute(pathname, hostname) {
+  if (!isPlatformHost(hostname)) return false;
   return (
     pathname === '/' ||
     pathname === '/dashboard' ||

@@ -8,6 +8,7 @@ import { probeDomain } from './probe.js';
 import { passageAutonomy, computeDiagnosticScore } from './score.js';
 import { analyzeDisplacement } from './displacement.js';
 import { computeSov, currentPeriod } from '../index/sov.js';
+import { loadEdgeConfig } from '../config/tenantEdge.js';
 
 export const PILLARS = [
   { id: 'visibility', label: 'Видимост', icon: '👁' },
@@ -39,6 +40,8 @@ export function buildStrategy(input = {}) {
     registered = false,
     questionCount = 0,
     runCount = 0,
+    edgeActive = false,
+    edgeStatus = 'measurement_only',
   } = input;
 
   const recommendations = buildRecommendations({
@@ -46,7 +49,7 @@ export function buildStrategy(input = {}) {
     displacement,
     sov,
     tenant,
-    edgeActive: false,
+    edgeActive,
   });
 
   const verdict = buildVerdict(probe, passage, diagnostic_score, displacement, sov, runCount);
@@ -57,6 +60,8 @@ export function buildStrategy(input = {}) {
     runCount,
     domain: tenant?.apex_host ?? probe?.domain,
     brand: tenant?.name,
+    edgeActive,
+    edgeStatus,
   });
   const pipeline = buildPipelineGuide({
     registered,
@@ -65,6 +70,7 @@ export function buildStrategy(input = {}) {
     runCount,
     displacement,
     recommendations,
+    edgeActive,
   });
 
   return {
@@ -72,6 +78,8 @@ export function buildStrategy(input = {}) {
     brand: tenant?.name ?? null,
     registered,
     score: diagnostic_score ?? null,
+    edge_active: edgeActive,
+    edge_status: edgeStatus,
     verdict,
     pillars,
     plan,
@@ -272,6 +280,19 @@ function buildActionPlan(probe, recommendations, displacement, sov, ctx) {
     thisWeek.push(action(step++, 'measure', 'Стартирайте пълен анализ (одит → въпроси → AI измерване)', 'high', 'system', '2–3 мин'));
   }
 
+  if (!ctx.edgeActive && probe && hasEdgeFixableIssues(probe)) {
+    thisWeek.unshift(
+      action(
+        step++,
+        'activate_edge',
+        'Приложете Edge оптимизация (Worker proxy)',
+        'high',
+        'system',
+        'Dashboard → „2. Приложи Edge“ → CNAME. Без CMS промени — robots + JSON-LD автоматично.',
+      ),
+    );
+  }
+
   for (const rec of recommendations.filter((r) => r.severity === 'critical' || r.severity === 'warning')) {
     const when = rec.layer === 'content' || rec.id === 'thin_content' ? 'this_week' : 'this_week';
     const item = action(step++, rec.id, rec.title, rec.severity === 'critical' ? 'high' : 'medium', rec.owner, rec.action);
@@ -295,17 +316,17 @@ function buildActionPlan(probe, recommendations, displacement, sov, ctx) {
     }
   }
 
-  if (probe && (probe.jsonld_blocks ?? 0) === 0) {
-    const exists = thisWeek.some((a) => a.id === 'missing_jsonld');
+  if (probe && (probe.jsonld_blocks ?? 0) === 0 && !ctx.edgeActive) {
+    const exists = thisWeek.some((a) => a.id === 'add_jsonld' || a.id === 'activate_edge');
     if (!exists) {
       thisWeek.push(
         action(
           step++,
           'add_jsonld',
-          'Добавете JSON-LD (Organization / SoftwareApplication / Product)',
+          'JSON-LD — през Edge Worker (не CMS)',
           'medium',
-          'you',
-          'Structured data помага на моделите да „разберат“ бизнеса ви без да гадаят.',
+          'system',
+          '„Приложи Edge“ инжектира Organization/SoftwareApplication schema автоматично.',
         ),
       );
     }
@@ -360,6 +381,15 @@ function dedupeActions(list) {
   });
 }
 
+function hasEdgeFixableIssues(probe) {
+  if (!probe) return false;
+  if (probe.robots_ai_policy === 'disallow_all') return true;
+  if ((probe.jsonld_blocks ?? 0) === 0) return true;
+  if (probe.robots_ai_policy === 'none' || probe.robots_ai_policy === 'fetch_error') return true;
+  const chain = probe.redirect_chain ?? probe.raw_json?.redirect_chain ?? [];
+  return chain.length > 1;
+}
+
 function buildPipelineGuide(ctx) {
   const steps = [
     { id: 'register', label: '1. Сайт', done: ctx.registered },
@@ -367,6 +397,7 @@ function buildPipelineGuide(ctx) {
     { id: 'questions', label: '3. Въпроси', done: (ctx.questionCount ?? 0) >= 5 },
     { id: 'measure', label: '4. Измерване', done: (ctx.runCount ?? 0) > 0 },
     { id: 'strategy', label: '5. Стратегия', done: (ctx.recommendations?.length ?? 0) > 0 },
+    { id: 'edge', label: '6. Edge', done: Boolean(ctx.edgeActive) },
   ];
 
   const current = steps.find((s) => !s.done)?.id ?? 'monitor';
@@ -376,6 +407,7 @@ function buildPipelineGuide(ctx) {
     questions: 'Генерирайте въпроси',
     measure: 'Пуснете AI измерване',
     strategy: 'Прегледайте стратегията',
+    edge: 'Приложете Edge оптимизация',
     monitor: 'Мониторинг',
   };
 
@@ -399,7 +431,7 @@ export async function fetchDomainStrategy(env, domain, options = {}) {
 
   if (env.DB) {
     tenant = await env.DB.prepare(
-      `SELECT t.id, t.apex_host, t.name, wd.vertical_id
+      `SELECT t.id, t.apex_host, t.name, t.edge_enabled, t.edge_status, wd.vertical_id
        FROM tenants t
        JOIN watched_domains wd ON wd.tenant_id = t.id AND wd.role = 'tenant'
        WHERE t.apex_host = ?`,
@@ -429,6 +461,14 @@ export async function fetchDomainStrategy(env, domain, options = {}) {
   const probeResult = await probeDomain(normalized, { fetch: fetchImpl });
   const passage = passageAutonomy(probeResult.raw_json?.text_sample ?? '');
   const diagnosticScore = computeDiagnosticScore(probeResult, passage);
+
+  let edgeActive = false;
+  let edgeStatus = tenant?.edge_status ?? 'measurement_only';
+  if (tenant) {
+    const edgeConfig = await loadEdgeConfig(env, tenant.apex_host);
+    edgeActive = Boolean(edgeConfig?.edge?.enabled) && Boolean(tenant.edge_enabled);
+    if (edgeActive) edgeStatus = 'active';
+  }
 
   let displacement = null;
   let sov = null;
@@ -463,6 +503,8 @@ export async function fetchDomainStrategy(env, domain, options = {}) {
     registered: Boolean(tenant),
     questionCount,
     runCount,
+    edgeActive,
+    edgeStatus,
   });
 
   return {

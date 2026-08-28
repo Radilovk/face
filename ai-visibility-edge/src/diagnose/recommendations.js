@@ -50,7 +50,7 @@ export const INFO_MODULES = [
     icon: '⚡',
     what: 'Worker proxy + автоматични поправки (robots, JSON-LD) след CNAME.',
     why: 'Git → deploy → live. Подходящ за serverless сайтове (Worker origin).',
-    status: 'planned',
+    status: 'active',
   },
 ];
 
@@ -98,13 +98,13 @@ export const USER_CHECKLIST = [
   },
   {
     id: 'onsite_fixes',
-    title: 'On-site поправки (ваша отговорност)',
+    title: 'On-site поправки (съдържание)',
     owner: 'you',
-    done_when: 'Probe score > 70, robots allow',
+    done_when: 'Probe score > 70, достатъчно текст',
     items: [
-      'robots.txt — махни disallow_all за AI ботове',
-      'Canonical тагове, JSON-LD Product/Organization',
+      'Разширете homepage с описателни параграфи (марка, ползи, цени)',
       'Самостоятелни пасажи с марка + цена (не „това“, „той“)',
+      'Технически слой (robots, JSON-LD) — през Edge Worker, не CMS',
     ],
   },
   {
@@ -137,12 +137,14 @@ export function buildRecommendations(input = {}) {
       items.push(reco({
         id: 'robots_disallow_all',
         severity: 'critical',
-        owner: 'you',
-        layer: 'on_site',
+        owner: edgeActive ? 'edge' : 'system',
+        layer: 'edge',
         title: 'robots.txt блокира всички ботове',
         what: 'User-agent: * с Disallow: / — AI crawlers не могат да четат сайта.',
-        why: 'Нулева AI видимост. Edge layer не може да поправи това без reverse proxy на целия сайт.',
-        action: 'Редактирайте robots.txt — премахнете глобалния Disallow: / или добавете Allow за GPTBot, Google-Extended.',
+        why: 'Нулева AI видимост. Edge Worker може да обслужва robots.txt без CMS промяна.',
+        action: edgeActive
+          ? 'Edge обслужва robots.txt — активен след CNAME.'
+          : 'Стартирайте анализ → „Приложи Edge“ → CNAME към Worker.',
       }));
     } else if (probe.robots_ai_policy === 'ai_rules_present') {
       const blocked = probe.blocked_bots ?? [];
@@ -192,12 +194,14 @@ export function buildRecommendations(input = {}) {
       items.push(reco({
         id: 'missing_canonical',
         severity: 'info',
-        owner: 'you',
-        layer: 'on_site',
+        owner: edgeActive ? 'edge' : 'system',
+        layer: edgeActive ? 'edge' : 'on_site',
         title: 'Липсва canonical URL',
         what: 'HTML няма rel=canonical.',
         why: 'AI може да обърка дублирани URL-и и да цитира грешна страница.',
-        action: 'Добавете <link rel="canonical"> на ключовите страници.',
+        action: edgeActive
+          ? 'Edge инжектира canonical при redirect stub.'
+          : 'Активирайте Edge или добавете <link rel="canonical"> в CMS.',
       }));
     }
 
@@ -276,16 +280,37 @@ export function buildRecommendations(input = {}) {
     items.push(reco({
       id: 'edge_canary_pending',
       severity: 'info',
-      owner: 'you',
+      owner: 'system',
       layer: 'edge',
       title: 'Edge Optimizer — активирайте CNAME',
       what: `${host} е маркиран за edge поправки.`,
       why: 'Edge поправка изисква CNAME — без него Worker не обслужва HTML на домейна.',
-      action: `CNAME ${host} → Worker + Custom Hostname в Cloudflare.`,
+      action: `Dashboard → „Приложи Edge“ → CNAME ${host} → Worker + Custom Hostname.`,
+    }));
+  }
+
+  if (!edgeActive && probe && needsEdgeFix(probe)) {
+    items.push(reco({
+      id: 'edge_activate',
+      severity: 'info',
+      owner: 'system',
+      layer: 'edge',
+      title: 'Приложете Edge оптимизация',
+      what: 'Probe откри технически проблеми, които Edge Worker поправя автоматично.',
+      why: 'Оптимизацията минава през наш Cloudflare proxy — не през CMS на клиента.',
+      action: 'Dashboard → „2. Приложи Edge“ → CNAME към Worker.',
     }));
   }
 
   return sortBySeverity(items);
+}
+
+function needsEdgeFix(probe) {
+  if (probe.robots_ai_policy === 'disallow_all') return true;
+  if ((probe.jsonld_blocks ?? 0) === 0) return true;
+  if (probe.robots_ai_policy === 'none' || probe.robots_ai_policy === 'fetch_error') return true;
+  const chain = probe.redirect_chain ?? probe.raw_json?.redirect_chain ?? [];
+  return chain.length > 1;
 }
 
 export async function fetchTenantRecommendations(env, tenant, options = {}) {
@@ -331,7 +356,7 @@ export async function fetchTenantRecommendations(env, tenant, options = {}) {
     displacement,
     sov,
     tenant,
-    edgeActive: false,
+    edgeActive: options.edgeActive ?? false,
   });
 
   return {

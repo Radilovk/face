@@ -9,6 +9,9 @@ import { analyzeDisplacement } from './diagnose/displacement.js';
 import { buildDomainReport } from './diagnose/report.js';
 import { fetchDashboardSummary, fetchDashboardRecommendations, renderDashboardPage } from './ui/dashboard.js';
 import { getSitePipeline, listSitesFromDb } from './api/pipeline.js';
+import { runSitePipeline } from './api/pipelineRun.js';
+import { registerSite, listVerticals } from './api/sites.js';
+import { runCitationBatchForTenant } from './citations/runner.js';
 import {
   listQuestions,
   generateAndSaveQuestions,
@@ -68,8 +71,31 @@ async function handleRequest(request, env, ctx) {
   if (url.pathname === '/api/sites') {
     const missing = requireDb(env);
     if (missing) return missing;
+    if (request.method === 'POST') {
+      return sitesCreateEndpoint(request, env);
+    }
     const sites = await listSitesFromDb(env);
     return json({ sites });
+  }
+
+  if (url.pathname === '/api/verticals') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const verticals = await listVerticals(env.DB);
+    return json({ verticals });
+  }
+
+  if (url.pathname === '/api/measure/run' && request.method === 'POST') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    return measureRunEndpoint(request, env);
+  }
+
+  const pipelineRunMatch = url.pathname.match(/^\/api\/pipeline\/([^/]+)\/run$/);
+  if (pipelineRunMatch && request.method === 'POST') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    return pipelineRunEndpoint(request, env, decodeURIComponent(pipelineRunMatch[1]));
   }
 
   const pipelineMatch = url.pathname.match(/^\/api\/pipeline\/([^/]+)$/);
@@ -275,6 +301,35 @@ async function questionsCreateEndpoint(request, env) {
   const body = await request.json().catch(() => ({}));
   const result = await createQuestion(env.DB, body);
   return json(result, result.error ? 400 : 201);
+}
+
+async function sitesCreateEndpoint(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const result = await registerSite(env.DB, body);
+  return json(result, result.error ? 400 : 201);
+}
+
+async function measureRunEndpoint(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const domain = body.domain ?? new URL(request.url).searchParams.get('domain');
+  if (!domain) return json({ error: 'domain required' }, 400);
+
+  const { resolveTenantByDomain } = await import('./api/questions.js');
+  const tenant = await resolveTenantByDomain(env.DB, domain);
+  if (!tenant) return json({ error: 'unknown_domain', domain }, 404);
+
+  const summary = await runCitationBatchForTenant(env, tenant.id, {
+    questionLimit: body.question_limit ?? 5,
+    repetitions: body.repetitions ?? 1,
+    reprocess: body.reprocess !== false,
+  });
+  return json({ domain: tenant.apex_host, ...summary });
+}
+
+async function pipelineRunEndpoint(request, env, domain) {
+  const body = await request.json().catch(() => ({}));
+  const result = await runSitePipeline(env, domain, body);
+  return json(result, result.error ? 404 : 200);
 }
 
 async function probeEndpoint(env, url) {

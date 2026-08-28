@@ -1,9 +1,8 @@
 import {
-  fetchPage,
   extractDomain,
-  htmlToText,
   extractCanonical,
 } from '../citations/verify.js';
+import { fetchProbePage } from './resolveLanding.js';
 
 const PROBE_UA = 'AIVisibilityBot/1.0 (+https://ai-visibility-edge/probe)';
 
@@ -15,7 +14,7 @@ export async function probeDomain(domain, options = {}) {
   const host = domain.replace(/^www\./, '').replace(/^https?:\/\//, '').split('/')[0];
   const homepage = `https://${host}/`;
 
-  const page = await fetchPage(homepage, async (url) =>
+  const page = await fetchProbePage(homepage, async (url) =>
     fetchImpl(url, { headers: { 'User-Agent': PROBE_UA }, redirect: 'follow' }),
   );
 
@@ -37,9 +36,9 @@ export async function probeDomain(domain, options = {}) {
   }
 
   const html = page.html ?? '';
-  const text = page.text ?? htmlToText(html);
+  const text = page.text ?? '';
   const jsonldBlocks = (html.match(/<script[^>]+type=["']application\/ld\+json["']/gi) ?? []).length;
-  const canonical = page.canonical ?? extractCanonical(html, homepage);
+  const canonical = page.canonical ?? extractCanonical(html, page.finalUrl ?? homepage);
   const priceTokens = countPriceTokens(text);
 
   return {
@@ -53,8 +52,9 @@ export async function probeDomain(domain, options = {}) {
     has_canonical: canonical ? 1 : 0,
     price_tokens: priceTokens,
     raw_json: {
-      final_url: page.canonical ?? homepage,
+      final_url: page.finalUrl ?? homepage,
       text_sample: text.slice(0, 500),
+      redirect_chain: page.redirect_chain ?? [],
     },
   };
 }

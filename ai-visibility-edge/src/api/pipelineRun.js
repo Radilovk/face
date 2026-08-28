@@ -64,11 +64,27 @@ export async function runSitePipeline(env, domain, options = {}) {
       domain: tenant.apex_host,
       name: tenant.name,
       vertical_id: tenant.vertical_id,
-      canary: false,
+      canary: Boolean(tenant.is_canary),
     });
     result.steps.recommendations = {
       count: rec.recommendations?.length ?? 0,
       top: (rec.recommendations ?? []).slice(0, 5),
+    };
+  }
+
+  if (options.apply !== false) {
+    const { getApplyPlan } = await import('./apply.js');
+    const apply = await getApplyPlan(env, tenant.apex_host);
+    result.steps.apply = {
+      status: apply.error ? 'error' : 'ready',
+      fix_count: apply.fixes?.length ?? 0,
+      summary: apply.summary,
+      fixes: (apply.fixes ?? []).map((f) => ({
+        id: f.id,
+        title: f.title,
+        type: f.type,
+        priority: f.priority,
+      })),
     };
   }
 
@@ -91,6 +107,8 @@ async function runAuditStep(env, domain) {
     jsonld_blocks: probe.jsonld_blocks,
     html_text_chars: probe.html_text_chars,
     diagnostic_score: score,
+    final_url: probe.raw_json?.final_url,
+    redirect_hops: probe.raw_json?.redirect_chain?.length ?? 1,
   };
 }
 

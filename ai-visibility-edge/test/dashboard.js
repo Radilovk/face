@@ -9,7 +9,7 @@ export function testDashboardV2Page() {
   assert(html.includes('id="plan-week"'));
   assert(html.includes('/api/strategy/'));
   assert(html.includes('Стартирай пълен анализ'));
-  assert(html.includes('Добавете сайт'));
-  assert(html.includes('add-site-form'));
+  assert(html.includes('Приложи'));
+  assert(html.includes('/api/apply/'));
   assert(!html.includes('data-tab="workflow"'));
 }

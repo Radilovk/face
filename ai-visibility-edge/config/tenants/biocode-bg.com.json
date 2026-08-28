@@ -3,11 +3,7 @@
   "edge": {
     "enabled": true,
     "robots_mode": "serve",
-    "origin": {
-      "type": "worker",
-      "url": "https://port.radilov-k.workers.dev",
-      "host_header": "www.biocode-bg.com"
-    }
+    "origin_host": null
   },
   "robots_txt": "# Managed by AI Visibility Edge — deploy via aiv-deploy (no CMS edits)\nUser-agent: *\nAllow: /\n\nUser-agent: GPTBot\nAllow: /\n\nUser-agent: Google-Extended\nAllow: /\n\nUser-agent: anthropic-ai\nAllow: /\n\nUser-agent: PerplexityBot\nAllow: /\n\nSitemap: https://biocode-bg.com/sitemap.xml\n"
 }

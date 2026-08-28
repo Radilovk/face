@@ -3,40 +3,9 @@ import {
   USER_CHECKLIST,
   fetchTenantRecommendations,
 } from '../diagnose/recommendations.js';
+import { listSitesFromDb } from '../api/pipeline.js';
 
 export { INFO_MODULES, USER_CHECKLIST };
-
-/** Fallback tenant list when D1 unavailable (mirrors seed). */
-export const TENANTS = [
-  {
-    domain: 'daotslabna.com',
-    name: 'Да отслабна',
-    vertical_id: 'weight-loss-supplements-bg',
-    vertical: 'Добавки за отслабване',
-    canary: false,
-  },
-  {
-    domain: 'biocode-bg.com',
-    name: 'BIOCODE Nutrition',
-    vertical_id: 'sports-nutrition-supplements-bg',
-    vertical: 'Спортни добавки',
-    canary: false,
-  },
-  {
-    domain: 'life-protocols.com',
-    name: 'Life Protocols',
-    vertical_id: 'longevity-protocols-bg',
-    vertical: 'Дълголетие / biohacking',
-    canary: false,
-  },
-  {
-    domain: 'biocode-peptides.com',
-    name: 'BIOCODE Peptides',
-    vertical_id: 'peptides-research-bg',
-    vertical: 'Research пептиди',
-    canary: false,
-  },
-];
 
 export const GITHUB_ACTIONS = {
   repo: 'https://github.com/Radilovk/face/actions',
@@ -57,12 +26,17 @@ export async function fetchDashboardSummary(env) {
     baseline: null,
     runs: null,
     observations: null,
-    tenants: TENANTS,
+    tenants: [],
   };
 
   summary.baseline = await readBaselineStatus(env);
 
   if (env.DB) {
+    try {
+      summary.tenants = await listSitesFromDb(env);
+    } catch {
+      summary.tenants = [];
+    }
     try {
       const { results } = await env.DB.prepare(
         `SELECT model, COUNT(*) as count FROM runs GROUP BY model`,
@@ -92,15 +66,38 @@ export async function fetchDashboardSummary(env) {
 
 export async function fetchDashboardRecommendations(env, options = {}) {
   const domain = options.domain ?? null;
-  const targets = domain ? TENANTS.filter((t) => t.domain === domain) : TENANTS;
+
+  if (!env.DB) {
+    return { error: 'db_not_bound', hint: 'Сайтовете се добавят през dashboard → + Сайт' };
+  }
+
+  const sites = await listSitesFromDb(env);
+  const targets = domain
+    ? sites.filter((s) => s.domain === domain.replace(/^www\./, '').toLowerCase())
+    : sites;
 
   if (domain && targets.length === 0) {
-    return { error: 'unknown_domain', domain };
+    return {
+      error: 'unknown_domain',
+      domain,
+      hint: 'Добавете домейна през dashboard (+ Сайт), не през seed или CLI.',
+    };
   }
 
   const tenants = [];
-  for (const tenant of targets) {
-    tenants.push(await fetchTenantRecommendations(env, tenant, options));
+  for (const site of targets) {
+    tenants.push(
+      await fetchTenantRecommendations(
+        env,
+        {
+          domain: site.domain,
+          name: site.name,
+          vertical_id: site.vertical_id,
+          canary: Boolean(site.is_canary),
+        },
+        options,
+      ),
+    );
   }
 
   return {

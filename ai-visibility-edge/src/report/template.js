@@ -16,7 +16,8 @@ export function renderReport(data) {
     runCount: data.stats?.runCount ?? 0,
   });
 
-  const { domain, generated_at = new Date().toISOString(), verdict, pillars, plan } = strategy;
+  const domainName = data.domain ?? strategy.domain ?? '—';
+  const { generated_at = new Date().toISOString(), verdict, pillars, plan } = strategy;
   const score = strategy.score ?? data.diagnostic_score;
 
   const pillarRows = (pillars ?? [])
@@ -89,7 +90,7 @@ export function renderReport(data) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Стратегия — ${esc(domain)}</title>
+  <title>Стратегия — ${esc(domainName)}</title>
   <style>
     body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1.25rem; color: #1a1a2e; line-height: 1.55; }
     h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
@@ -126,7 +127,7 @@ export function renderReport(data) {
 </head>
 <body>
   <h1>Стратегия за AI видимост</h1>
-  <p class="meta">${esc(domain)} · ${esc(String(generated_at).slice(0, 19))} UTC</p>
+  <p class="meta">${esc(domainName)} · ${esc(String(generated_at).slice(0, 19))} UTC</p>
 
   <div class="verdict verdict-${verdict?.level ?? 'unknown'}">
     <p class="score">${score ?? '—'}<span class="score-label"> / 100</span></p>

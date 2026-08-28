@@ -8,6 +8,14 @@ import { passageAutonomy, computeDiagnosticScore } from './diagnose/score.js';
 import { analyzeDisplacement } from './diagnose/displacement.js';
 import { buildDomainReport } from './diagnose/report.js';
 import { fetchDashboardSummary, fetchDashboardRecommendations, renderDashboardPage } from './ui/dashboard.js';
+import { getSitePipeline, listSitesFromDb } from './api/pipeline.js';
+import {
+  listQuestions,
+  generateAndSaveQuestions,
+  createQuestion,
+  updateQuestion,
+  deleteQuestion,
+} from './api/questions.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -54,6 +62,58 @@ async function handleRequest(request, env, ctx) {
     const domain = url.searchParams.get('domain');
     const result = await fetchDashboardRecommendations(env, { domain });
     if (result.error) return json(result, 404);
+    return json(result);
+  }
+
+  if (url.pathname === '/api/sites') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const sites = await listSitesFromDb(env);
+    return json({ sites });
+  }
+
+  const pipelineMatch = url.pathname.match(/^\/api\/pipeline\/([^/]+)$/);
+  if (pipelineMatch) {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const pipeline = await getSitePipeline(env, decodeURIComponent(pipelineMatch[1]));
+    return json(pipeline, pipeline.error ? 404 : 200);
+  }
+
+  if (url.pathname === '/api/questions' && request.method === 'GET') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const domain = url.searchParams.get('domain');
+    const verticalId = url.searchParams.get('vertical_id');
+    const questions = await listQuestions(env.DB, { domain, verticalId });
+    return json({ domain, questions });
+  }
+
+  if (url.pathname === '/api/questions/generate' && request.method === 'POST') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    return questionsGenerateEndpoint(request, env);
+  }
+
+  if (url.pathname === '/api/questions' && request.method === 'POST') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    return questionsCreateEndpoint(request, env);
+  }
+
+  const questionMatch = url.pathname.match(/^\/api\/questions\/([^/]+)$/);
+  if (questionMatch && request.method === 'PUT') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const body = await request.json().catch(() => ({}));
+    const result = await updateQuestion(env.DB, decodeURIComponent(questionMatch[1]), body);
+    return json(result, result.error ? 404 : 200);
+  }
+
+  if (questionMatch && request.method === 'DELETE') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const result = await deleteQuestion(env.DB, decodeURIComponent(questionMatch[1]));
     return json(result);
   }
 
@@ -198,6 +258,23 @@ async function reprocessEndpoint(request, env) {
 
   const summary = await reprocessRuns(env, { limit: 50 });
   return json(summary);
+}
+
+async function questionsGenerateEndpoint(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const result = await generateAndSaveQuestions(env.DB, {
+    domain: body.domain,
+    brand: body.brand,
+    verticalLabel: body.vertical_label,
+    replaceAuto: body.replace_auto !== false,
+  });
+  return json(result, result.error ? 404 : 200);
+}
+
+async function questionsCreateEndpoint(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const result = await createQuestion(env.DB, body);
+  return json(result, result.error ? 400 : 201);
 }
 
 async function probeEndpoint(env, url) {

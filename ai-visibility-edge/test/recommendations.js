@@ -38,5 +38,5 @@ export function testInfoModulesAndChecklist() {
   assert(INFO_MODULES.some((m) => m.id === 'measurement'));
   assert(INFO_MODULES.every((m) => m.what && m.why));
   assert(USER_CHECKLIST.length >= 5);
-  assert(USER_CHECKLIST.some((c) => c.id === 'edge_canary'));
+  assert(USER_CHECKLIST.some((c) => c.id === 'workflow'));
 }

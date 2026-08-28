@@ -1,17 +1,13 @@
 import assert from 'node:assert/strict';
-import { TENANTS, renderDashboardPage, INFO_MODULES, USER_CHECKLIST } from '../src/ui/dashboard.js';
+import { renderDashboardPage } from '../src/ui/dashboardPage.js';
 
-export function testDashboardPage() {
+export function testDashboardV2Page() {
   const html = renderDashboardPage('https://ai-visibility-edge.radilov-k.workers.dev');
   assert(html.includes('AI Visibility Edge'));
-  assert(html.includes('biocode-bg.com'));
-  assert(html.includes('/api/dashboard/summary'));
-  assert(html.includes('/api/dashboard/recommendations'));
-  assert(html.includes('Какво трябва да направите вие'));
-  assert(html.includes('Какво прави всяка част'));
-  assert(html.includes('info-modules'));
-  assert.equal(TENANTS.length, 4);
-  assert(TENANTS.some((t) => t.canary));
-  assert(INFO_MODULES.length >= 6);
-  assert(USER_CHECKLIST.length >= 5);
+  assert(html.includes('data-tab="workflow"'));
+  assert(html.includes('data-tab="questions"'));
+  assert(html.includes('/api/pipeline/'));
+  assert(html.includes('/api/questions'));
+  assert(html.includes('Авто-генерирай'));
+  assert(!html.includes('id="info-modules"'));
 }

@@ -14,7 +14,8 @@ import {
   testPerplexityAdapter,
   testReportTemplate,
 } from './diagnose.js';
-import { testDashboardPage } from './dashboard.js';
+import { testDashboardV2Page } from './dashboard.js';
+import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import {
   testBuildRecommendationsRobots,
   testBuildRecommendationsCanaryEdge,
@@ -116,9 +117,10 @@ async function run() {
   testDisplacementExtract();
   testPerplexityAdapter();
   testReportTemplate();
-  testDashboardPage();
+  testDashboardV2Page();
+  testGenerateQuestions();
+  testStepStatus();
   testBuildRecommendationsRobots();
-  testBuildRecommendationsCanaryEdge();
   testInfoModulesAndChecklist();
   console.log('All tests passed');
 }

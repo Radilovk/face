@@ -16,6 +16,7 @@
     "baseline:reprocess-d1": "node scripts/baseline-reprocess-d1.js",
     "baseline:upload-kv": "node scripts/baseline-upload-kv.js",
     "baseline:fetch-kv": "node scripts/baseline-fetch-kv.js",
+    "baseline:backup-kv": "node scripts/baseline-backup-kv.js",
     "db:import-baseline": "node scripts/baseline-import-d1.js",
     "db:migrate:remote": "wrangler d1 migrations apply aiv --remote",
     "citations:reprocess": "node scripts/run-reprocess.js"

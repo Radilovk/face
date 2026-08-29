@@ -99,13 +99,27 @@ export default {
       return new Response('Грешка при обработката на AI.', { status: 502, headers: corsHeaders });
     }
 
-      const { choices } = await resp.json();
-
-      let aiResponse = {};
+      let data;
       try {
-        aiResponse = JSON.parse(choices?.[0]?.message?.content ?? '{}');
-      } catch (_) {
-        aiResponse = {};
+        data = await resp.json();
+      } catch (err) {
+        console.error('Неуспешно парсване на JSON от OpenAI:', err);
+        return new Response('Невалиден формат на отговора от AI.', { status: 502, headers: corsHeaders });
+      }
+
+      const content = data?.choices?.[0]?.message?.content;
+      if (!content) {
+        console.error('Неочакван отговор от OpenAI:', JSON.stringify(data));
+        return new Response('Липсва съдържание от AI.', { status: 502, headers: corsHeaders });
+      }
+
+      let aiResponse;
+      try {
+        aiResponse = JSON.parse(content);
+        console.log('AI Parsed response:', aiResponse);
+      } catch (err) {
+        console.error('Грешка при парсване на AI съдържанието:', err, content);
+        return new Response('AI върна невалиден JSON.', { status: 502, headers: corsHeaders });
       }
 
       const analysis = {

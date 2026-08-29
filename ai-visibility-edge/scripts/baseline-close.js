@@ -9,9 +9,12 @@
 import { readFileSync, readdirSync, existsSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { baselineDir, CANONICAL_BASELINE_ID } from './baseline-lib.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const BASELINE_DIR = join(__dirname, '../baseline/2026-08-27');
+const ROOT = join(__dirname, '..');
+const BASELINE_ID = process.env.BASELINE_ID || CANONICAL_BASELINE_ID;
+const BASELINE_DIR = baselineDir(ROOT, BASELINE_ID);
 const manifestPath = join(BASELINE_DIR, 'manifest.json');
 const pilotMode = process.argv.includes('--pilot');
 

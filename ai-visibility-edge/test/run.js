@@ -55,6 +55,7 @@ import {
   testAdapterSchemaRegistry,
 } from './drift.js';
 import { testBaselineSeedAndClosePilot } from './baseline-gate.js';
+import { testBaselineRunIds, testBaselineImportSqlUsesIgnore } from './baseline-c1.js';
 import {
   testModelRegistryCurrent,
   testGeminiModelOverride,
@@ -239,6 +240,8 @@ async function run() {
   await testRunStalenessRecent();
   await testBotDriftHighUnverified();
   await testFetchDriftStatusAggregate();
+  testBaselineRunIds();
+  testBaselineImportSqlUsesIgnore();
   testBaselineSeedAndClosePilot();
   await testFetchSiteStats();
   await testFetchSiteStatsPendingReprocess();

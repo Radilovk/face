@@ -18,6 +18,11 @@ on:
           - openai
           - gemini
           - perplexity
+      baseline_id:
+        description: 'Snapshot id (YYYY-MM-DD). Default: today UTC on schedule/manual run.'
+        required: false
+        default: ''
+        type: string
       import_only:
         description: 'Skip API collect — fetch from KV + D1 import only'
         required: false
@@ -46,9 +51,24 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
       PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
-      BASELINE_ID: '2026-08-27'
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set baseline snapshot id
+        run: |
+          INPUT_ID="${{ github.event.inputs.baseline_id }}"
+          if [ -n "$INPUT_ID" ]; then
+            BASELINE_ID="$INPUT_ID"
+          else
+            BASELINE_ID="$(date -u +%Y-%m-%d)"
+          fi
+          echo "BASELINE_ID=$BASELINE_ID" >> "$GITHUB_ENV"
+          echo "Using BASELINE_ID=$BASELINE_ID"
+
+      - name: Backup previous baseline from KV
+        if: ${{ github.event.inputs.import_only != 'true' }}
+        run: npm run baseline:backup-kv -- --manifest-only
+        continue-on-error: true
 
       - name: Workflow version
         run: |
@@ -159,6 +179,7 @@ jobs:
           name: baseline-${{ env.BASELINE_ID }}-${{ github.run_id }}
           path: |
             ai-visibility-edge/baseline/${{ env.BASELINE_ID }}/**/*.json
+            ai-visibility-edge/baseline-backups/**/*
           retention-days: 90
 
       - name: Summary

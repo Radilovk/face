@@ -4,6 +4,7 @@ import {
   fetchTenantRecommendations,
 } from '../diagnose/recommendations.js';
 import { listSitesFromDb } from '../api/pipeline.js';
+import { resolveBaselineId, baselineManifestKey } from '../config/baseline.js';
 
 export { INFO_MODULES, USER_CHECKLIST };
 
@@ -15,13 +16,14 @@ export const GITHUB_ACTIONS = {
 };
 
 export async function fetchDashboardSummary(env) {
+  const baselineId = await resolveBaselineId(env);
   const summary = {
     generated_at: new Date().toISOString(),
     health: {
       ok: true,
       db: Boolean(env.DB),
       kv: Boolean(env.CACHE),
-      baseline_id: env.BASELINE_ID ?? '2026-08-27',
+      baseline_id: baselineId,
     },
     baseline: null,
     runs: null,
@@ -107,8 +109,8 @@ export async function fetchDashboardRecommendations(env, options = {}) {
 }
 
 async function readBaselineStatus(env) {
-  const baselineId = env.BASELINE_ID ?? '2026-08-27';
-  const key = `aiv/baseline/${baselineId}/manifest`;
+  const baselineId = await resolveBaselineId(env);
+  const key = baselineManifestKey(baselineId);
 
   if (env.CACHE) {
     const manifest = await env.CACHE.get(key, 'json');

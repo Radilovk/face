@@ -7,6 +7,7 @@ import { fetchOnboardingStatus } from './api/onboarding.js';
 import { getDriftStatus } from './api/drift.js';
 import { fetchDriftStatus } from './drift/index.js';
 import { getModelsStatus } from './config/models.js';
+import { resolveBaselineId, baselineManifestKey } from './config/baseline.js';
 import { loadTenantConfig } from './config/loader.js';
 import { runCitationBatch } from './citations/runner.js';
 import { reprocessRuns } from './citations/reprocess.js';
@@ -274,8 +275,9 @@ async function handleRequest(request, env, ctx) {
   }
 
   if (url.pathname === '/api/baseline-info') {
+    const baselineId = await resolveBaselineId(env);
     return json({
-      baseline: env.BASELINE_ID ?? '2026-08-27',
+      baseline: baselineId,
       questions: 20,
       tenants: [
         'daotslabna.com',
@@ -364,8 +366,8 @@ async function handleRequest(request, env, ctx) {
 }
 
 async function baselineStatus(env) {
-  const baselineId = env.BASELINE_ID ?? '2026-08-27';
-  const key = `aiv/baseline/${baselineId}/manifest`;
+  const baselineId = await resolveBaselineId(env);
+  const key = baselineManifestKey(baselineId);
   const minModels = 2;
 
   if (env.CACHE) {

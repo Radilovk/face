@@ -7,6 +7,7 @@ import { fetchOnboardingStatus } from './api/onboarding.js';
 import { getDriftStatus } from './api/drift.js';
 import { fetchDriftStatus } from './drift/index.js';
 import { getModelsStatus } from './config/models.js';
+import { getEconomyStatus } from './config/economy.js';
 import { resolveBaselineId, baselineManifestKey } from './config/baseline.js';
 import { loadTenantConfig } from './config/loader.js';
 import { runCitationBatch } from './citations/runner.js';
@@ -81,7 +82,7 @@ async function handleRequest(request, env, ctx) {
   }
 
   if (url.pathname === '/api/models/status') {
-    return json(getModelsStatus(env));
+    return json({ ...getModelsStatus(env), economy: getEconomyStatus(env) });
   }
 
   if (url.pathname === '/' || url.pathname === '/dashboard') {

@@ -6,11 +6,21 @@ import {
   perplexityModelId,
   MODEL_REGISTRY,
 } from '../config/models.js';
+import { hasProviderKey, resolveMeasureModels } from '../config/economy.js';
 
 const DEFAULT_MODELS = ['openai', 'gemini', 'perplexity'];
 
+/** Models with API keys configured (all providers). */
+export function resolveAskModels(env) {
+  return DEFAULT_MODELS.filter((m) => hasProviderKey(env, m));
+}
+
 export async function askQuestion(text, env, options = {}) {
-  const models = options.models ?? DEFAULT_MODELS.filter((m) => hasKey(env, m));
+  const purpose = options.purpose ?? 'default';
+  const models =
+    options.models ??
+    resolveMeasureModels(env, purpose) ??
+    resolveAskModels(env);
   const results = [];
 
   for (const model of models) {
@@ -24,13 +34,6 @@ export async function askQuestion(text, env, options = {}) {
   }
 
   return results;
-}
-
-function hasKey(env, model) {
-  if (model === 'openai') return Boolean(env.OPENAI_API_KEY);
-  if (model === 'gemini') return Boolean(env.GEMINI_API_KEY);
-  if (model === 'perplexity') return Boolean(env.PERPLEXITY_API_KEY);
-  return false;
 }
 
 async function callModel(model, text, env) {

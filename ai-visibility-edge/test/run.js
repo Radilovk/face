@@ -57,6 +57,17 @@ import {
 import { testBaselineSeedAndClosePilot } from './baseline-gate.js';
 import { testBaselineRunIds, testBaselineImportSqlUsesIgnore } from './baseline-c1.js';
 import {
+  testEconomyEnabled,
+  testParseMeasureModelsList,
+  testResolveMeasureModelsCronEconomy,
+  testCronEconomyDefaults,
+  testLegacyCronDefaultsWithoutEconomy,
+  testPickRotatingQuestions,
+  testIsoWeekIndexStable,
+  testMeasureDedupSkipsRecentRun,
+  testEconomyStatusShape,
+} from './economy.js';
+import {
   testModelRegistryCurrent,
   testGeminiModelOverride,
   testModelsStatus,
@@ -242,6 +253,15 @@ async function run() {
   await testFetchDriftStatusAggregate();
   testBaselineRunIds();
   testBaselineImportSqlUsesIgnore();
+  testEconomyEnabled();
+  testParseMeasureModelsList();
+  testResolveMeasureModelsCronEconomy();
+  testCronEconomyDefaults();
+  testLegacyCronDefaultsWithoutEconomy();
+  testPickRotatingQuestions();
+  testIsoWeekIndexStable();
+  await testMeasureDedupSkipsRecentRun();
+  testEconomyStatusShape();
   testBaselineSeedAndClosePilot();
   await testFetchSiteStats();
   await testFetchSiteStatsPendingReprocess();

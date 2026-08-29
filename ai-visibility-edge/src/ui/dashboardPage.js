@@ -53,6 +53,7 @@ export function renderDashboardPage(origin) {
 
     <!-- Primary action -->
     <div class="hero-actions">
+      <button type="button" class="btn btn-lg" id="btn-auto-optimize">🤖 Auto-оптимизация</button>
       <button type="button" class="btn btn-lg" id="btn-analyze">🚀 1. Анализ</button>
       <button type="button" class="btn btn-lg" id="btn-edge-activate">⚡ 2. Приложи Edge</button>
       <button type="button" class="btn btn-ghost" id="btn-refresh">↻ Обнови</button>
@@ -99,6 +100,22 @@ export function renderDashboardPage(origin) {
         <span id="drift-badge" class="advisor-badge">—</span>
       </div>
       <ul id="drift-alerts" class="drift-list"></ul>
+    </section>
+
+    <!-- Autonomous optimizer (Block 7) -->
+    <section class="section optimizer-panel" id="optimizer-panel">
+      <div class="apply-head">
+        <h3>🤖 Автономна оптимизация</h3>
+        <span id="optimizer-badge" class="advisor-badge">…</span>
+      </div>
+      <p class="sub">Gemini + правила изпълняват measure, edge, content drafts. Човек само при DNS и CMS publish.</p>
+      <p id="optimizer-headline" class="optimizer-headline sub">Заредете сайт за план.</p>
+      <ul id="optimizer-auto" class="edge-fix-list"></ul>
+      <ul id="optimizer-human" class="edge-prereq-list"></ul>
+      <details id="optimizer-drafts-wrap" class="hidden">
+        <summary>Content drafts (чака публикуване)</summary>
+        <pre id="optimizer-draft-preview" class="draft-preview"></pre>
+      </details>
     </section>
 
     <!-- Edge decision (Block 4 — optimization via Cloudflare Worker) -->
@@ -388,7 +405,8 @@ function script(origin) {
 
     async function executeAdvisorAction(action) {
       if (action === 'run_analysis') return runFullAnalysis();
-      if (action === 'generate_apply') return activateEdge();
+      if (action === 'run_auto_optimizer') return runAutoOptimize();
+      if (action === 'generate_apply') return runAutoOptimize();
       if (action === 'refresh_strategy') { await loadStrategy(); await loadEdgeDecision(); return; }
       if (action === 'open_report') { window.open(API('/report/' + encodeURIComponent(selectedDomain)), '_blank'); return; }
       if (action === 'generate_questions') { $('btn-gen-q').click(); return; }
@@ -629,6 +647,7 @@ function script(origin) {
         loadEdgeDecision();
         loadSiteStats();
         loadOnboarding();
+        loadOptimizer();
       } catch (e) {
         log('Грешка: ' + e.message);
       }
@@ -649,6 +668,57 @@ function script(origin) {
         log('Reprocess: ' + e.message);
       } finally {
         busy = false;
+      }
+    }
+
+    async function loadOptimizer() {
+      if (!selectedDomain) return;
+      try {
+        const res = await fetch(API('/api/optimizer/' + encodeURIComponent(selectedDomain) + '/status'));
+        const data = await res.json();
+        if (!res.ok) return;
+        const plan = data.current_plan;
+        $('optimizer-badge').textContent = data.enabled ? (plan?.automation_level || 'ready') : 'disabled';
+        $('optimizer-headline').textContent = plan?.headline || 'Няма план';
+        $('optimizer-auto').innerHTML = (plan?.auto_actions || []).map(a =>
+          '<li><strong>' + escHtml(a.action) + '</strong> — ' + escHtml(a.reason) + '</li>'
+        ).join('') || '<li class="sub">Няма pending auto actions</li>';
+        $('optimizer-human').innerHTML = (plan?.human_gates || []).map(h =>
+          '<li class="human-gate"><strong>' + escHtml(h.gate) + '</strong> — ' + escHtml(h.reason) + '</li>'
+        ).join('') || '<li class="sub">Няма човешки gates 🎉</li>';
+        const draft = (data.content_drafts || [])[0];
+        if (draft?.artifact) {
+          $('optimizer-drafts-wrap').classList.remove('hidden');
+          $('optimizer-draft-preview').textContent = draft.artifact.slice(0, 2000);
+        } else {
+          $('optimizer-drafts-wrap').classList.add('hidden');
+        }
+      } catch { /* optional panel */ }
+    }
+
+    async function runAutoOptimize() {
+      if (!selectedDomain || busy) return;
+      busy = true;
+      $('btn-auto-optimize').disabled = true;
+      log('Auto-оптимизация: Gemini plan + auto execute…');
+      try {
+        const res = await apiFetch('/api/optimizer/' + encodeURIComponent(selectedDomain) + '/run', {
+          method: 'POST',
+          body: JSON.stringify({ max_actions: 6 })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(authErrorHint(res, data));
+        const done = (data.executed || []).map(e => e.action).join(', ');
+        log('Auto OK: ' + (done || 'nothing') + ' | gates: ' + (data.human_gates?.length || 0));
+        await loadStrategy();
+        await loadEdgeDecision();
+        await loadOptimizer();
+        await loadOnboarding();
+      } catch (e) {
+        log('Auto-оптимизация: ' + e.message);
+      } finally {
+        busy = false;
+        $('btn-auto-optimize').disabled = false;
       }
     }
 
@@ -737,8 +807,9 @@ function script(origin) {
     $('add-site-form').onsubmit = (e) => { e.preventDefault(); submitAddSite(false); };
     $('btn-add-run').onclick = () => submitAddSite(true);
     $('btn-analyze').onclick = runFullAnalysis;
+    $('btn-auto-optimize').onclick = runAutoOptimize;
     $('btn-edge-activate').onclick = activateEdge;
-    $('btn-refresh').onclick = () => { loadStrategy(); loadEdgeDecision(); loadSiteStats(); loadOnboarding(); loadDriftStatus(); };
+    $('btn-refresh').onclick = () => { loadStrategy(); loadEdgeDecision(); loadSiteStats(); loadOnboarding(); loadDriftStatus(); loadOptimizer(); };
     $('btn-reprocess').onclick = runReprocess;
     $('btn-gen-q').onclick = async () => {
       if (!selectedDomain) return;
@@ -820,6 +891,10 @@ h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted);text-transform:uppercase
 .verdict-ok .score{color:var(--ok)}
 .verdict-warning .score{color:var(--warn)}
 .verdict-critical .score{color:var(--err)}
+.optimizer-headline{font-weight:600;color:#e2e8f0;margin:.5rem 0}
+.optimizer-panel{border:1px solid #334155;background:#0f172a;border-radius:10px;padding:1rem;margin-bottom:1rem}
+.draft-preview{max-height:200px;overflow:auto;font-size:.75rem;background:#1e293b;padding:.75rem;border-radius:6px;white-space:pre-wrap}
+.human-gate{color:#fbbf24}
 .hero-actions{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem}
 .btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:.5rem 1rem;font-size:.85rem;cursor:pointer}
 .btn:hover{filter:brightness(1.08)}

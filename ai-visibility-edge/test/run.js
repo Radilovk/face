@@ -68,6 +68,14 @@ import {
   testEconomyStatusShape,
 } from './economy.js';
 import {
+  testOptimizerPlanFreshSite,
+  testOptimizerPlanNoRunsSkipsEdgeWhenDisabled,
+  testOptimizerSensitiveVerticalHumanGate,
+  testHumanGatesRegistry,
+  testParseHtmlBlockOptimizer,
+  testPickRotatingForOptimizerContext,
+} from './optimizer.js';
+import {
   testExtractTitleAndH1,
   testBuildSiteBrief,
   testParseQuestionsBlock,
@@ -269,6 +277,12 @@ async function run() {
   testIsoWeekIndexStable();
   await testMeasureDedupSkipsRecentRun();
   testEconomyStatusShape();
+  testOptimizerPlanFreshSite();
+  testOptimizerPlanNoRunsSkipsEdgeWhenDisabled();
+  testOptimizerSensitiveVerticalHumanGate();
+  testHumanGatesRegistry();
+  testParseHtmlBlockOptimizer();
+  testPickRotatingForOptimizerContext();
   testBaselineSeedAndClosePilot();
   testExtractTitleAndH1();
   testBuildSiteBrief();

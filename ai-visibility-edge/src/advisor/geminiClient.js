@@ -71,6 +71,7 @@ export function parseAdvisorActions(text) {
 
 const ALLOWED_ACTIONS = new Set([
   'run_analysis',
+  'run_auto_optimizer',
   'generate_apply',
   'refresh_strategy',
   'open_report',

@@ -15,6 +15,14 @@ import {
   testReportTemplate,
 } from './diagnose.js';
 import { testDashboardV2Page } from './dashboard.js';
+import {
+  testMetricCatalogComplete,
+  testInterpretMetricNowRuns,
+  testInterpretMetricSov,
+  testInterpretMetricPending,
+  testMetricInfoClientScript,
+  testPillarMetricId,
+} from './metric-info.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
 import {
@@ -216,6 +224,12 @@ async function run() {
   testPerplexityAdapter();
   testReportTemplate();
   testDashboardV2Page();
+  testMetricCatalogComplete();
+  testInterpretMetricNowRuns();
+  testInterpretMetricSov();
+  testInterpretMetricPending();
+  testMetricInfoClientScript();
+  testPillarMetricId();
   testGenerateQuestions();
   testStepStatus();
   testNormalizeApexHost();

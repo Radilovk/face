@@ -509,6 +509,14 @@ export async function fetchDomainStrategy(env, domain, options = {}) {
 
   return {
     ...strategy,
+    displacement: displacement
+      ? {
+          displacement_rate: displacement.displacement_rate,
+          displaced_count: displacement.displaced_count,
+          total_runs: displacement.total_runs,
+        }
+      : null,
+    sov_summary: sov ? { sov: sov.sov, period: sov.period } : null,
     probe: {
       domain: probeResult.domain,
       http_status: probeResult.http_status,

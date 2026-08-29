@@ -22,6 +22,9 @@ export function testDashboardV2Page() {
   assert(html.includes('renderCacheIndex'));
   assert(html.includes('btn-reprocess'));
   assert(html.includes('loadSiteStats'));
+  assert(html.includes('info-btn'));
+  assert(html.includes('metric-modal'));
+  assert(html.includes('interpretMetricNow'));
   assert(html.includes('admin-token'));
   assert(html.includes('Gemini'));
   assert(html.includes('/api/advisor/chat'));

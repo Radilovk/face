@@ -9,12 +9,9 @@
 import { mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { baselineDir, CANONICAL_BASELINE_ID, resolveBaselineId } from './baseline-lib.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, '..');
-const BASELINE_ID = process.env.BASELINE_ID || CANONICAL_BASELINE_ID;
-const BASELINE_DIR = baselineDir(ROOT, BASELINE_ID);
+const BASELINE_DIR = join(__dirname, '../baseline/2026-08-27');
 const questions = JSON.parse(readFileSync(join(BASELINE_DIR, 'questions.json'), 'utf8')).questions;
 
 const args = process.argv.slice(2);

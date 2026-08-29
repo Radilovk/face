@@ -13,15 +13,10 @@ import {
   perplexityModelId,
   MODEL_REGISTRY,
 } from '../src/config/models.js';
-import { ensureBaselineDir, resolveBaselineId } from './baseline-lib.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, '..');
-const BASELINE_ID = resolveBaselineId();
-const BASELINE_DIR = ensureBaselineDir(ROOT, BASELINE_ID);
+const BASELINE_DIR = join(__dirname, '../baseline/2026-08-27');
 const questions = JSON.parse(readFileSync(join(BASELINE_DIR, 'questions.json'), 'utf8')).questions;
-
-console.log(`baseline collect: ${BASELINE_ID} → ${BASELINE_DIR}`);
 
 const args = process.argv.slice(2);
 const modelArg = args.includes('--model') ? args[args.indexOf('--model') + 1] : 'all';

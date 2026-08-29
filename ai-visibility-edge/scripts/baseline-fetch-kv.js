@@ -3,12 +3,10 @@
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { baselineDir, ensureBaselineDir, resolveBaselineId } from './baseline-lib.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const ROOT = join(__dirname, '..');
-const BASELINE_ID = resolveBaselineId();
-const OUT_DIR = ensureBaselineDir(ROOT, BASELINE_ID);
+const BASELINE_ID = process.env.BASELINE_ID || '2026-08-27';
+const OUT_DIR = join(__dirname, '../baseline', BASELINE_ID);
 
 const accountId = process.env.CF_ACCOUNT_ID;
 const apiToken = process.env.CF_API_TOKEN;

@@ -15,6 +15,14 @@ import {
   testReportTemplate,
 } from './diagnose.js';
 import { testDashboardV2Page } from './dashboard.js';
+import {
+  testMetricCatalogComplete,
+  testInterpretMetricNowRuns,
+  testInterpretMetricSov,
+  testInterpretMetricPending,
+  testMetricInfoClientScript,
+  testPillarMetricId,
+} from './metric-info.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
 import {
@@ -67,6 +75,14 @@ import {
   testMeasureDedupSkipsRecentRun,
   testEconomyStatusShape,
 } from './economy.js';
+import {
+  testOptimizerPlanFreshSite,
+  testOptimizerPlanNoRunsSkipsEdgeWhenDisabled,
+  testOptimizerSensitiveVerticalHumanGate,
+  testHumanGatesRegistry,
+  testParseHtmlBlockOptimizer,
+  testPickRotatingForOptimizerContext,
+} from './optimizer.js';
 import {
   testExtractTitleAndH1,
   testBuildSiteBrief,
@@ -208,6 +224,12 @@ async function run() {
   testPerplexityAdapter();
   testReportTemplate();
   testDashboardV2Page();
+  testMetricCatalogComplete();
+  testInterpretMetricNowRuns();
+  testInterpretMetricSov();
+  testInterpretMetricPending();
+  testMetricInfoClientScript();
+  testPillarMetricId();
   testGenerateQuestions();
   testStepStatus();
   testNormalizeApexHost();
@@ -269,6 +291,12 @@ async function run() {
   testIsoWeekIndexStable();
   await testMeasureDedupSkipsRecentRun();
   testEconomyStatusShape();
+  testOptimizerPlanFreshSite();
+  testOptimizerPlanNoRunsSkipsEdgeWhenDisabled();
+  testOptimizerSensitiveVerticalHumanGate();
+  testHumanGatesRegistry();
+  testParseHtmlBlockOptimizer();
+  testPickRotatingForOptimizerContext();
   testBaselineSeedAndClosePilot();
   testExtractTitleAndH1();
   testBuildSiteBrief();

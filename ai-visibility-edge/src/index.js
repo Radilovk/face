@@ -26,6 +26,7 @@ import { runCitationBatchForTenant } from './citations/runner.js';
 import { getApplyPlan, runApplyPrep } from './api/apply.js';
 import { getEdgeDecision, activateEdgeOptimization, getEdgeStatus } from './api/edge.js';
 import { handleAdvisorStatus, handleAdvisorChat } from './api/advisor.js';
+import { fetchOptimizerPlan, runOptimizer, fetchOptimizerStatus } from './api/optimizer.js';
 import { isPlatformHost } from './config/platform.js';
 import { loadEdgeConfig } from './config/tenantEdge.js';
 import { handleTenantRequest } from './enhance/handleTenant.js';
@@ -163,6 +164,33 @@ async function handleRequest(request, env, ctx) {
     const denied = requireAdmin(request, env);
     if (denied) return denied;
     return measureRunEndpoint(request, env);
+  }
+
+  const optimizerStatusMatch = url.pathname.match(/^\/api\/optimizer\/([^/]+)\/status$/);
+  if (optimizerStatusMatch) {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const status = await fetchOptimizerStatus(env, decodeURIComponent(optimizerStatusMatch[1]));
+    return json(status);
+  }
+
+  const optimizerPlanMatch = url.pathname.match(/^\/api\/optimizer\/([^/]+)\/plan$/);
+  if (optimizerPlanMatch) {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const plan = await fetchOptimizerPlan(env, decodeURIComponent(optimizerPlanMatch[1]));
+    return json(plan, plan.error ? 404 : 200);
+  }
+
+  const optimizerRunMatch = url.pathname.match(/^\/api\/optimizer\/([^/]+)\/run$/);
+  if (optimizerRunMatch && request.method === 'POST') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
+    const body = await request.json().catch(() => ({}));
+    const result = await runOptimizer(env, decodeURIComponent(optimizerRunMatch[1]), body);
+    return json(result, result.error ? 400 : 200);
   }
 
   const pipelineRunMatch = url.pathname.match(/^\/api\/pipeline\/([^/]+)\/run$/);

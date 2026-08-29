@@ -44,10 +44,10 @@ export const PIPELINE_STEPS = [
   {
     id: 'actions',
     title: '6. Приложи',
-    short: 'Apply',
+    short: 'Auto + Edge',
     auto: true,
     manual: true,
-    desc: 'Генерира JSON-LD, текст и robots — копирайте в сайта или Edge deploy.',
+    desc: '🤖 Auto-оптимизация: measure + edge KV + content draft. Човек: CNAME + CMS publish.',
   },
   {
     id: 'monitor',

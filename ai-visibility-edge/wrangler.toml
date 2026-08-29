@@ -18,11 +18,10 @@ id = "local-kv-placeholder"
 [vars]
 BASELINE_ID = "2026-08-27"
 GEMINI_MODEL = "gemini-3.7-flash"
-# Economy mode: ~60–70% lower recurring LLM cost (cron rotation, dedup, gemini-only cron)
 ECONOMY_MODE = "1"
-# Pipeline/manual measure still uses all configured keys unless set:
-# MEASURE_MODELS = "gemini"
-# CRON_MEASURE_MODELS = "openai,gemini"
+# Autonomous optimizer (Block 7) — AI plans + executes; human only at DNS/CMS gates
+AUTO_OPTIMIZER = "1"
+AUTO_EDGE_ACTIVATE = "1"
 
 [triggers]
 crons = ["0 3 * * 1"]

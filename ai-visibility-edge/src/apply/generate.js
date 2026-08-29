@@ -109,7 +109,7 @@ function buildJsonLd({ domain, brand, vertical }) {
   return `<script type="application/ld+json">\n${JSON.stringify(schema, null, 2)}\n</script>`;
 }
 
-function buildHomepageCopy({ domain, brand, vertical }) {
+export function buildHomepageCopy({ domain, brand, vertical }) {
   const v = vertical ?? 'услуги';
   return `<section aria-label="About ${brand}">
   <h1>${brand}</h1>

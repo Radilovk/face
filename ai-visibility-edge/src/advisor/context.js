@@ -1,11 +1,43 @@
 import { fetchDomainStrategy } from '../diagnose/strategy.js';
 import { getApplyPlan } from '../api/apply.js';
 import { getSitePipeline } from '../api/pipeline.js';
+import { advisorContextTtlSec } from '../config/economy.js';
 import { buildSiteBrief } from '../diagnose/siteBrief.js';
+
+function advisorContextKey(domain) {
+  return `aiv/advisor/context/${domain.replace(/^www\./, '').toLowerCase()}`;
+}
 
 export async function buildAdvisorContext(env, domain) {
   const normalized = domain.replace(/^www\./, '').toLowerCase();
+  const ttl = advisorContextTtlSec(env);
 
+  if (env.CACHE && ttl > 0) {
+    const cached = await env.CACHE.get(advisorContextKey(normalized), 'json');
+    if (cached?.domain && cached?.generated_at) {
+      return { ...cached, cache_hit: true };
+    }
+  }
+
+  const context = await buildAdvisorContextFresh(env, normalized);
+
+  if (env.CACHE && ttl > 0) {
+    await env.CACHE.put(advisorContextKey(normalized), JSON.stringify(context), {
+      expirationTtl: ttl,
+    });
+  }
+
+  return context;
+}
+
+/** Invalidate cached advisor context (e.g. after pipeline run). */
+export async function invalidateAdvisorContext(env, domain) {
+  if (!env.CACHE || !domain) return;
+  const normalized = domain.replace(/^www\./, '').toLowerCase();
+  await env.CACHE.delete(advisorContextKey(normalized));
+}
+
+async function buildAdvisorContextFresh(env, normalized) {
   const [strategy, apply, pipeline] = await Promise.all([
     fetchDomainStrategy(env, normalized).catch(() => null),
     env.DB ? getApplyPlan(env, normalized).catch(() => null) : null,

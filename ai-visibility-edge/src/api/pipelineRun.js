@@ -5,6 +5,7 @@ import { resolveTenantByDomain } from './questions.js';
 import { fetchTenantRecommendations } from '../diagnose/recommendations.js';
 import { runCitationBatchForTenant } from '../citations/runner.js';
 import { reprocessRuns } from '../citations/reprocess.js';
+import { invalidateAdvisorContext } from '../advisor/context.js';
 
 /**
  * Run automated pipeline for one site (no user action between steps).
@@ -96,6 +97,7 @@ export async function runSitePipeline(env, domain, options = {}) {
   }
 
   result.finished_at = new Date().toISOString();
+  await invalidateAdvisorContext(env, tenant.apex_host);
   return result;
 }
 

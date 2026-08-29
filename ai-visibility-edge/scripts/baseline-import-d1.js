@@ -8,17 +8,11 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { parseModelResponse } from '../src/citations/extract.js';
-import {
-  baselineDir,
-  baselineRunId,
-  CANONICAL_BASELINE_ID,
-  resolveBaselineId,
-} from './baseline-lib.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const BASELINE_ID = resolveBaselineId();
-const BASE = baselineDir(ROOT, BASELINE_ID);
+const BASELINE_ID = process.env.BASELINE_ID || '2026-08-27';
+const BASE = join(ROOT, 'baseline', BASELINE_ID);
 const local = process.argv.includes('--local');
 const flag = local ? '--local' : '--remote';
 
@@ -64,11 +58,11 @@ for (const model of ['openai', 'gemini', 'perplexity']) {
       /* keep empty */
     }
 
-    const runId = baselineRunId(BASELINE_ID, model, qid);
+    const runId = `baseline-${model}-${qid}`;
     const runAt = payload.collected_at ?? new Date().toISOString();
 
     stmts.push(
-      `INSERT OR IGNORE INTO runs (id, question_id, model, run_at, repetition, raw_response, answer_text)
+      `INSERT OR REPLACE INTO runs (id, question_id, model, run_at, repetition, raw_response, answer_text)
        VALUES (${sql(runId)}, ${sql(qid)}, ${sql(model)}, ${sql(runAt)}, 1, ${sql(JSON.stringify(raw))}, ${sql(answerText)});`,
     );
   }
@@ -80,12 +74,7 @@ writeFileSync(sqlPath, stmts.join('\n') + '\n');
 execSync(`npx wrangler d1 migrations apply aiv ${flag}`, { stdio: 'inherit', cwd: ROOT });
 execSync(`npx wrangler d1 execute aiv ${flag} --file=${sqlPath}`, { stdio: 'inherit', cwd: ROOT });
 
-console.log(
-  `Imported ${questions.length} questions + runs to D1 (${flag}), baseline=${BASELINE_ID}, run_prefix=baseline-${BASELINE_ID}-`,
-);
-if (BASELINE_ID === CANONICAL_BASELINE_ID) {
-  console.log('note: legacy run ids baseline-{model}-{qid} remain in D1; new imports use versioned ids');
-}
+console.log(`Imported ${questions.length} questions + runs to D1 (${flag})`);
 
 function sql(value) {
   if (value == null) return 'NULL';

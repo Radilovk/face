@@ -55,7 +55,6 @@ import {
   testAdapterSchemaRegistry,
 } from './drift.js';
 import { testBaselineSeedAndClosePilot } from './baseline-gate.js';
-import { testBaselineRunIds, testBaselineImportSqlUsesIgnore } from './baseline-c1.js';
 import {
   testExtractTitleAndH1,
   testBuildSiteBrief,
@@ -247,8 +246,6 @@ async function run() {
   await testRunStalenessRecent();
   await testBotDriftHighUnverified();
   await testFetchDriftStatusAggregate();
-  testBaselineRunIds();
-  testBaselineImportSqlUsesIgnore();
   testBaselineSeedAndClosePilot();
   testExtractTitleAndH1();
   testBuildSiteBrief();

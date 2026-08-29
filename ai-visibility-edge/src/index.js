@@ -462,6 +462,8 @@ async function questionsGenerateEndpoint(request, env) {
     brand: body.brand,
     verticalLabel: body.vertical_label,
     replaceAuto: body.replace_auto !== false,
+    env,
+    useSiteContext: body.use_site_context !== false,
   });
   return json(result, result.error ? 404 : 200);
 }

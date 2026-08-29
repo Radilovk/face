@@ -2,6 +2,7 @@ import { fetchDomainStrategy } from '../diagnose/strategy.js';
 import { getApplyPlan } from '../api/apply.js';
 import { getSitePipeline } from '../api/pipeline.js';
 import { advisorContextTtlSec } from '../config/economy.js';
+import { buildSiteBrief } from '../diagnose/siteBrief.js';
 
 function advisorContextKey(domain) {
   return `aiv/advisor/context/${domain.replace(/^www\./, '').toLowerCase()}`;
@@ -58,6 +59,13 @@ async function buildAdvisorContextFresh(env, normalized) {
           probe: strategy.probe,
         }
       : null,
+    site_brief: strategy?.probe
+      ? buildSiteBrief({
+          probe: strategy.probe,
+          brand: strategy.brand,
+          verticalLabel: null,
+        })
+      : null,
     apply: apply && !apply.error
       ? {
           summary: apply.summary,
@@ -83,7 +91,7 @@ export const ADVISOR_SYSTEM_PROMPT = `Ти си Gemini съветник в пл�
 
 Роля: помагаш на оператора да реши КАКВО да направи след анализа на сайт — не общ SEO съвет, а конкретни стъпки спрямо данните от системата.
 
-Получаваш JSON контекст: probe, score, вердикт, pillars, pipeline статус, apply fixes.
+Получаваш JSON контекст: probe, site_brief, score, вердикт, pillars, pipeline статус, apply fixes.
 
 Правила:
 - Отговаряй на български, ясно и кратко (2–5 абзаца max).

@@ -510,13 +510,28 @@ export async function fetchDomainStrategy(env, domain, options = {}) {
   return {
     ...strategy,
     probe: {
+      domain: probeResult.domain,
       http_status: probeResult.http_status,
       html_text_chars: probeResult.html_text_chars,
       jsonld_blocks: probeResult.jsonld_blocks,
       robots_ai_policy: probeResult.robots_ai_policy,
       has_canonical: probeResult.has_canonical,
+      price_tokens: probeResult.price_tokens,
+      blocked_bots: probeResult.blocked_bots,
       final_url: probeResult.raw_json?.final_url,
       redirect_chain: probeResult.raw_json?.redirect_chain ?? [],
+      title: probeResult.raw_json?.title,
+      meta_description: probeResult.raw_json?.meta_description,
+      h1: probeResult.raw_json?.h1,
+      jsonld_types: probeResult.raw_json?.jsonld_types,
+      raw_json: {
+        text_sample: probeResult.raw_json?.text_sample,
+        title: probeResult.raw_json?.title,
+        meta_description: probeResult.raw_json?.meta_description,
+        h1: probeResult.raw_json?.h1,
+        jsonld_types: probeResult.raw_json?.jsonld_types,
+        final_url: probeResult.raw_json?.final_url,
+      },
     },
     stats: { questionCount, runCount },
   };

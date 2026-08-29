@@ -40,6 +40,9 @@ export async function runSitePipeline(env, domain, options = {}) {
         brand: tenant.name,
         verticalLabel: tenant.vertical_name,
         replaceAuto: Boolean(options.replace_questions),
+        probe: result.steps.audit?.probe ?? null,
+        env,
+        useSiteContext: options.use_site_context !== false,
       });
     } else {
       result.steps.questions = { skipped: true, existing: qCount.n };
@@ -115,6 +118,8 @@ async function runAuditStep(env, domain) {
     diagnostic_score: score,
     final_url: probe.raw_json?.final_url,
     redirect_hops: probe.raw_json?.redirect_chain?.length ?? 1,
+    title: probe.raw_json?.title ?? null,
+    probe,
   };
 }
 

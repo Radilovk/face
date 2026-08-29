@@ -1,5 +1,8 @@
 /** Questions CRUD + auto-generation for measurement pipeline. */
 
+import { generateQuestionDraftsSmart } from '../questions/generateSmart.js';
+import { probeDomain } from '../diagnose/probe.js';
+
 const QTYPE_DEFAULT = 'informational';
 
 export function generateQuestionDrafts({ domain, brand, verticalLabel }) {
@@ -78,7 +81,15 @@ export async function resolveTenantByDomain(db, domain) {
     .first();
 }
 
-export async function generateAndSaveQuestions(db, { domain, brand, verticalLabel, replaceAuto = false }) {
+export async function generateAndSaveQuestions(db, {
+  domain,
+  brand,
+  verticalLabel,
+  replaceAuto = false,
+  probe = null,
+  env = null,
+  useSiteContext = true,
+}) {
   const tenant = await resolveTenantByDomain(db, domain);
   if (!tenant) {
     return { error: 'unknown_domain', domain };
@@ -91,10 +102,21 @@ export async function generateAndSaveQuestions(db, { domain, brand, verticalLabe
       .run();
   }
 
-  const drafts = generateQuestionDrafts({
+  let activeProbe = probe;
+  if (useSiteContext && !activeProbe && env) {
+    try {
+      activeProbe = await probeDomain(tenant.apex_host);
+    } catch (err) {
+      console.warn('[questions] probe for context failed:', err.message);
+    }
+  }
+
+  const { drafts, method, model, brief, error } = await generateQuestionDraftsSmart({
     domain: tenant.apex_host,
     brand: brand ?? tenant.name,
     verticalLabel: verticalLabel ?? tenant.vertical_name,
+    probe: activeProbe,
+    env: useSiteContext ? env : null,
   });
 
   const saved = [];
@@ -110,7 +132,18 @@ export async function generateAndSaveQuestions(db, { domain, brand, verticalLabe
     saved.push({ id, ...d });
   }
 
-  return { domain: tenant.apex_host, tenant_id: tenant.id, generated: saved.length, questions: saved };
+  return {
+    domain: tenant.apex_host,
+    tenant_id: tenant.id,
+    generated: saved.length,
+    questions: saved,
+    generation_method: method,
+    gemini_model: model ?? null,
+    site_brief: brief
+      ? { title: brief.title, vertical: brief.vertical, signals: brief.diagnostic_signals }
+      : null,
+    generation_error: error ?? null,
+  };
 }
 
 export async function createQuestion(db, body) {

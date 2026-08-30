@@ -169,14 +169,23 @@ async function saveManualConfirmation(env, domain, findingId, manualInput) {
   });
 }
 
-export async function saveFindingManualOnly(env, domain, findingId, manualInput) {
+export async function saveFindingManualOnly(env, domain, findingId, manualInput, options = {}) {
   const normalized = domain.replace(/^www\./, '').toLowerCase();
+  if (options.edited_artifact) {
+    await saveContentDraft(env, normalized, {
+      finding_id: findingId,
+      title: options.artifact_title ?? 'Ръчен draft',
+      artifact: options.edited_artifact,
+      method: 'manual_edit',
+    }).catch(() => null);
+  }
   await saveManualConfirmation(env, normalized, findingId, manualInput ?? {});
   return {
     domain: normalized,
     finding_id: findingId,
     status: 'manual_saved',
     manual_input: manualInput ?? {},
+    edited_artifact: options.edited_artifact ? true : false,
     finished_at: new Date().toISOString(),
   };
 }

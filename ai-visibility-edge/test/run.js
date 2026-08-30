@@ -41,6 +41,11 @@ import {
   testResolveAutomationSpecDynamicIds,
   testFindingsHttpErrorManualOnly,
 } from './findings.js';
+import {
+  testManualTasksFromFindings,
+  testManualVsAutoSplit,
+  testManualTasksMergeApplyPlan,
+} from './manualTasks.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
 import {
@@ -262,6 +267,9 @@ async function run() {
   testFindingsAutomationOnEveryFinding();
   testResolveAutomationSpecDynamicIds();
   testFindingsHttpErrorManualOnly();
+  testManualTasksFromFindings();
+  testManualVsAutoSplit();
+  testManualTasksMergeApplyPlan();
   testGenerateQuestions();
   testStepStatus();
   testNormalizeApexHost();

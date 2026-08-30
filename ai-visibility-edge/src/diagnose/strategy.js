@@ -10,6 +10,7 @@ import { probeDomain } from './probe.js';
 import { passageAutonomy, computeDiagnosticScore } from './score.js';
 import { analyzeDisplacement } from './displacement.js';
 import { computeSov, currentPeriod } from '../index/sov.js';
+import { buildManualTaskList } from './manualTasks.js';
 import { loadEdgeConfig } from '../config/tenantEdge.js';
 
 export const PILLARS = [
@@ -98,6 +99,7 @@ export function buildStrategy(input = {}) {
     pipeline,
     findings: findingsPack.findings,
     findings_summary: findingsPack.summary,
+    manual_tasks: buildManualTaskList(findingsPack.findings),
     findings_categories: findingsPack.categories,
     score_breakdown: scoreBreakdown,
     top_issues: findingsPack.findings.filter((f) => f.severity !== 'ok').slice(0, 8),

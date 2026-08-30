@@ -255,18 +255,23 @@ async function handleRequest(request, env, ctx) {
   if (findingApplyMatch && request.method === 'POST') {
     const missing = requireDb(env);
     if (missing) return missing;
-    const denied = requireAdmin(request, env);
-    if (denied) return denied;
     const domain = decodeURIComponent(findingApplyMatch[1]);
     const body = await request.json().catch(() => ({}));
     if (!body.finding_id) return json({ error: 'finding_id_required' }, 400);
-    const result = body.manual_only
-      ? await saveFindingManualOnly(env, domain, body.finding_id, body.manual_input ?? {})
-      : await applyFindingFix(env, domain, body.finding_id, {
-          manual_input: body.manual_input,
-          intent: body.intent,
-          max_actions: body.max_actions,
-        });
+    if (body.manual_only) {
+      const result = await saveFindingManualOnly(env, domain, body.finding_id, body.manual_input ?? {}, {
+        edited_artifact: body.edited_artifact,
+        artifact_title: body.artifact_title,
+      });
+      return json(result);
+    }
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
+    const result = await applyFindingFix(env, domain, body.finding_id, {
+      manual_input: body.manual_input,
+      intent: body.intent,
+      max_actions: body.max_actions,
+    });
     return json(result, result.error || result.status === 'error' ? 400 : 200);
   }
 

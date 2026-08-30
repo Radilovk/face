@@ -199,9 +199,17 @@ function inferAutomation(f, ctx) {
 
 function buildAutomationBlock(finding, spec, ctx) {
   const { brand, domain, vertical, edgeActive, workerHost, probe } = ctx;
-  const artifact = spec.artifact_type
+  let artifact = spec.artifact_type
     ? buildArtifact(spec.artifact_type, { brand, domain, vertical, probe, finding })
     : null;
+
+  if (!artifact && !edgeActive && spec.action === 'activate_edge') {
+    if (/jsonld/i.test(finding.id)) {
+      artifact = buildArtifact('jsonld', { brand, domain, vertical, probe, finding });
+    } else if (/robots|disallow|noindex/i.test(finding.id)) {
+      artifact = buildArtifact('robots', { brand, domain, vertical, probe, finding });
+    }
+  }
 
   // CNAME gate only when Edge not live; other CMS gates always when semi_auto
   let manual_form = null;
@@ -224,6 +232,7 @@ function buildAutomationBlock(finding, spec, ctx) {
     manual_gate: spec.manual_gate ?? null,
     manual_form,
     can_apply_now: mode === 'auto' || mode === 'semi_auto',
+    can_manual_only: Boolean(manual_form || artifact || mode === 'manual'),
     edge_active: edgeActive,
   };
 }

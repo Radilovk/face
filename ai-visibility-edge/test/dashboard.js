@@ -29,8 +29,11 @@ export function testDashboardV2Page() {
   assert(html.includes('findings-panel'));
   assert(html.includes('renderFindings'));
   assert(html.includes('finding-apply'));
-  assert(html.includes('finding-manual-save'));
-  assert(html.includes('applyFindingFix'));
+  assert(html.includes('manual-workbench'));
+  assert(html.includes('manual-task-list'));
+  assert(html.includes('manual-save'));
+  assert(html.includes('renderManualWorkbench'));
+  assert(html.includes('Автоматични поправки'));
   assert(html.includes('renderRoadmap'));
   assert(html.includes('interpretMetricNow'));
   assert(html.includes('admin-token'));

@@ -186,7 +186,10 @@ export function interpretMetricNow(id, ctx = {}) {
   const m = METRIC_CATALOG[id];
   if (!m) return 'Няма описание за този индекс.';
 
-  const n = (v) => (v == null || Number.isNaN(Number(v)) ? null : Number(v));
+  function n(v) {
+    if (v == null || Number.isNaN(Number(v))) return null;
+    return Number(v);
+  }
 
   switch (id) {
     case 'diagnostic_score': {
@@ -296,7 +299,15 @@ export function pillarMetricId(pillarId) {
   return PILLAR_METRIC_IDS[pillarId] ?? 'pillar_visibility';
 }
 
+/** Strip esbuild keepNames helpers so injected script runs in the browser. */
+export function sanitizeMetricClientFn(source) {
+  return source
+    .replace(/^export function interpretMetricNow/, 'function interpretMetricNow')
+    .replace(/\/\* @__PURE__ \*\/ __name\(([^,]+),\s*"[^"]+"\)/g, '$1')
+    .replace(/__name\([^)]+\);\s*/g, '');
+}
+
 export function buildMetricInfoClientScript() {
-  const fnBody = interpretMetricNow.toString().replace(/^export function interpretMetricNow/, 'function interpretMetricNow');
+  const fnBody = sanitizeMetricClientFn(interpretMetricNow.toString());
   return `const METRIC_CATALOG = ${JSON.stringify(METRIC_CATALOG)};\n${fnBody}\nconst PILLAR_METRIC_IDS = ${JSON.stringify(PILLAR_METRIC_IDS)};`;
 }

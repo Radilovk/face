@@ -237,6 +237,8 @@ function script(origin) {
     let advisorReady = false;
     const metricContext = {};
 
+    const $ = (id) => document.getElementById(id);
+
     function setMetricContext(id, ctx) {
       metricContext[id] = Object.assign({}, metricContext[id] || {}, ctx);
     }
@@ -245,15 +247,21 @@ function script(origin) {
       const m = METRIC_CATALOG[id];
       if (!m) return;
       const ctx = metricContext[id] || {};
-      $('metric-modal-title').textContent = (m.icon ? m.icon + ' ' : '') + m.title;
-      $('metric-modal-what').textContent = m.what;
-      $('metric-modal-why').textContent = m.why;
-      $('metric-modal-now').textContent = interpretMetricNow(id, ctx);
-      $('metric-modal').classList.remove('hidden');
+      const titleEl = $('metric-modal-title');
+      const whatEl = $('metric-modal-what');
+      const whyEl = $('metric-modal-why');
+      const nowEl = $('metric-modal-now');
+      const modalEl = $('metric-modal');
+      if (!titleEl || !whatEl || !whyEl || !nowEl || !modalEl) return;
+      titleEl.textContent = (m.icon ? m.icon + ' ' : '') + m.title;
+      whatEl.textContent = m.what;
+      whyEl.textContent = m.why;
+      nowEl.textContent = interpretMetricNow(id, ctx);
+      modalEl.classList.remove('hidden');
     }
 
     function closeMetricInfo() {
-      $('metric-modal').classList.add('hidden');
+      $('metric-modal')?.classList.add('hidden');
     }
 
     document.addEventListener('click', (e) => {
@@ -262,10 +270,16 @@ function script(origin) {
         e.preventDefault();
         e.stopPropagation();
         openMetricInfo(btn.dataset.metric);
+        return;
+      }
+      if (e.target.id === 'metric-modal-backdrop' || e.target.id === 'metric-modal-close') {
+        closeMetricInfo();
       }
     });
 
-    const $ = (id) => document.getElementById(id);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMetricInfo();
+    });
 
     function getAdminToken() {
       return sessionStorage.getItem(ADMIN_KEY) || '';
@@ -987,8 +1001,8 @@ h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted);text-transform:uppercase
 .info-btn:hover,.info-btn:focus{color:var(--accent);border-color:var(--accent);outline:none}
 .metric-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem}
 .metric-modal.hidden{display:none!important}
-.metric-modal-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65)}
-.metric-modal-box{position:relative;max-width:32rem;width:100%;max-height:85vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.metric-modal-backdrop{position:absolute;inset:0;z-index:0;background:rgba(0,0,0,.65)}
+.metric-modal-box{position:relative;z-index:1;max-width:32rem;width:100%;max-height:85vh;overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem 1.5rem;box-shadow:0 8px 32px rgba(0,0,0,.4);color:var(--text)}
 .metric-modal-close{position:absolute;top:.5rem;right:.75rem;border:none;background:none;color:var(--muted);font-size:1.5rem;cursor:pointer;line-height:1}
 .metric-modal-close:hover{color:var(--text)}
 .metric-dl{margin:.75rem 0 0}

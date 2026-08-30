@@ -21,6 +21,7 @@ import {
   testInterpretMetricSov,
   testInterpretMetricPending,
   testMetricInfoClientScript,
+  testSanitizeMetricClientFn,
   testPillarMetricId,
 } from './metric-info.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
@@ -229,6 +230,7 @@ async function run() {
   testInterpretMetricSov();
   testInterpretMetricPending();
   testMetricInfoClientScript();
+  testSanitizeMetricClientFn();
   testPillarMetricId();
   testGenerateQuestions();
   testStepStatus();

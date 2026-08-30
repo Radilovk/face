@@ -17,9 +17,9 @@ export function renderDashboardPage(origin) {
 <body>
   <div class="app">
     <header class="topbar">
-      <div>
+      <div class="topbar-brand">
         <h1>AI Visibility</h1>
-        <p class="sub">Как AI моделите ви виждат — и какво да направите</p>
+        <p class="sub">Един екран — вердикт, план, поправки</p>
       </div>
       <div class="topbar-meta">
         <select id="site-select" aria-label="Избери сайт"></select>
@@ -27,7 +27,6 @@ export function renderDashboardPage(origin) {
       </div>
     </header>
 
-    <!-- Add site — primary entry when no sites yet -->
     <section id="add-panel" class="add-panel">
       <p class="lead" id="add-lead">Добавете сайт тук — всички домейни влизат през този интерфейс.</p>
       <form id="add-site-form" class="form-grid">
@@ -42,141 +41,135 @@ export function renderDashboardPage(origin) {
       <div id="add-result" class="msg hidden"></div>
     </section>
 
-    <!-- Pipeline progress -->
-    <nav id="pipeline-bar" class="pipeline-bar" aria-label="Стъпки"></nav>
+    <div id="alerts-wrap" class="alerts-wrap">
+      <section id="baseline-banner" class="baseline-banner hidden">
+        <strong>Baseline ${infoBtn('baseline_gate')}</strong>
+        <p id="baseline-msg" class="sub">…</p>
+      </section>
+      <section id="drift-panel" class="drift-panel hidden" aria-label="Drift alerts">
+        <span id="drift-badge" class="advisor-badge">—</span>
+        <ul id="drift-alerts" class="drift-list"></ul>
+      </section>
+    </div>
 
-    <!-- Unified optimization roadmap -->
-    <section id="optimization-roadmap" class="roadmap-panel hidden" aria-label="План на оптимизация">
-      <div class="apply-head">
-        <h3>📋 План на оптимизация</h3>
-        <span id="roadmap-badge" class="advisor-badge">…</span>
-      </div>
-      <p id="roadmap-honesty" class="roadmap-honesty sub">Заредете сайт за пълен план.</p>
-      <ol id="roadmap-steps" class="roadmap-list"></ol>
-    </section>
-
-    <!-- Verdict -->
     <section id="verdict" class="verdict verdict-unknown">
       <div class="verdict-top">
         <span id="score" class="score">${infoBtn('diagnostic_score')}<span id="score-val">—</span></span>
-        <div>
+        <div class="verdict-text">
           <h2 id="verdict-headline">Изберете сайт или добавете нов</h2>
-          <p id="verdict-summary" class="sub">Системата ще покаже ясен вердикт и план за оптимизация.</p>
+          <p id="verdict-summary" class="sub">Системата ще покаже вердикт и какво да направите следващо.</p>
         </div>
       </div>
     </section>
 
-    <!-- Evidence-backed weaknesses -->
-    <section id="findings-panel" class="findings-panel hidden" aria-label="Открити слабости">
-      <div class="apply-head">
-        <h3>🔬 Открити слабости</h3>
-        <span id="findings-count-badge" class="advisor-badge">—</span>
+    <section id="work-hub" class="work-hub" aria-label="План и поправки">
+      <div class="work-hub-head">
+        <div>
+          <h2 class="work-hub-title">План и поправки</h2>
+          <p id="roadmap-honesty" class="roadmap-honesty sub">Заредете сайт за пълен план.</p>
+        </div>
+        <span id="roadmap-badge" class="advisor-badge">…</span>
       </div>
-      <p id="findings-summary" class="findings-summary sub">…</p>
-      <ul id="findings-list" class="findings-list"></ul>
+
+      <div class="action-bar">
+        <button type="button" class="btn btn-lg" id="btn-auto-optimize">🤖 Auto-оптимизация</button>
+        <button type="button" class="btn btn-ghost" id="btn-analyze">Анализ</button>
+        <details class="action-more">
+          <summary class="btn btn-ghost btn-sm">Още</summary>
+          <div class="action-more-menu">
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-edge-activate">⚡ Edge</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-reprocess">Reprocess</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-refresh">↻ Обнови</button>
+            <a class="btn btn-sm btn-ghost" id="btn-report" href="#" target="_blank" rel="noopener">📄 Отчет</a>
+          </div>
+        </details>
+      </div>
+
+      <section id="optimization-roadmap" class="roadmap-panel hidden" aria-label="План">
+        <ol id="roadmap-steps" class="roadmap-list"></ol>
+        <details id="roadmap-done-wrap" class="roadmap-done-wrap hidden">
+          <summary id="roadmap-done-summary">Готови стъпки</summary>
+          <ol id="roadmap-done-steps" class="roadmap-list roadmap-list-compact"></ol>
+        </details>
+      </section>
+
+      <section id="findings-panel" class="findings-panel hidden" aria-label="Слабости">
+        <div class="findings-head">
+          <h3 class="findings-subhead">Слабости с auto-fix</h3>
+          <span id="findings-count-badge" class="advisor-badge">—</span>
+        </div>
+        <p id="findings-summary" class="findings-summary sub hidden">…</p>
+        <ul id="findings-list" class="findings-list"></ul>
+      </section>
     </section>
 
-    <!-- Primary action -->
-    <div class="hero-actions">
-      <button type="button" class="btn btn-lg" id="btn-auto-optimize">🤖 Auto-оптимизация</button>
-      <button type="button" class="btn btn-lg" id="btn-analyze">🚀 1. Анализ</button>
-      <button type="button" class="btn btn-lg" id="btn-edge-activate">⚡ 2. Приложи Edge</button>
-      <button type="button" class="btn btn-ghost" id="btn-refresh">↻ Обнови</button>
-      <button type="button" class="btn btn-ghost" id="btn-reprocess">↻ Reprocess</button>
-      <a class="btn btn-ghost" id="btn-report" href="#" target="_blank" rel="noopener">📄 Отчет</a>
-    </div>
-    <section id="site-stats" class="site-stats hidden" aria-label="Измерване">
-      <div class="stat-grid">
-        <div class="stat">${infoBtn('runs')}<strong id="stat-runs">—</strong><small>AI отговори</small></div>
-        <div class="stat">${infoBtn('observations')}<strong id="stat-obs">—</strong><small>Цитати</small></div>
-        <div class="stat">${infoBtn('sov')}<strong id="stat-sov">—</strong><small>Дял в AI</small></div>
-        <div class="stat">${infoBtn('pending_reprocess')}<strong id="stat-pending">—</strong><small>Чака проверка</small></div>
+    <section id="metrics-panel" class="metrics-panel" aria-label="Метрики">
+      <section id="site-stats" class="site-stats hidden">
+        <div class="stat-grid">
+          <div class="stat">${infoBtn('runs')}<strong id="stat-runs">—</strong><small>Отговори</small></div>
+          <div class="stat">${infoBtn('observations')}<strong id="stat-obs">—</strong><small>Цитати</small></div>
+          <div class="stat">${infoBtn('sov')}<strong id="stat-sov">—</strong><small>Дял</small></div>
+          <div class="stat">${infoBtn('pending_reprocess')}<strong id="stat-pending">—</strong><small>Чака</small></div>
+        </div>
+      </section>
+      <div class="pillars-wrap">
+        <h3 class="metrics-subhead">Обзор ${infoBtn('pillar_visibility')}</h3>
+        <div id="pillars" class="pillars pillars-compact"></div>
       </div>
     </section>
-    <section id="cache-index-panel" class="cache-index hidden" aria-label="Кеш индекс">
-      <div class="cache-head">
-        <h3>Кеш индекс (Слой 8) ${infoBtn('cache_coverage')}</h3>
-        <span id="cache-coverage-badge" class="advisor-badge">—</span>
-      </div>
-      <div class="stat-grid stat-grid-5">
-        <div class="stat">${infoBtn('cache_median')}<strong id="cache-median">—</strong><small>Median (ч)</small></div>
-        <div class="stat">${infoBtn('cache_p25')}<strong id="cache-p25">—</strong><small>P25</small></div>
-        <div class="stat">${infoBtn('cache_p75')}<strong id="cache-p75">—</strong><small>P75</small></div>
-        <div class="stat">${infoBtn('bot_verified')}<strong id="stat-bot-v">—</strong><small>Bot hits ✓</small></div>
-        <div class="stat">${infoBtn('bot_fake')}<strong id="stat-bot-u">—</strong><small>Bot fake</small></div>
-      </div>
-      <p id="cache-note" class="sub">Разпределение на cache age — не единично число.</p>
-    </section>
-    <section id="onboarding-panel" class="onboarding hidden" aria-label="Onboarding">
-      <h3>CNAME — технически детайли</h3>
-      <p class="sub">Основните стъпки са в „План на оптимизация“ по-горе. Тук са DNS записите:</p>
-      <ol id="onboarding-steps" class="onboarding-list"></ol>
-      <p id="onboarding-dns" class="sub mono">…</p>
-    </section>
+
     <p id="status-line" class="status-line">…</p>
 
-    <!-- Baseline + Block 0.1 gate -->
-    <section id="baseline-banner" class="baseline-banner hidden">
-      <strong>Блок 0.1 — Baseline ${infoBtn('baseline_gate')}</strong>
-      <p id="baseline-msg" class="sub">…</p>
-    </section>
-    <section id="drift-panel" class="drift-panel hidden" aria-label="Drift alerts">
-      <div class="cache-head">
-        <h3>Drift детектори ${infoBtn('drift')}</h3>
-        <span id="drift-badge" class="advisor-badge">—</span>
-      </div>
-      <ul id="drift-alerts" class="drift-list"></ul>
-    </section>
+    <nav id="pipeline-bar" class="pipeline-bar hidden" aria-hidden="true"></nav>
+    <ol id="plan-week" class="hidden" aria-hidden="true"></ol>
+    <ol id="plan-month" class="hidden" aria-hidden="true"></ol>
 
-    <!-- Autonomous optimizer (Block 7) -->
-    <section class="section optimizer-panel" id="optimizer-panel">
-      <div class="apply-head">
-        <h3>🤖 Автономна оптимизация ${infoBtn('optimizer')}</h3>
-        <span id="optimizer-badge" class="advisor-badge">…</span>
+    <details class="extra extra-tech">
+      <summary>⚙️ Edge, DNS, кеш и drafts</summary>
+      <div class="extra-body extra-tech-body">
+        <section class="tech-block edge-panel" id="edge-panel">
+          <div class="tech-block-head">
+            <h4>Edge ${infoBtn('edge_status')}</h4>
+            <span id="edge-status-badge" class="advisor-badge">…</span>
+          </div>
+          <div id="edge-verdict" class="edge-verdict sub">Стартирайте анализ за решение.</div>
+          <ul id="edge-fixes" class="edge-fix-list"></ul>
+          <ul id="edge-prereq" class="edge-prereq-list"></ul>
+        </section>
+        <section id="onboarding-panel" class="tech-block onboarding hidden">
+          <h4>CNAME / DNS</h4>
+          <ol id="onboarding-steps" class="onboarding-list"></ol>
+          <p id="onboarding-dns" class="sub mono">…</p>
+        </section>
+        <section class="tech-block optimizer-panel" id="optimizer-panel">
+          <div class="tech-block-head">
+            <h4>Optimizer ${infoBtn('optimizer')}</h4>
+            <span id="optimizer-badge" class="advisor-badge">…</span>
+          </div>
+          <p id="optimizer-headline" class="optimizer-headline sub">—</p>
+          <ul id="optimizer-auto" class="edge-fix-list hidden"></ul>
+          <ul id="optimizer-human" class="edge-prereq-list hidden"></ul>
+          <details id="optimizer-drafts-wrap" class="hidden">
+            <summary>Content draft</summary>
+            <pre id="optimizer-draft-preview" class="draft-preview"></pre>
+          </details>
+        </section>
+        <section id="cache-index-panel" class="tech-block cache-index hidden">
+          <div class="tech-block-head">
+            <h4>Кеш ${infoBtn('cache_coverage')}</h4>
+            <span id="cache-coverage-badge" class="advisor-badge">—</span>
+          </div>
+          <div class="stat-grid stat-grid-5">
+            <div class="stat">${infoBtn('cache_median')}<strong id="cache-median">—</strong><small>Median</small></div>
+            <div class="stat">${infoBtn('cache_p25')}<strong id="cache-p25">—</strong><small>P25</small></div>
+            <div class="stat">${infoBtn('cache_p75')}<strong id="cache-p75">—</strong><small>P75</small></div>
+            <div class="stat">${infoBtn('bot_verified')}<strong id="stat-bot-v">—</strong><small>Bot ✓</small></div>
+            <div class="stat">${infoBtn('bot_fake')}<strong id="stat-bot-u">—</strong><small>Bot fake</small></div>
+          </div>
+          <p id="cache-note" class="sub">…</p>
+        </section>
       </div>
-      <p class="sub">Системата прави одит, измерване и Edge конфиг. DNS (CNAME) и текст в CMS — ваши стъпки; вижте плана по-горе.</p>
-      <p id="optimizer-headline" class="optimizer-headline sub">Заредете сайт за план.</p>
-      <ul id="optimizer-auto" class="edge-fix-list"></ul>
-      <ul id="optimizer-human" class="edge-prereq-list"></ul>
-      <details id="optimizer-drafts-wrap" class="hidden">
-        <summary>Content drafts (чака публикуване)</summary>
-        <pre id="optimizer-draft-preview" class="draft-preview"></pre>
-      </details>
-    </section>
-
-    <!-- Edge decision (Block 4 — optimization via Cloudflare Worker) -->
-    <section class="section edge-panel" id="edge-panel">
-      <div class="apply-head">
-        <h3>⚡ Edge решение ${infoBtn('edge_status')}</h3>
-        <span id="edge-status-badge" class="advisor-badge">…</span>
-      </div>
-      <p class="sub">Технически поправки през Cloudflare Worker. За да са live — нужен CNAME (стъпка 7 в плана).</p>
-      <div id="edge-verdict" class="edge-verdict sub">Стартирайте анализ за решение.</div>
-      <ul id="edge-fixes" class="edge-fix-list"></ul>
-      <ul id="edge-prereq" class="edge-prereq-list"></ul>
-    </section>
-
-    <!-- Pillars -->
-    <section class="section">
-      <h3>Къде сте сега ${infoBtn('pillar_visibility')}</h3>
-      <p class="sub section-hint">Четири пилара — натиснете ⓘ на всеки за детайли.</p>
-      <div id="pillars" class="pillars"></div>
-    </section>
-
-    <!-- Strategy plan -->
-    <section class="section">
-      <h3>Какво да направите</h3>
-      <div class="plan-cols">
-        <div>
-          <h4>Тази седмица</h4>
-          <ol id="plan-week" class="plan-list"></ol>
-        </div>
-        <div>
-          <h4>Този месец</h4>
-          <ol id="plan-month" class="plan-list muted-col"></ol>
-        </div>
-      </div>
-    </section>
+    </details>
 
     <!-- Collapsible extras -->
     <details class="extra">
@@ -459,6 +452,8 @@ function script(origin) {
 
     function renderRoadmap(roadmap) {
       const panel = $('optimization-roadmap');
+      const doneWrap = $('roadmap-done-wrap');
+      const doneList = $('roadmap-done-steps');
       if (!roadmap?.steps?.length) {
         panel.classList.add('hidden');
         return;
@@ -466,26 +461,36 @@ function script(origin) {
       panel.classList.remove('hidden');
       $('roadmap-badge').textContent = roadmap.summary || '—';
       $('roadmap-honesty').textContent = roadmap.honesty_note || '';
-      $('roadmap-steps').innerHTML = roadmap.steps.map(s => {
-        const instr = (s.instructions || []).length
+
+      const renderStep = (s, compact) => {
+        const why = s.why_waiting && !compact
+          ? '<p class="roadmap-why">' + escHtml(s.why_waiting) + '</p>'
+          : '';
+        const instr = (!compact && (s.instructions || []).length)
           ? '<ol class="roadmap-instr">' + s.instructions.map(i => '<li>' + escHtml(i) + '</li>').join('') + '</ol>'
           : '';
-        const why = s.why_waiting
-          ? '<p class="roadmap-why"><strong>Защо чака:</strong> ' + escHtml(s.why_waiting) + '</p>'
-          : '';
-        const hint = s.action_hint && ACTION_HINT_LABELS[s.action_hint]
-          ? '<p class="roadmap-action">' + escHtml(ACTION_HINT_LABELS[s.action_hint]) + '</p>'
-          : '';
-        return '<li class="roadmap-step ' + escHtml(s.status_css) + '">' +
+        return '<li class="roadmap-step ' + escHtml(s.status_css) + (compact ? ' roadmap-step-compact' : '') + '">' +
           '<div class="roadmap-step-head">' +
           '<span class="roadmap-icon">' + s.status_icon + '</span>' +
           '<div class="roadmap-step-body">' +
           '<strong>' + escHtml(s.title) + '</strong>' +
-          '<span class="roadmap-meta">' + escHtml(s.status_label) + ' · ' + escHtml(s.owner_label) + '</span>' +
-          '<p class="roadmap-summary">' + escHtml(s.summary) + '</p>' +
-          why + hint + instr +
+          '<span class="roadmap-meta">' + escHtml(s.status_label) + '</span>' +
+          (compact ? '' : '<p class="roadmap-summary">' + escHtml(s.summary) + '</p>') +
+          why + instr +
           '</div></div></li>';
-      }).join('');
+      };
+
+      const active = roadmap.steps.filter(s => s.status !== 'done');
+      const done = roadmap.steps.filter(s => s.status === 'done');
+      $('roadmap-steps').innerHTML = active.map(s => renderStep(s, false)).join('') || done.map(s => renderStep(s, false)).join('');
+      if (done.length && active.length) {
+        doneWrap.classList.remove('hidden');
+        $('roadmap-done-summary').textContent = '✅ ' + done.length + ' готови стъпки';
+        doneList.innerHTML = done.map(s => renderStep(s, true)).join('');
+      } else {
+        doneWrap.classList.add('hidden');
+        doneList.innerHTML = '';
+      }
     }
 
     function renderVerdict(v, score) {
@@ -509,9 +514,16 @@ function script(origin) {
       const warning = findings.filter(f => f.severity === 'warning').length;
       $('findings-count-badge').textContent = critical + ' критични · ' + warning + ' предупр.';
       $('findings-count-badge').className = 'advisor-badge ' + (critical > 0 ? 'err' : warning > 0 ? 'warn' : 'ok');
-      $('findings-summary').textContent = strategyData.findings_summary || '';
+      const summaryEl = $('findings-summary');
+      const summaryText = strategyData.findings_summary || '';
+      if (summaryText) {
+        summaryEl.textContent = summaryText;
+        summaryEl.classList.remove('hidden');
+      } else {
+        summaryEl.classList.add('hidden');
+      }
 
-      const modeLabel = { auto: '🤖 Автоматично', semi_auto: '🤖+👤 Auto + publish', manual: '👤 Ръчно' };
+      const modeShort = { auto: '🤖', semi_auto: '🤖+👤', manual: '👤' };
 
       $('findings-list').innerHTML = findings.map(f => {
         const sevClass = 'finding-' + f.severity;
@@ -524,21 +536,21 @@ function script(origin) {
         if (ev.blocked_bots?.length) evLines.push('Блокирани: ' + ev.blocked_bots.join(', '));
         if (ev.examples?.length) {
           ev.examples.forEach(ex => {
-            if (ex.question) evLines.push('Въпрос: „' + ex.question + '“ → ' + (ex.competitors || []).join(', '));
+            if (ex.question) evLines.push('„' + ex.question + '“ → ' + (ex.competitors || []).join(', '));
           });
         }
         if (ev.samples?.length) ev.samples.forEach(s => {
           if (s.passage) evLines.push('Цитат: ' + s.passage);
-          else if (typeof s === 'string') evLines.push('Пасаж: „' + s + '…“');
+          else if (typeof s === 'string') evLines.push('„' + s + '…“');
         });
-        const evHtml = evLines.length
-          ? '<ul class="finding-evidence">' + evLines.map(l => '<li>' + escHtml(l) + '</li>').join('') + '</ul>'
-          : '';
 
-        const artifactHtml = auto.artifact?.content
-          ? '<details class="finding-artifact"><summary>Draft: ' + escHtml(auto.artifact.title || 'artifact') + '</summary>' +
-            '<pre class="finding-artifact-pre">' + escHtml(auto.artifact.content.slice(0, 1500)) + '</pre></details>'
-          : '';
+        const detailsInner = '<p class="finding-impact">' + escHtml(f.impact) + '</p>' +
+          (evLines.length ? '<ul class="finding-evidence">' + evLines.map(l => '<li>' + escHtml(l) + '</li>').join('') + '</ul>' : '') +
+          (auto.artifact?.content
+            ? '<details class="finding-artifact"><summary>Draft</summary><pre class="finding-artifact-pre">' +
+              escHtml(auto.artifact.content.slice(0, 1200)) + '</pre></details>'
+            : '') +
+          (auto.note ? '<p class="finding-note sub">' + escHtml(auto.note) + '</p>' : '');
 
         let manualHtml = '';
         if (auto.manual_form?.fields?.length) {
@@ -556,23 +568,22 @@ function script(origin) {
               return '<label class="finding-field">' + escHtml(field.label) +
                 '<input type="text" data-field="' + escHtml(field.id) + '" placeholder="' + escHtml(field.placeholder || '') + '"></label>';
             }).join('') +
-            '<button type="button" class="btn btn-sm btn-ghost finding-manual-save" data-finding-id="' + escHtml(f.id) + '">Запази ръчна стъпка</button></div>';
+            '<button type="button" class="btn btn-sm btn-ghost finding-manual-save" data-finding-id="' + escHtml(f.id) + '">Запази</button></div>';
         }
 
         const applyBtn = auto.can_apply_now && auto.action
           ? '<button type="button" class="btn btn-sm finding-apply" data-finding-id="' + escHtml(f.id) + '" data-intent="' + escHtml(auto.intent || '') + '">' +
-            escHtml(auto.label || 'Приложи автоматично') + '</button>'
+            escHtml(auto.label || 'Приложи') + '</button>'
           : '';
 
         return '<li class="finding-card ' + sevClass + '">' +
-          '<div class="finding-head"><span class="finding-cat">' + escHtml(f.category) + '</span>' +
-          '<span class="finding-mode">' + escHtml(modeLabel[auto.mode] || '') + '</span>' +
-          '<strong>' + escHtml(f.title) + '</strong></div>' +
-          '<p class="finding-impact">' + escHtml(f.impact) + '</p>' +
-          evHtml + artifactHtml +
-          '<div class="finding-actions">' + applyBtn + '</div>' +
-          (auto.note ? '<p class="finding-note sub">' + escHtml(auto.note) + '</p>' : '') +
-          manualHtml + '</li>';
+          '<div class="finding-row">' +
+          '<div class="finding-main">' +
+          '<span class="finding-mode" title="' + escHtml(auto.mode || '') + '">' + (modeShort[auto.mode] || '') + '</span>' +
+          '<strong class="finding-title">' + escHtml(f.title) + '</strong>' +
+          '</div>' +
+          '<div class="finding-actions">' + applyBtn + '</div></div>' +
+          '<details class="finding-details"><summary>Детайли</summary>' + detailsInner + manualHtml + '</details></li>';
       }).join('');
 
       panel.querySelectorAll('.finding-apply').forEach(btn => {
@@ -644,10 +655,8 @@ function script(origin) {
         setMetricContext(mid, { status: p.status, action: p.action });
         return '<div class="pillar pillar-' + p.level + '">' +
         '<span class="pillar-icon">' + p.icon + '</span>' +
-        '<div><strong>' + escHtml(p.label) +
-        ' <button type="button" class="info-btn info-btn-inline" data-metric="' + mid + '" aria-label="Инфо">ⓘ</button></strong>' +
-        '<p>' + escHtml(p.status) + '</p>' +
-        '<small>' + escHtml(p.action) + '</small></div></div>';
+        '<div class="pillar-body"><strong>' + escHtml(p.label) + '</strong>' +
+        '<p>' + escHtml(p.status) + '</p></div></div>';
       }).join('');
       if (strategy?.displacement?.displacement_rate != null) {
         setMetricContext('displacement_rate', { value: strategy.displacement.displacement_rate });
@@ -801,7 +810,7 @@ function script(origin) {
       ).join('');
 
       btn.disabled = !decision.fixes?.length || decision.edge_active;
-      btn.textContent = decision.edge_active ? '✓ Edge активен' : '⚡ 2. Приложи Edge';
+      btn.textContent = decision.edge_active ? 'Edge активен' : 'Приложи Edge';
       setMetricContext('edge_status', {
         message: (v.headline || '') + ' — ' + (decision.fixes?.length || 0) + ' fixes, status=' + (decision.status || ''),
       });
@@ -938,11 +947,9 @@ function script(origin) {
         const res = await fetch(API('/api/strategy/' + encodeURIComponent(selectedDomain)));
         strategy = await res.json();
         if (!res.ok) throw new Error(strategy.error || res.status);
-        renderPipeline(strategy.pipeline);
         renderVerdict(strategy.verdict, strategy.score);
         renderFindings(strategy);
         renderPillars(strategy.pillars);
-        renderPlan(strategy.plan);
         renderTech(strategy.probe, strategy.stats);
         log('Обновено ' + new Date().toLocaleTimeString('bg-BG'));
         loadQuestionsQuiet();
@@ -981,15 +988,10 @@ function script(origin) {
         if (!res.ok) return;
         const plan = data.current_plan;
         renderRoadmap(data.roadmap);
-        $('optimizer-badge').textContent = data.enabled ? (plan?.automation_level || 'ready') : 'изключен';
-        $('optimizer-headline').textContent = plan?.headline || data.roadmap?.summary || 'Няма план';
-        $('optimizer-auto').innerHTML = (plan?.auto_actions || []).map(a =>
-          '<li><strong>Автоматично:</strong> ' + escHtml(actionLabel(a.action)) + ' — ' + escHtml(a.reason) + '</li>'
-        ).join('') || '<li class="sub">Няма чакащи автоматични действия.</li>';
-        $('optimizer-human').innerHTML = (plan?.human_gates || []).map(h =>
-          '<li class="human-gate"><strong>👤 ' + escHtml(GATE_LABELS[h.gate] || h.gate) + '</strong> — ' +
-          escHtml(h.reason) + '</li>'
-        ).join('') || '<li class="sub">Няма ръчни стъпки — всичко е автоматично или готово.</li>';
+        $('optimizer-badge').textContent = data.enabled ? (plan?.automation_level || 'ready') : '—';
+        $('optimizer-headline').textContent = plan?.headline || data.roadmap?.summary || '—';
+        $('optimizer-auto').innerHTML = '';
+        $('optimizer-human').innerHTML = '';
         const draft = (data.content_drafts || [])[0];
         if (draft?.artifact) {
           $('optimizer-drafts-wrap').classList.remove('hidden');
@@ -1187,38 +1189,82 @@ const CSS = `
 }
 *{box-sizing:border-box}
 body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
-.app{max-width:820px;margin:0 auto;padding:1rem 1.25rem 2.5rem}
-.topbar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;align-items:flex-end}
-h1{font-size:1.35rem;margin:0}
-h3{font-size:1rem;margin:0 0 .75rem;color:var(--text)}
-h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
-.sub{color:var(--muted);font-size:.875rem;margin:.2rem 0 0}
-.topbar-meta{display:flex;gap:.5rem;align-items:center}
-#site-select{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:.45rem .65rem;min-width:200px}
-.pipeline-bar{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem;margin-bottom:1rem;font-size:.75rem}
-.pipe-step{padding:.25rem .55rem;border-radius:999px;background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
-.pipe-step.done{background:#14532d;color:#86efac;border-color:#166534}
-.pipe-step.current{background:#1e3a5f;color:#93c5fd;border-color:var(--accent)}
-.pipe-arrow{color:var(--muted);font-size:.65rem}
-.verdict{border-radius:12px;padding:1.25rem;margin-bottom:1rem;border-left:4px solid var(--border)}
+.app{max-width:720px;margin:0 auto;padding:1rem 1.25rem 2.5rem}
+.topbar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;margin-bottom:1rem;align-items:flex-end}
+.topbar-brand h1{font-size:1.25rem;margin:0}
+.topbar-meta{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+#site-select{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:.45rem .65rem;min-width:180px;max-width:100%}
+.pipeline-bar.hidden,.hidden[aria-hidden="true"]{display:none!important}
+.alerts-wrap{display:grid;gap:.5rem;margin-bottom:.75rem}
+.verdict{border-radius:12px;padding:1rem 1.15rem;margin-bottom:1rem;border-left:4px solid var(--border)}
+.verdict-top{display:flex;gap:1rem;align-items:center}
+.verdict-text{flex:1;min-width:0}
+.verdict h2{font-size:1rem;margin:0 0 .25rem;line-height:1.35}
+.score{position:relative;font-size:2.25rem;font-weight:700;line-height:1;color:var(--accent);flex-shrink:0;min-width:2.75rem;text-align:center}
+.work-hub{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.15rem;margin-bottom:1rem}
+.work-hub-head{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;margin-bottom:.75rem}
+.work-hub-title{font-size:1.05rem;margin:0 0 .25rem;font-weight:600}
+.action-bar{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center;margin-bottom:1rem;padding-bottom:.85rem;border-bottom:1px solid var(--border)}
+.action-more{position:relative}
+.action-more summary{list-style:none;cursor:pointer}
+.action-more summary::-webkit-details-marker{display:none}
+.action-more-menu{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.45rem;padding:.5rem;background:var(--surface2);border-radius:8px;border:1px solid var(--border)}
+.roadmap-panel{background:transparent;border:none;padding:0;margin:0}
+.roadmap-panel.hidden{display:none}
+.roadmap-honesty{margin:0;padding:0;background:none;border:none;font-size:.82rem}
+.roadmap-done-wrap{margin-top:.65rem;font-size:.85rem;color:var(--muted)}
+.roadmap-done-wrap summary{cursor:pointer;padding:.35rem 0}
+.roadmap-list-compact .roadmap-step{padding:.45rem .65rem;opacity:.85}
+.roadmap-step-compact .roadmap-summary{display:none}
+.findings-panel{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
+.findings-panel.hidden{display:none}
+.findings-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.65rem}
+.findings-subhead{font-size:.9rem;margin:0;font-weight:600}
+.findings-summary.hidden{display:none}
+.finding-row{display:flex;justify-content:space-between;align-items:center;gap:.65rem}
+.finding-main{display:flex;align-items:center;gap:.45rem;min-width:0;flex:1}
+.finding-title{font-size:.875rem;font-weight:600;line-height:1.3}
+.finding-mode{font-size:.85rem;flex-shrink:0}
+.finding-details{margin-top:.35rem;font-size:.82rem}
+.finding-details summary{cursor:pointer;color:var(--muted);padding:.15rem 0}
+.finding-details[open] summary{margin-bottom:.35rem}
+.finding-card{padding:.55rem .75rem;border-radius:8px;background:var(--surface2);border:1px solid var(--border)}
+.findings-list{gap:.45rem}
+.metrics-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.85rem 1rem;margin-bottom:1rem}
+.metrics-subhead{font-size:.85rem;margin:0 0 .5rem;color:var(--muted);font-weight:600}
+.pillars-compact{display:grid;grid-template-columns:repeat(2,1fr);gap:.4rem}
+@media(min-width:560px){.pillars-compact{grid-template-columns:repeat(4,1fr)}}
+.pillar{padding:.55rem .65rem;flex-direction:column;text-align:center;gap:.25rem}
+.pillar-body p{margin:0;font-size:.75rem;line-height:1.3}
+.pillar-icon{font-size:1rem}
+.pillar small{display:none}
+.extra-tech-body{display:grid;gap:.85rem}
+.tech-block{padding:.75rem;background:var(--surface2);border-radius:8px;border:1px solid var(--border)}
+.tech-block-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.35rem}
+.tech-block h4{margin:0;font-size:.85rem;font-weight:600}
+.site-stats{background:transparent;border:none;padding:0;margin:0 0 .75rem}
+.site-stats.hidden{display:none}
+.stat-grid strong{font-size:1.1rem}
+.stat small{font-size:.65rem}
+.status-line{margin:0 0 1rem;padding:.35rem 0;border-top:1px solid var(--border);font-size:.78rem}
+.drift-panel{padding:.55rem .75rem;display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin:0}
+.drift-list{flex:1;min-width:200px;margin:0}
+.baseline-banner{margin:0;padding:.65rem .85rem}
 .verdict-critical{background:#2a1515;border-color:var(--err)}
 .verdict-warning{background:#2a2210;border-color:var(--warn)}
 .verdict-ok{background:#102a18;border-color:var(--ok)}
 .verdict-info,.verdict-unknown{background:var(--surface);border-color:var(--accent)}
-.verdict-top{display:flex;gap:1.25rem;align-items:flex-start}
-.verdict h2{font-size:1.1rem;margin:0 0 .35rem}
-.score{position:relative;font-size:2.75rem;font-weight:700;line-height:1;color:var(--accent);flex-shrink:0;min-width:3rem;text-align:center}
 .verdict-ok .score{color:var(--ok)}
 .verdict-warning .score{color:var(--warn)}
 .verdict-critical .score{color:var(--err)}
 #score-val{display:block}
-.optimizer-headline{font-weight:600;color:#e2e8f0;margin:.5rem 0}
-.optimizer-panel{border:1px solid #334155;background:#0f172a;border-radius:10px;padding:1rem;margin-bottom:1rem}
-.roadmap-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem}
-.roadmap-panel.hidden{display:none}
-.roadmap-honesty{margin:.35rem 0 1rem;padding:.65rem .85rem;background:var(--surface2);border-radius:8px;border-left:3px solid var(--accent)}
-.roadmap-list{list-style:none;padding:0;margin:0;display:grid;gap:.65rem}
-.roadmap-step{padding:.75rem 1rem;border-radius:10px;background:var(--surface2);border:1px solid var(--border)}
+h3{font-size:1rem;margin:0 0 .75rem;color:var(--text)}
+h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted)}
+.sub{color:var(--muted);font-size:.875rem;margin:.2rem 0 0}
+.optimizer-headline{font-weight:500;color:var(--muted);margin:.25rem 0;font-size:.82rem}
+.optimizer-panel,.edge-panel{background:transparent;border:none;padding:0;margin:0}
+.roadmap-list{list-style:none;padding:0;margin:0;display:grid;gap:.5rem}
+.roadmap-step{padding:.65rem .85rem;border-radius:8px;background:var(--bg);border:1px solid var(--border)}
 .roadmap-step-head{display:flex;gap:.75rem;align-items:flex-start}
 .roadmap-icon{font-size:1.1rem;flex-shrink:0;line-height:1.4}
 .roadmap-step-body{flex:1;min-width:0}
@@ -1234,23 +1280,16 @@ h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted);text-transform:uppercase
 .roadmap-manual{border-color:#78350f;background:#1a1608}
 .roadmap-auto{border-color:#334155}
 .roadmap-blocked{opacity:.55}
-.findings-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem}
-.findings-panel.hidden{display:none}
-.findings-summary{margin:.35rem 0 1rem;padding:.65rem .85rem;background:var(--surface2);border-radius:8px;border-left:3px solid var(--warn)}
-.findings-list{list-style:none;padding:0;margin:0;display:grid;gap:.75rem}
-.finding-card{padding:.85rem 1rem;border-radius:10px;background:var(--surface2);border:1px solid var(--border)}
-.finding-critical{border-color:#7f1d1d;background:#1a1010}
-.finding-warning{border-color:#78350f;background:#1a1608}
+.findings-summary{margin:0 0 .65rem;padding:.5rem .65rem;background:var(--bg);border-radius:6px;border-left:3px solid var(--warn);font-size:.82rem}
+.findings-list{list-style:none;padding:0;margin:0;display:grid}
+.finding-critical{border-color:#7f1d1d}
+.finding-warning{border-color:#78350f}
 .finding-info{border-color:#334155}
-.finding-head{margin-bottom:.35rem}
-.finding-cat{font-size:.65rem;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.15rem}
-.finding-impact{margin:.25rem 0;font-size:.875rem;color:var(--text)}
-.finding-evidence,.finding-steps{margin:.45rem 0 0 1rem;padding:0;font-size:.8rem;color:var(--muted)}
-.finding-evidence li,.finding-steps li{margin:.2rem 0}
-.finding-steps{color:var(--accent)}
-.finding-mode{font-size:.65rem;color:var(--accent);display:block;margin:.15rem 0}
-.finding-actions{margin:.5rem 0 .25rem}
-.finding-note{margin:.25rem 0 0;font-size:.8rem}
+.finding-impact{margin:.25rem 0;font-size:.82rem;color:var(--text)}
+.finding-evidence{margin:.35rem 0 0 1rem;padding:0;font-size:.78rem;color:var(--muted)}
+.finding-evidence li{margin:.15rem 0}
+.finding-actions{flex-shrink:0}
+.finding-note{margin:.25rem 0 0;font-size:.78rem}
 .finding-artifact{margin:.5rem 0;font-size:.8rem}
 .finding-artifact-pre{max-height:140px;overflow:auto;font-size:.7rem;background:var(--bg);padding:.5rem;border-radius:6px;margin:.35rem 0 0}
 .finding-manual{margin-top:.65rem;padding:.65rem;background:var(--bg);border-radius:8px;border:1px dashed var(--border)}
@@ -1277,8 +1316,8 @@ h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted);text-transform:uppercase
 .metric-dl dt:first-child{margin-top:0}
 .metric-dl dd{margin:.25rem 0 0;font-size:.9rem;line-height:1.45}
 .metric-now{color:var(--accent);font-weight:500}
-.section-hint{margin:-.35rem 0 .75rem;font-size:.8rem}
-.hero-actions{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.5rem}
+.section-hint{display:none}
+.hero-actions{display:none}
 .btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:.5rem 1rem;font-size:.85rem;cursor:pointer}
 .btn:hover{filter:brightness(1.08)}
 .btn:disabled{opacity:.5;cursor:not-allowed}
@@ -1295,16 +1334,13 @@ h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted);text-transform:uppercase
 .drift-item{font-size:.82rem;padding:.3rem 0;color:var(--muted)}
 .drift-item.drift-critical{color:#fca5a5}
 .drift-kind{text-transform:uppercase;font-size:.7rem;color:var(--warn);margin-right:.35rem}
-.site-stats{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem}
-.site-stats.hidden{display:none}
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;text-align:center}
-.stat strong{display:block;font-size:1.25rem;color:var(--accent)}
-.stat small{color:var(--muted);font-size:.7rem;text-transform:uppercase}
-.stat-warn strong{color:var(--warn)}
-.cache-index,.onboarding{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;margin-bottom:1rem}
+.site-stats-old{display:none}
+.cache-index,.onboarding{background:transparent;border:none;padding:0;margin:0}
 .cache-index.hidden,.onboarding.hidden{display:none}
-.cache-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
-.cache-head h3{margin:0;font-size:.95rem}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.5rem;text-align:center}
+.stat strong{display:block;font-size:1.1rem;color:var(--accent)}
+.stat small{color:var(--muted);font-size:.65rem;text-transform:uppercase}
+.stat-warn strong{color:var(--warn)}
 .stat-grid-5{grid-template-columns:repeat(5,1fr)}
 @media(max-width:640px){.stat-grid-5{grid-template-columns:repeat(2,1fr)}}
 .onboarding h3{font-size:.95rem;margin:0 0 .5rem}

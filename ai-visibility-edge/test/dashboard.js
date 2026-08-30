@@ -8,7 +8,9 @@ export function testDashboardV2Page() {
   assert(html.includes('id="pillars"'));
   assert(html.includes('id="plan-week"'));
   assert(html.includes('/api/strategy/'));
-  assert(html.includes('1. Анализ'));
+  assert(html.includes('id="work-hub"'));
+  assert(html.includes('Анализ'));
+  assert(html.includes('action-bar'));
   assert(html.includes('edge-panel'));
   assert(html.includes('/api/edge/'));
   assert(html.includes('loadEdgeDecision'));

@@ -37,6 +37,9 @@ import {
   testFindingsToRecommendationsCompat,
   testNoindexCapsScore,
   testDetectNoindex,
+  testFindingsAutomationOnEveryFinding,
+  testResolveAutomationSpecDynamicIds,
+  testFindingsHttpErrorManualOnly,
 } from './findings.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
@@ -256,6 +259,9 @@ async function run() {
   testFindingsToRecommendationsCompat();
   testNoindexCapsScore();
   testDetectNoindex();
+  testFindingsAutomationOnEveryFinding();
+  testResolveAutomationSpecDynamicIds();
+  testFindingsHttpErrorManualOnly();
   testGenerateQuestions();
   testStepStatus();
   testNormalizeApexHost();

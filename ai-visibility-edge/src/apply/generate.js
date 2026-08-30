@@ -96,7 +96,7 @@ export function buildApplyPlan(input = {}) {
   };
 }
 
-function buildJsonLd({ domain, brand, vertical }) {
+export function buildJsonLd({ domain, brand, vertical }) {
   const schema = {
     '@context': 'https://schema.org',
     '@type': 'SoftwareApplication',
@@ -119,7 +119,7 @@ export function buildHomepageCopy({ domain, brand, vertical }) {
 </section>`;
 }
 
-function buildRobotsAllow() {
+export function buildRobotsAllow() {
   return `User-agent: *
 Allow: /
 
@@ -128,4 +128,23 @@ Allow: /
 
 User-agent: Google-Extended
 Allow: /`;
+}
+
+export function buildMetaDescription({ domain, brand, vertical }) {
+  const v = vertical ?? 'услуги и продукти';
+  const text = `${brand} (${domain}) — ${v} в България. Официален сайт с информация, цени и доставка. Посетете https://${domain}/`;
+  return `<meta name="description" content="${text.slice(0, 160)}">`;
+}
+
+export function buildTitleFix({ domain, brand, vertical }) {
+  const v = vertical ?? 'официален сайт';
+  return `<title>${brand} — ${v} | ${domain}</title>`;
+}
+
+export function buildSitemapXml({ domain, urls = [] }) {
+  const locs = urls.length ? urls : [`https://${domain}/`];
+  const body = locs
+    .map((u) => `  <url><loc>${u}</loc><changefreq>weekly</changefreq></url>`)
+    .join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>`;
 }

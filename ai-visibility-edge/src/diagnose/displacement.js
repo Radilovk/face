@@ -33,14 +33,22 @@ export async function analyzeDisplacement(db, { domain, verticalId, model = null
   const events = [];
   let displacedCount = 0;
   let presentCount = 0;
+  const byModel = {};
 
   for (const run of runs ?? []) {
     const mentioned = extractMentionedDomains(run, competitorSet);
     const tenantPresent = mentioned.has(tenantDomain);
     const mentionedCompetitors = [...mentioned].filter((d) => competitorSet.has(d));
+    const modelKey = run.model ?? 'unknown';
+
+    if (!byModel[modelKey]) {
+      byModel[modelKey] = { total: 0, displaced: 0, present: 0, rate: 0 };
+    }
+    byModel[modelKey].total++;
 
     if (mentionedCompetitors.length > 0 && !tenantPresent) {
       displacedCount++;
+      byModel[modelKey].displaced++;
       events.push({
         run_id: run.id,
         model: run.model,
@@ -53,7 +61,12 @@ export async function analyzeDisplacement(db, { domain, verticalId, model = null
       });
     } else if (tenantPresent) {
       presentCount++;
+      byModel[modelKey].present++;
     }
+  }
+
+  for (const m of Object.values(byModel)) {
+    m.rate = m.total > 0 ? Math.round((m.displaced / m.total) * 1000) / 1000 : 0;
   }
 
   const total = runs?.length ?? 0;
@@ -67,6 +80,7 @@ export async function analyzeDisplacement(db, { domain, verticalId, model = null
     tenant_present_count: presentCount,
     displaced_count: displacedCount,
     displacement_rate: Math.round(displacementRate * 1000) / 1000,
+    by_model: byModel,
     events: events.slice(0, 20),
     competitors_tracked: [...competitorSet],
   };

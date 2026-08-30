@@ -59,20 +59,41 @@ export function passageAutonomy(text) {
  * Combine probe metrics into a single diagnostic score (0–100).
  */
 export function computeDiagnosticScore(probeResult, passageResult) {
+  if (probeResult.signals?.noindex) return Math.min(15, probeResult.http_status >= 200 ? 15 : 5);
+  if (probeResult.robots_ai_policy === 'disallow_all') return Math.min(20, 10);
+
   let score = 0;
 
-  if (probeResult.http_status >= 200 && probeResult.http_status < 400) score += 25;
-  if ((probeResult.html_text_chars ?? 0) > 500) score += 15;
-  if ((probeResult.jsonld_blocks ?? 0) > 0) score += 10;
-  if (probeResult.has_canonical) score += 10;
-  if ((probeResult.price_tokens ?? 0) > 0) score += 10;
-  if (probeResult.robots_ai_policy === 'allow' || probeResult.robots_ai_policy === 'ai_rules_present') {
-    score += 10;
-  }
-  if (probeResult.robots_ai_policy === 'disallow_all') score -= 20;
+  if (probeResult.http_status >= 200 && probeResult.http_status < 400) score += 20;
+
+  const chars = probeResult.html_text_chars ?? 0;
+  if (chars >= 2000) score += 18;
+  else if (chars >= 1000) score += 15;
+  else if (chars >= 500) score += 10;
+  else if (chars >= 200) score += 5;
+
+  const jsonld = probeResult.jsonld_blocks ?? 0;
+  if (jsonld >= 2) score += 12;
+  else if (jsonld === 1) score += 8;
+
+  const types = probeResult.raw_json?.jsonld_types ?? probeResult.signals?.jsonld_types ?? [];
+  if (types.some((t) => /Organization|Product|LocalBusiness|WebSite/i.test(t))) score += 5;
+
+  if (probeResult.has_canonical) score += 8;
+  if ((probeResult.price_tokens ?? 0) > 0) score += 8;
+  else if ((probeResult.price_tokens ?? 0) === 0 && chars >= 500) score -= 2;
+
+  if (probeResult.robots_ai_policy === 'allow') score += 10;
+  else if (probeResult.robots_ai_policy === 'ai_rules_present') score += 6;
+
+  if ((probeResult.blocked_bots ?? []).length > 0) score -= 8;
+
+  if (probeResult.signals?.js_shell_suspect) score -= 15;
+  if (probeResult.signals?.brand_mentions === 0 && chars > 100) score -= 5;
+  if (probeResult.signals?.sitemap_ok === false) score -= 2;
 
   const passageScore = passageResult?.score ?? 50;
-  score += Math.round(passageScore * 0.2);
+  score += Math.round(passageScore * 0.22);
 
   return Math.max(0, Math.min(100, score));
 }

@@ -110,6 +110,42 @@ export function buildEdgeDecision(input = {}) {
   };
 }
 
+function pickSchemaType(verticalName, brand, domain) {
+  const v = (verticalName ?? '').toLowerCase();
+  if (/shop|e-?commerce|store|retail|продукт|магазин/.test(v)) {
+    return {
+      '@type': 'Product',
+      name: brand,
+      url: `https://${domain}/`,
+      description: `${brand} — продукти и оферти на https://${domain}/`,
+      offers: { '@type': 'Offer', priceCurrency: 'BGN', availability: 'https://schema.org/InStock' },
+    };
+  }
+  if (/clinic|medical|health|лечение|клиника|фарма/.test(v)) {
+    return {
+      '@type': 'LocalBusiness',
+      name: brand,
+      url: `https://${domain}/`,
+      description: `${brand} — https://${domain}/`,
+    };
+  }
+  if (/saas|software|app|platform/.test(v)) {
+    return {
+      '@type': 'SoftwareApplication',
+      name: brand,
+      url: `https://${domain}/`,
+      applicationCategory: verticalName ?? 'BusinessApplication',
+      description: `${brand} — https://${domain}/`,
+    };
+  }
+  return {
+    '@type': 'Organization',
+    name: brand,
+    url: `https://${domain}/`,
+    description: `${brand} — https://${domain}/`,
+  };
+}
+
 function buildEdgeConfigPayload({ domain, brand, probe, tenant, fixes }) {
   const fixIds = new Set(fixes.map((f) => f.id));
 
@@ -128,11 +164,7 @@ function buildEdgeConfigPayload({ domain, brand, probe, tenant, fixes }) {
     jsonld: fixIds.has('inject_jsonld')
       ? {
           '@context': 'https://schema.org',
-          '@type': 'SoftwareApplication',
-          name: brand,
-          url: `https://${domain}/`,
-          applicationCategory: tenant?.vertical_name ?? 'BusinessApplication',
-          description: `${brand} — https://${domain}/`,
+          ...pickSchemaType(tenant?.vertical_name, brand, domain),
         }
       : null,
   };

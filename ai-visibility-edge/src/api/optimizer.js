@@ -36,6 +36,8 @@ export async function fetchOptimizerStatus(env, domain) {
         worker_host: workerHost,
         latest_run: latest,
         content_drafts: drafts,
+        findings: ctx.strategy?.findings ?? plan?.findings,
+        findings_summary: ctx.strategy?.findings_summary,
       });
 
   return {

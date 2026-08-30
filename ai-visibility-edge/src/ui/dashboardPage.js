@@ -66,6 +66,16 @@ export function renderDashboardPage(origin) {
       </div>
     </section>
 
+    <!-- Evidence-backed weaknesses -->
+    <section id="findings-panel" class="findings-panel hidden" aria-label="Открити слабости">
+      <div class="apply-head">
+        <h3>🔬 Открити слабости</h3>
+        <span id="findings-count-badge" class="advisor-badge">—</span>
+      </div>
+      <p id="findings-summary" class="findings-summary sub">…</p>
+      <ul id="findings-list" class="findings-list"></ul>
+    </section>
+
     <!-- Primary action -->
     <div class="hero-actions">
       <button type="button" class="btn btn-lg" id="btn-auto-optimize">🤖 Auto-оптимизация</button>
@@ -487,6 +497,50 @@ function script(origin) {
       $('verdict-summary').textContent = v?.summary || '';
     }
 
+    function renderFindings(strategyData) {
+      const panel = $('findings-panel');
+      const findings = strategyData?.findings ?? [];
+      if (!findings.length) {
+        panel.classList.add('hidden');
+        return;
+      }
+      panel.classList.remove('hidden');
+      const critical = findings.filter(f => f.severity === 'critical').length;
+      const warning = findings.filter(f => f.severity === 'warning').length;
+      $('findings-count-badge').textContent = critical + ' критични · ' + warning + ' предупр.';
+      $('findings-count-badge').className = 'advisor-badge ' + (critical > 0 ? 'err' : warning > 0 ? 'warn' : 'ok');
+      $('findings-summary').textContent = strategyData.findings_summary || '';
+      $('findings-list').innerHTML = findings.map(f => {
+        const sevClass = 'finding-' + f.severity;
+        const ev = f.evidence || {};
+        const evLines = [];
+        if (ev.url) evLines.push('URL: ' + ev.url);
+        if (ev.text_chars != null) evLines.push('Текст: ' + ev.text_chars + ' символа');
+        if (ev.title) evLines.push('Title: ' + ev.title);
+        if (ev.blocked_bots?.length) evLines.push('Блокирани: ' + ev.blocked_bots.join(', '));
+        if (ev.examples?.length) {
+          ev.examples.forEach(ex => {
+            if (ex.question) evLines.push('Въпрос: „' + ex.question + '“ → ' + (ex.competitors || []).join(', '));
+          });
+        }
+        if (ev.samples?.length) ev.samples.forEach(s => {
+          if (s.passage) evLines.push('Цитат: ' + s.passage);
+          else if (typeof s === 'string') evLines.push('Пасаж: „' + s + '…“');
+        });
+        const evHtml = evLines.length
+          ? '<ul class="finding-evidence">' + evLines.map(l => '<li>' + escHtml(l) + '</li>').join('') + '</ul>'
+          : '';
+        const steps = (f.fix?.steps || []).length
+          ? '<ol class="finding-steps">' + f.fix.steps.map(s => '<li>' + escHtml(s) + '</li>').join('') + '</ol>'
+          : '';
+        return '<li class="finding-card ' + sevClass + '">' +
+          '<div class="finding-head"><span class="finding-cat">' + escHtml(f.category) + '</span>' +
+          '<strong>' + escHtml(f.title) + '</strong></div>' +
+          '<p class="finding-impact">' + escHtml(f.impact) + '</p>' +
+          evHtml + steps + '</li>';
+      }).join('');
+    }
+
     function renderPillars(pillars) {
       const el = $('pillars');
       if (!pillars?.length) { el.innerHTML = '<p class="sub">Няма данни</p>'; return; }
@@ -792,6 +846,7 @@ function script(origin) {
         if (!res.ok) throw new Error(strategy.error || res.status);
         renderPipeline(strategy.pipeline);
         renderVerdict(strategy.verdict, strategy.score);
+        renderFindings(strategy);
         renderPillars(strategy.pillars);
         renderPlan(strategy.plan);
         renderTech(strategy.probe, strategy.stats);
@@ -1085,6 +1140,20 @@ h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted);text-transform:uppercase
 .roadmap-manual{border-color:#78350f;background:#1a1608}
 .roadmap-auto{border-color:#334155}
 .roadmap-blocked{opacity:.55}
+.findings-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem}
+.findings-panel.hidden{display:none}
+.findings-summary{margin:.35rem 0 1rem;padding:.65rem .85rem;background:var(--surface2);border-radius:8px;border-left:3px solid var(--warn)}
+.findings-list{list-style:none;padding:0;margin:0;display:grid;gap:.75rem}
+.finding-card{padding:.85rem 1rem;border-radius:10px;background:var(--surface2);border:1px solid var(--border)}
+.finding-critical{border-color:#7f1d1d;background:#1a1010}
+.finding-warning{border-color:#78350f;background:#1a1608}
+.finding-info{border-color:#334155}
+.finding-head{margin-bottom:.35rem}
+.finding-cat{font-size:.65rem;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.15rem}
+.finding-impact{margin:.25rem 0;font-size:.875rem;color:var(--text)}
+.finding-evidence,.finding-steps{margin:.45rem 0 0 1rem;padding:0;font-size:.8rem;color:var(--muted)}
+.finding-evidence li,.finding-steps li{margin:.2rem 0}
+.finding-steps{color:var(--accent)}
 .draft-preview{max-height:200px;overflow:auto;font-size:.75rem;background:#1e293b;padding:.75rem;border-radius:6px;white-space:pre-wrap}
 .human-gate{color:#fbbf24}
 .info-btn{position:absolute;top:0;right:0;transform:translate(50%,-30%);width:1.25rem;height:1.25rem;padding:0;border:1px solid var(--border);border-radius:50%;background:var(--surface2);color:var(--muted);font-size:.65rem;line-height:1.1;cursor:pointer;z-index:2}

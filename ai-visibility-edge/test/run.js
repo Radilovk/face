@@ -24,6 +24,12 @@ import {
   testSanitizeMetricClientFn,
   testPillarMetricId,
 } from './metric-info.js';
+import {
+  testRoadmapHasOrderedSteps,
+  testRoadmapCnameManualStep,
+  testRoadmapFreshSite,
+  testPlanHeadlinePlainLanguage,
+} from './roadmap.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
 import {
@@ -232,6 +238,10 @@ async function run() {
   testMetricInfoClientScript();
   testSanitizeMetricClientFn();
   testPillarMetricId();
+  testRoadmapHasOrderedSteps();
+  testRoadmapCnameManualStep();
+  testRoadmapFreshSite();
+  testPlanHeadlinePlainLanguage();
   testGenerateQuestions();
   testStepStatus();
   testNormalizeApexHost();

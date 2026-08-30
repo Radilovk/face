@@ -53,6 +53,7 @@ export function testOptimizerSensitiveVerticalHumanGate() {
 export function testHumanGatesRegistry() {
   assert(HUMAN_GATES.dns_cname.id === 'dns_cname');
   assert(HUMAN_GATES.cms_publish.why.includes('CMS'));
+  assert(HUMAN_GATES.dns_cname.short);
 }
 
 export function testParseHtmlBlockOptimizer() {

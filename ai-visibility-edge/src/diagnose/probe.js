@@ -12,6 +12,8 @@ import {
 
 const PROBE_UA = 'AIVisibilityBot/1.0 (+https://ai-visibility-edge/probe)';
 
+const AI_BOTS = ['gptbot', 'google-extended', 'anthropic-ai', 'perplexitybot', 'claudebot', 'ccbot'];
+
 /**
  * HTTP probe for a single domain — extraction layer diagnostics.
  */
@@ -46,6 +48,28 @@ export async function probeDomain(domain, options = {}) {
   const jsonldBlocks = (html.match(/<script[^>]+type=["']application\/ld\+json["']/gi) ?? []).length;
   const canonical = page.canonical ?? extractCanonical(html, page.finalUrl ?? homepage);
   const priceTokens = countPriceTokens(text);
+  const title = extractTitle(html);
+  const meta = extractMetaDescription(html);
+  const h1 = extractFirstH1(html);
+  const jsonldTypes = extractJsonLdTypes(html);
+  const noindex = detectNoindex(html);
+  const h1Count = (html.match(/<h1[\s>]/gi) ?? []).length;
+  const sitemapOk = await checkSitemap(fetchImpl, host);
+  const brand = options.brand ?? null;
+  const brandMentions = brand ? countBrandMentions(text, brand) : 0;
+
+  const signals = {
+    noindex,
+    h1_count: h1Count,
+    brand_mentions: brandMentions,
+    brand_in_first_500: brand ? countBrandMentions(text.slice(0, 500), brand) > 0 : null,
+    meta_description_len: meta?.length ?? 0,
+    title_len: title?.length ?? 0,
+    sitemap_ok: sitemapOk,
+    jsonld_types: jsonldTypes,
+    js_shell_suspect: html.length > 8000 && text.length < 300,
+    html_bytes: html.length,
+  };
 
   return {
     domain: host,
@@ -57,14 +81,16 @@ export async function probeDomain(domain, options = {}) {
     blocked_bots: blockedBots,
     has_canonical: canonical ? 1 : 0,
     price_tokens: priceTokens,
+    signals,
     raw_json: {
       final_url: page.finalUrl ?? homepage,
       text_sample: text.slice(0, 800),
+      text_passage: text.slice(0, 12000),
       redirect_chain: page.redirect_chain ?? [],
-      title: extractTitle(html),
-      meta_description: extractMetaDescription(html),
-      h1: extractFirstH1(html),
-      jsonld_types: extractJsonLdTypes(html),
+      title,
+      meta_description: meta,
+      h1,
+      jsonld_types: jsonldTypes,
     },
   };
 }
@@ -132,9 +158,51 @@ function extractBlockedBots(text) {
   for (const block of blocks) {
     const ua = block.match(/^User-agent:\s*(.+)/im)?.[1]?.trim();
     if (!ua) continue;
-    if (/disallow:\s*\//im.test(block)) bots.push(ua);
+    const uaLower = ua.toLowerCase();
+    const isAiBot = AI_BOTS.some((b) => uaLower.includes(b)) || uaLower.includes('bot');
+    if (!isAiBot) continue;
+    if (isFullSiteDisallow(block)) bots.push(ua);
   }
   return bots;
+}
+
+function isFullSiteDisallow(block) {
+  for (const line of block.split('\n')) {
+    const m = line.match(/^\s*disallow:\s*(.+)\s*$/i);
+    if (!m) continue;
+    const path = m[1].trim();
+    if (path === '/' || path === '/*') return true;
+  }
+  return false;
+}
+
+function detectNoindex(html) {
+  if (!html) return false;
+  const lower = html.toLowerCase();
+  if (/name=["']robots["'][^>]+content=["'][^"']*noindex/i.test(lower)) return true;
+  if (/content=["'][^"']*noindex[^"']*["'][^>]+name=["']robots["']/i.test(lower)) return true;
+  return false;
+}
+
+function countBrandMentions(text, brand) {
+  if (!text || !brand) return 0;
+  const escaped = brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(escaped, 'gi');
+  return (text.match(re) ?? []).length;
+}
+
+async function checkSitemap(fetchImpl, host) {
+  try {
+    const res = await fetchImpl(`https://${host}/sitemap.xml`, {
+      headers: { 'User-Agent': PROBE_UA },
+      method: 'GET',
+    });
+    if (!res.ok) return false;
+    const body = (await res.text()).slice(0, 500);
+    return body.includes('<urlset') || body.includes('<sitemapindex');
+  } catch {
+    return false;
+  }
 }
 
 function countPriceTokens(text) {
@@ -150,4 +218,4 @@ function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-export { extractDomain };
+export { detectNoindex as detectNoindexSignals };

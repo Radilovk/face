@@ -94,7 +94,7 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
       status: !registered ? 'blocked' : hasAudit ? 'done' : 'waiting_auto',
       owner: 'system',
       summary: hasAudit
-        ? `Одитът е готов (оценка ${ctx.strategy?.score ?? '—'}/100).`
+        ? `Одит ${ctx.strategy?.score ?? '—'}/100. ${extras.findings_summary ?? formatTopFindings(extras.findings)}`
         : 'Проверяваме robots.txt, структурирани данни, текст и пренасочвания.',
       why_waiting: hasAudit ? null : 'Още не е пуснат одит — натиснете „1. Анализ“ или „Auto-оптимизация“.',
       instructions: hasAudit ? [] : ['Натиснете „🚀 1. Анализ“ или „🤖 Auto-оптимизация“.'],
@@ -321,6 +321,13 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
     steps,
     generated_at: new Date().toISOString(),
   };
+}
+
+function formatTopFindings(findings) {
+  if (!findings?.length) return '';
+  const top = findings.filter((f) => f.severity === 'critical' || f.severity === 'warning').slice(0, 2);
+  if (!top.length) return '';
+  return top.map((f) => f.title).join('; ') + '.';
 }
 
 export function humanGateInstructions(gateId, ctx = {}) {

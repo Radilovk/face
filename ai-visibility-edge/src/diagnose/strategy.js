@@ -4,6 +4,8 @@
  */
 
 import { buildRecommendations } from './recommendations.js';
+import { buildSiteFindings, buildScoreBreakdown, findingsToRecommendations } from './findings.js';
+import { loadObservationQuality } from './observationQuality.js';
 import { probeDomain } from './probe.js';
 import { passageAutonomy, computeDiagnosticScore } from './score.js';
 import { analyzeDisplacement } from './displacement.js';
@@ -42,17 +44,25 @@ export function buildStrategy(input = {}) {
     runCount = 0,
     edgeActive = false,
     edgeStatus = 'measurement_only',
+    observationQuality = null,
   } = input;
 
-  const recommendations = buildRecommendations({
+  const brand = tenant?.name ?? null;
+  const findingsPack = buildSiteFindings({
     probe,
+    passage,
+    brand,
     displacement,
     sov,
+    observationQuality,
     tenant,
     edgeActive,
   });
 
-  const verdict = buildVerdict(probe, passage, diagnostic_score, displacement, sov, runCount);
+  const recommendations = findingsToRecommendations(findingsPack.findings);
+  const scoreBreakdown = buildScoreBreakdown(probe, passage, findingsPack.findings);
+
+  const verdict = buildVerdict(probe, passage, diagnostic_score, displacement, sov, runCount, findingsPack);
   const pillars = buildPillars(probe, passage, displacement, sov, runCount);
   const plan = buildActionPlan(probe, recommendations, displacement, sov, {
     registered,
@@ -84,17 +94,38 @@ export function buildStrategy(input = {}) {
     pillars,
     plan,
     pipeline,
-    top_issues: recommendations.filter((r) => r.severity !== 'ok').slice(0, 5),
+    findings: findingsPack.findings,
+    findings_summary: findingsPack.summary,
+    findings_categories: findingsPack.categories,
+    score_breakdown: scoreBreakdown,
+    top_issues: findingsPack.findings.filter((f) => f.severity !== 'ok').slice(0, 8),
+    recommendations,
     generated_at: new Date().toISOString(),
   };
 }
 
-function buildVerdict(probe, passage, score, displacement, sov, runCount) {
+function buildVerdict(probe, passage, score, displacement, sov, runCount, findingsPack = null) {
   if (!probe) {
     return {
       level: 'unknown',
       headline: 'Няма данни за сайта',
       summary: 'Добавете домейн и стартирайте анализ.',
+    };
+  }
+
+  if (probe.signals?.noindex) {
+    return {
+      level: 'critical',
+      headline: 'Страницата е маркирана noindex',
+      summary: 'Индексаторите и AI може да пропуснат сайта. Премахнете noindex от meta robots или HTTP headers.',
+    };
+  }
+
+  if (probe.signals?.js_shell_suspect) {
+    return {
+      level: 'critical',
+      headline: 'Сайтът е празен за ботове (JavaScript shell)',
+      summary: `HTML е голям, но текстът е само ${probe.html_text_chars ?? 0} символа — AI вижда празна страница. Нужен SSR или static HTML с марка и факти.`,
     };
   }
 
@@ -160,10 +191,11 @@ function buildVerdict(probe, passage, score, displacement, sov, runCount) {
     };
   }
 
+  const findingSummary = findingsPack?.summary;
   return {
     level: score != null && score < 50 ? 'warning' : 'info',
-    headline: score != null ? `Оценка ${score}/100 — има какво да се подобри` : 'Анализът е готов',
-    summary: 'Следвайте стъпките по-долу — първо съдържание и structured data, после повторно измерване.',
+    headline: score != null ? `Оценка ${score}/100 — ${findingsPack?.findings?.filter((f) => f.severity === 'critical').length ?? 0} критични слабости` : 'Анализът е готов',
+    summary: findingSummary ?? 'Вижте „Открити слабости“ за прецизни поправки с доказателства.',
   };
 }
 
@@ -458,9 +490,23 @@ export async function fetchDomainStrategy(env, domain, options = {}) {
     }
   }
 
-  const probeResult = await probeDomain(normalized, { fetch: fetchImpl });
-  const passage = passageAutonomy(probeResult.raw_json?.text_sample ?? '');
+  const probeResult = await probeDomain(normalized, {
+    fetch: fetchImpl,
+    brand: tenant?.name ?? undefined,
+  });
+  const passage = passageAutonomy(
+    probeResult.raw_json?.text_passage ?? probeResult.raw_json?.text_sample ?? '',
+  );
   const diagnosticScore = computeDiagnosticScore(probeResult, passage);
+
+  let observationQuality = null;
+  if (env.DB && tenant?.id) {
+    try {
+      observationQuality = await loadObservationQuality(env.DB, tenant.id, normalized);
+    } catch {
+      /* optional */
+    }
+  }
 
   let edgeActive = false;
   let edgeStatus = tenant?.edge_status ?? 'measurement_only';
@@ -505,6 +551,7 @@ export async function fetchDomainStrategy(env, domain, options = {}) {
     runCount,
     edgeActive,
     edgeStatus,
+    observationQuality,
   });
 
   return {

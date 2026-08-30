@@ -30,6 +30,14 @@ import {
   testRoadmapFreshSite,
   testPlanHeadlinePlainLanguage,
 } from './roadmap.js';
+import {
+  testFindingsThinContentWithEvidence,
+  testFindingsDisplacementWithExamples,
+  testFindingsMisattribution,
+  testFindingsToRecommendationsCompat,
+  testNoindexCapsScore,
+  testDetectNoindex,
+} from './findings.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
 import {
@@ -242,6 +250,12 @@ async function run() {
   testRoadmapCnameManualStep();
   testRoadmapFreshSite();
   testPlanHeadlinePlainLanguage();
+  testFindingsThinContentWithEvidence();
+  testFindingsDisplacementWithExamples();
+  testFindingsMisattribution();
+  testFindingsToRecommendationsCompat();
+  testNoindexCapsScore();
+  testDetectNoindex();
   testGenerateQuestions();
   testStepStatus();
   testNormalizeApexHost();

@@ -45,6 +45,10 @@ export function buildSiteBrief({ probe, brand, verticalLabel }) {
   if (probe?.robots_ai_policy === 'disallow_all') signals.push('robots_block');
   if ((probe?.price_tokens ?? 0) > 0) signals.push('has_prices');
   if ((probe?.raw_json?.redirect_chain?.length ?? 1) > 1) signals.push('redirect_chain');
+  if (probe?.signals?.noindex) signals.push('noindex');
+  if (probe?.signals?.js_shell_suspect) signals.push('js_shell');
+  if (probe?.signals?.brand_mentions === 0 && (probe?.html_text_chars ?? 0) > 100) signals.push('brand_absent');
+  if (probe?.signals?.sitemap_ok === false) signals.push('no_sitemap');
 
   return {
     domain: probe?.domain ?? null,

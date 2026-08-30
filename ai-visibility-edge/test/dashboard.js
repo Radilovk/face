@@ -24,6 +24,8 @@ export function testDashboardV2Page() {
   assert(html.includes('loadSiteStats'));
   assert(html.includes('info-btn'));
   assert(html.includes('metric-modal'));
+  assert(html.includes('optimization-roadmap'));
+  assert(html.includes('renderRoadmap'));
   assert(html.includes('interpretMetricNow'));
   assert(html.includes('admin-token'));
   assert(html.includes('Gemini'));

@@ -6,18 +6,21 @@
 export const HUMAN_GATES = {
   dns_cname: {
     id: 'dns_cname',
-    title: 'CNAME / DNS',
-    why: 'Само вие имате достъп до DNS/registrar — Edge не може да насочи домейна автоматично.',
+    title: 'CNAME / DNS насочване',
+    why: 'Само вие имате достъп до DNS — системата не може да смени записите вместо вас.',
+    short: 'Насочете домейна към Worker',
   },
   cms_publish: {
     id: 'cms_publish',
-    title: 'Публикуване на съдържание',
-    why: 'AI генерира draft — публикуването в CMS изисква човешка проверка на факти и тон.',
+    title: 'Публикуване на текст в сайта',
+    why: 'AI генерира текст — публикувате го в CMS след проверка на факти и цени.',
+    short: 'Копирайте draft в CMS',
   },
   strategic_review: {
     id: 'strategic_review',
-    title: 'Стратегическа преценка',
-    why: 'Чувствителна ниша или висок риск — прегледайте преди автоматични промени.',
+    title: 'Преглед преди автоматични промени',
+    why: 'Чувствителна ниша — прегледайте Edge настройките преди активиране.',
+    short: 'Прегледайте Edge config',
   },
 };
 
@@ -145,14 +148,14 @@ export function buildOptimizationPlan(ctx, env = {}) {
 
 function buildHeadline(ctx, auto, human) {
   if (auto.length === 0 && human.length === 0) {
-    return 'Оптимизацията е актуална — продължете мониторинг.';
+    return 'Всички автоматични стъпки са готови — продължете мониторинг.';
   }
-  if (auto.length > 0 && human.length === 0) {
-    return `${auto.length} автоматични действия готови за изпълнение.`;
+  if (human.length === 0) {
+    return `${auto.length} стъпки може да се изпълнят автоматично — натиснете Auto-оптимизация.`;
   }
-  const dnsOnly = human.length === 1 && human[0].gate === 'dns_cname';
-  if (auto.length > 0 && dnsOnly) {
-    return `${auto.length} auto + 1 DNS стъпка (единствената ръчна).`;
+  const manualTitles = human.map((h) => HUMAN_GATES[h.gate]?.short ?? h.gate).join(', ');
+  if (auto.length > 0) {
+    return `${auto.length} автоматични + ${human.length} ръчни: ${manualTitles}.`;
   }
-  return `${auto.length} auto + ${human.length} точки за човешка преценка.`;
+  return `${human.length} стъпки изискват ваше действие: ${manualTitles}.`;
 }

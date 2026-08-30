@@ -30,8 +30,8 @@ export function testMetricCatalogComplete() {
 }
 
 export function testInterpretMetricNowRuns() {
-  assert(interpretMetricNow('runs', { value: 0 }).includes('0 runs'));
-  assert(interpretMetricNow('runs', { value: 25 }).includes('25 runs'));
+  assert(interpretMetricNow('runs', { value: 0 }).includes('0 отговора'));
+  assert(interpretMetricNow('runs', { value: 25 }).includes('25 отговора'));
 }
 
 export function testInterpretMetricSov() {
@@ -40,8 +40,8 @@ export function testInterpretMetricSov() {
 }
 
 export function testInterpretMetricPending() {
-  assert(interpretMetricNow('pending_reprocess', { value: 0 }).includes('0'));
-  assert(interpretMetricNow('pending_reprocess', { value: 3 }).includes('3 runs'));
+  assert(interpretMetricNow('pending_reprocess', { value: 0 }).includes('проверени'));
+  assert(interpretMetricNow('pending_reprocess', { value: 3 }).includes('3'));
 }
 
 export function testMetricInfoClientScript() {

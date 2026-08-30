@@ -1,190 +1,185 @@
 /**
- * Metric / index explanations for dashboard info buttons.
+ * Metric explanations for dashboard ⓘ buttons — plain Bulgarian, no jargon.
  */
 
 export const METRIC_CATALOG = {
   diagnostic_score: {
-    title: 'Диагностичен score (0–100)',
+    title: 'Техническа оценка (0–100)',
     icon: '🎯',
     what:
-      'Комбинирана оценка от probe одита: robots достъп за AI, JSON-LD, обем четим HTML текст, canonical/redirect, price signals.',
+      'Колко добре е подготвен сайтът технически: дали AI ботовете могат да го четат, има ли описание на бизнеса, достатъчно ли е текстът на страницата.',
     why:
-      'Показва дали сайтът е технически „четим“ от AI crawlers. Нисък score = поправки преди да очаквате цитиране.',
+      'Ниска оценка означава, че AI може изобщо да не ви „вижда“, дори да имате добър продукт.',
     unit: 'точки',
   },
   runs: {
-    title: 'Runs — AI отговори',
+    title: 'AI отговори',
     icon: '📊',
     what:
-      'Брой записани raw отговори от OpenAI/Gemini (Perplexity опционално) на вашите BG въпроси. Всеки run = един модел × един въпрос.',
+      'Колко пъти сме задали въпроси на ChatGPT и Gemini и записали отговорите им за вашия сайт.',
     why:
-      'Без runs няма observations, SOV или история. Това е суровият актив — baseline и трендове се градят от тук.',
+      'Без отговори няма как да знаем дали AI ви препоръчва или пропуска.',
     unit: 'броя',
   },
   observations: {
-    title: 'Observations — верифицирани цитати',
+    title: 'Проверени цитати',
     icon: '🔍',
     what:
-      'Reprocess извлича URL цитати от AI отговорите и ги verify-ва (passage match, класификация: grounded / weak / misattributed).',
+      'Отговори, в които AI наистина е споменал ваш сайт или страница — проверени автоматично, не на доверие.',
     why:
-      'Отделя реално цитиране от AI „халюцинации“. SOV и displacement се смятат от observations, не от runs.',
+      'Различаваме реално споменаване от измислено — само проверените влизат в статистиката.',
     unit: 'броя',
   },
   sov: {
-    title: 'SOV — Share of Voice',
+    title: 'Дял от гласа в AI',
     icon: '📈',
     what:
-      'Доля от measurement sessions, в които вашият домейн е цитиран в периода (ISO седмица). Формула: runs_with_citation / sessions, cap 100%.',
+      'В колко процента от въпросите AI ви споменава (спрямо всички измервания за периода).',
     why:
-      'Отговаря на „AI препоръчва ли нас или конкурентите?“. Стабилен тренд иска 4+ седмици данни.',
+      'Отговаря на въпроса: „Когато някой пита AI за вашата ниша, дава ли ви или само конкурентите?“',
     unit: '%',
   },
   pending_reprocess: {
-    title: 'Чака reprocess',
+    title: 'Чака проверка',
     icon: '⏳',
     what:
-      'Runs с raw отговор, но без observations — още не са verify-нати и класифицирани.',
+      'AI отговори, които още не са прегледани за реални цитати към ваш сайт.',
     why:
-      'Докато pending > 0, SOV и displacement са непълни. Reprocess е без LLM cost (само HTTP verify).',
+      'Докато има необработени — процентите за цитиране и конкуренция са занижени.',
     unit: 'броя',
   },
   cache_median: {
-    title: 'Cache age — median (часове)',
+    title: 'Средна възраст на кеша (часове)',
     icon: '⏱',
     what:
-      'Median на възрастта на кешираното съдържание (bot hit ↔ observation correlate или dateModified от цитирана страница).',
+      'Колко „стара“ е версията на сайта, която AI вероятно ползва (средна стойност в часове).',
     why:
-      'AI моделите често ползват cached/indexed версии. По-стар cache = по-бавно отразяване на вашите промени.',
+      'Ако кешът е стар, промените ви в сайта се отразяват в AI със закъснение.',
     unit: 'часа',
   },
   cache_p25: {
-    title: 'Cache age — P25',
+    title: 'Най-свежите 25% страници',
     icon: '📉',
-    what: '25-ти перцентил на cache age — 25% от observations са по-„свежи“ от тази стойност.',
-    why: 'Показва „добрата“ част от индекса — полезно при смес от свежи и остарели страници.',
+    what: 'Четири от всеки 100 цитата са по-свежи от тази стойност (в часове).',
+    why: 'Показва най-добрата част от индекса — полезно ако имате и стари, и нови страници.',
     unit: 'часа',
   },
   cache_p75: {
-    title: 'Cache age — P75',
+    title: 'По-старите 75% страници',
     icon: '📈',
-    what: '75-ти перцентил — 75% от observations са по-„стари“ от тази стойност.',
-    why: 'Висок P75 = значителна част от AI вижда остаряло съдържание.',
+    what: 'Три четвърти от цитатите са по-стари от тази стойност (в часове).',
+    why: 'Висока стойност = голяма част от AI вижда остаряла информация.',
     unit: 'часа',
   },
   cache_coverage: {
-    title: 'Cache index покритие',
+    title: 'Покритие на кеш индекса',
     icon: '🗂',
-    what:
-      'Доля observations с изчислен cache age в 72h прозореца (bot log correlate или dateModified).',
-    why:
-      'Под 50% = индексът е ориентир, не пълен. Нужни verified bot hits или dateModified в HTML.',
+    what: 'Колко процента от цитатите имат изчислена „възраст на кеша“ (последните 3 дни).',
+    why: 'Под 50% — цифрите са ориентир; нужни са bot логове или дата на промяна в HTML.',
     unit: '%',
   },
   bot_verified: {
-    title: 'Bot hits — verified',
+    title: 'Посещения от AI ботове (потвърдени)',
     icon: '🤖',
     what:
-      'Verified посещения от известни AI/crawler bots (GPTBot, Google-Extended и др.) през Edge bot log (7 дни).',
+      'Реални посещения от известни AI/crawler ботове (GPTBot и др.) през последните 7 дни.',
     why:
-      'Доказва реален crawl на tenant трафик след CNAME. Корелира с cache-index за вашия домейн.',
+      'Доказва, че ботовете наистина стигат до сайта след насочване през Edge.',
     unit: 'броя',
   },
   bot_fake: {
-    title: 'Bot hits — unverified',
+    title: 'Съмнителни bot посещения',
     icon: '⚠️',
     what:
-      'Заявки с bot User-Agent, но без Cloudflare bot verification flag — вероятно spoofed.',
-    why:
-      'Не се броят за cache correlate. Високо число = шум в логовете, не реален AI crawl.',
+      'Заявки, които твърдят, че са ботове, но не минават проверка — вероятно фалшиви.',
+    why: 'Не се броят в статистиката — само шум в логовете.',
     unit: 'броя',
   },
   pillar_visibility: {
-    title: 'Пиляр: Видимост',
+    title: 'Видимост за AI',
     icon: '👁',
-    what: 'Robots.txt политика, HTTP достъп, блокирани AI bots, техническа „отвореност“ към crawlers.',
-    why: 'Ако AI не може да чете сайта, няма какво да цитира — първи слой преди content и SOV.',
+    what: 'Дали AI ботовете имат право и техническа възможност да четат сайта.',
+    why: 'Първа стъпка — без нея няма смисъл от съдържание и измерване.',
     unit: 'статус',
   },
   pillar_content: {
-    title: 'Пиляр: Съдържание',
+    title: 'Съдържание на сайта',
     icon: '📝',
-    what: 'Обем и автономност на HTML текст (passage autonomy), thin content, ценови сигнали.',
-    why: 'AI цитира самостоятелни пасажи с марка/факти — не JS widget или празен root redirect.',
+    what: 'Дали има достатъчно текст, факти и цени, които AI може да цитира.',
+    why: 'AI цитира ясни пасажи с марка и факти — не празни или скрити в JS страници.',
     unit: 'статус',
   },
   pillar_citation: {
-    title: 'Пиляр: AI цитиране',
+    title: 'Реално AI цитиране',
     icon: '🤖',
-    what: 'Реални runs, observations, SOV и дали домейнът се появява в AI отговори.',
-    why: 'Измерва резултата от оптимизацията — не само технически одит, а реална AI видимост.',
+    what: 'Дали AI моделите вече ви споменават в отговорите си.',
+    why: 'Показва реалния резултат — не само технически одит, а дали AI ви препоръчва.',
     unit: 'статус',
   },
   pillar_competition: {
-    title: 'Пиляр: Конкуренция',
+    title: 'Конкуренция в AI',
     icon: '⚔️',
-    what: 'Displacement — AI изброява конкуренти от вертикала, но не и вашия домейн.',
-    why: 'Директен сигнал за изгубена видимост в category queries — приоритет за content и measure.',
+    what: 'Дали AI дава конкурентите, но пропуска вас при въпроси за категорията.',
+    why: 'Директен сигнал, че губите видимост спрямо другите в нишата.',
     unit: 'статус',
   },
   displacement_rate: {
-    title: 'Displacement rate',
+    title: 'Изместване от конкуренти',
     icon: '⚠️',
     what:
-      'Доля runs, в които конкуренти са споменати, а tenant домейнът липсва (при tracked competitors).',
+      'Колко често AI споменава конкуренти, но не и вас (при проследявани конкуренти).',
     why:
-      'Най-директният KPI за „изместване“ — клиентът пита за категорията, AI дава други марки.',
+      'Когато клиент пита „коя марка да избера“, AI дава други — вие липсвате.',
     unit: '%',
   },
   baseline_gate: {
-    title: 'Baseline (Блок 0.1)',
+    title: 'Начална референция (baseline)',
     icon: '📦',
     what:
-      'Исторически snapshot на AI отговори (20×2+ модела) в KV/D1 — референция за delta и SOV тренд.',
+      'Запазен „снимка“ на AI отговорите в началото — за сравнение след оптимизация.',
     why:
-      'Без baseline не може да се докаже промяна след оптимизация. Седмичен collect пази версионирана история.',
+      'Без референция не може да се докаже, че нещо се е подобрило след промените.',
     unit: 'статус',
   },
   drift: {
-    title: 'Drift детектори',
+    title: 'Системни аларми',
     icon: '🔔',
     what:
-      'Автоматични аларми: stale runs, adapter schema drift, config expiry, bot log аномалии.',
-    why:
-      'Хваща „тихо разваляне“ — изключен cron, променен API формат, липса на measurement.',
+      'Автоматични предупреждения: спряло измерване, променен API, изтекла конфигурация.',
+    why: 'Хваща проблеми, преди да загубите данни или да спре оптимизацията.',
     unit: 'аларми',
   },
   edge_status: {
-    title: 'Edge оптимизация',
+    title: 'Edge оптимизация (Worker)',
     icon: '⚡',
     what:
-      'Cloudflare Worker proxy: auto JSON-LD, robots.txt, canonical — без CMS промени след CNAME.',
+      'Автоматични технически поправки през Cloudflare Worker: описание на бизнеса, robots, canonical.',
     why:
-      'Технически fixes live за всички посетители и bots. Различно от marketing copy (CMS).',
+      'Работи без промени в CMS — но изисква CNAME насочване на домейна.',
     unit: 'статус',
   },
   optimizer: {
-    title: 'Автономна оптимизация',
+    title: 'Auto-оптимизация',
     icon: '🤖',
     what:
-      'Gemini + правила изпълняват pipeline, edge activate, content drafts. Човек само при DNS/CMS.',
+      'Един бутон пуска одит, въпроси, измерване и Edge конфиг. Част от стъпките (DNS, CMS текст) са ваши — вижте „План на оптимизация“.',
     why:
-      'Минимизира ръчни стъпки — един бутон за measure → fix → draft цикъл.',
+      'Спестява ръчно кликане; ясно показва какво системата прави и какво остава на вас.',
     unit: 'режим',
   },
   questions: {
     title: 'Въпроси за измерване',
     icon: '❓',
     what:
-      'Curated BG въпроси (manual/auto/Gemini site-aware) — какво питаме AI моделите за вашата ниша.',
-    why:
-      'Качеството на въпросите определя релевантността на SOV. Лош въпрос = безполезен run.',
+      'Български въпроси, с които питаме AI — какво би попитал клиент за вашата ниша.',
+    why: 'Лоши или общи въпроси дават безполезни отговори и подвеждащи проценти.',
     unit: 'броя',
   },
 };
 
 export function interpretMetricNow(id, ctx = {}) {
   const m = METRIC_CATALOG[id];
-  if (!m) return 'Няма описание за този индекс.';
+  if (!m) return 'Няма описание за този показател.';
 
   function n(v) {
     if (v == null || Number.isNaN(Number(v))) return null;
@@ -194,94 +189,94 @@ export function interpretMetricNow(id, ctx = {}) {
   switch (id) {
     case 'diagnostic_score': {
       const s = n(ctx.value);
-      if (s == null) return 'Още няма одит — пуснете анализ.';
-      if (s >= 75) return `${s}/100 — добър технически фундамент; фокус върху measure и content.`;
-      if (s >= 50) return `${s}/100 — среден; има конкретни probe fixes (robots, JSON-LD, текст).`;
-      return `${s}/100 — критични блокери; AI вероятно не може да чете/цитира сайта.`;
+      if (s == null) return 'Още няма одит — натиснете „1. Анализ“.';
+      if (s >= 75) return `${s}/100 — добре технически; фокус върху измерване и текст.`;
+      if (s >= 50) return `${s}/100 — има какво да се оправи (robots, описание, текст).`;
+      return `${s}/100 — сериозни блокери; AI вероятно не може да прочете сайта.`;
     }
     case 'runs': {
       const v = n(ctx.value);
-      if (!v) return '0 runs — пуснете анализ или Auto-оптимизация за първи AI snapshot.';
-      if (v < 10) return `${v} runs — пилот; достатъчно за тест, малко за SOV тренд.`;
-      if (v < 40) return `${v} runs — добър старт; продължете седмичния cron.`;
-      return `${v} runs — солидна база за SOV, displacement и cache-index.`;
+      if (!v) return '0 отговора — пуснете анализ или Auto-оптимизация.';
+      if (v < 10) return `${v} отговора — достатъчно за тест, малко за тренд.`;
+      if (v < 40) return `${v} отговора — добър старт; продължете с измервания.`;
+      return `${v} отговора — солидна база за статистика.`;
     }
     case 'observations': {
       const v = n(ctx.value);
       const runs = n(ctx.runs);
-      if (!v) return runs ? 'Runs има, но липсват observations — натиснете Reprocess.' : 'Няма verify-нати цитати.';
-      return `${v} observations — ${runs ? Math.round((v / runs) * 100) : '—'}% от runs са класифицирани.`;
+      if (!v) return runs ? 'Има отговори, но още не са проверени — натиснете Reprocess.' : 'Няма проверени цитати.';
+      return `${v} проверени цитати (${runs ? Math.round((v / runs) * 100) : '—'}% от отговорите).`;
     }
     case 'sov': {
       const v = n(ctx.value);
-      if (v == null) return 'SOV изисква observations + vertical — нужни са повече runs.';
-      if (v === 0) return '0% — домейнът не се цитира в текущия период; проверете displacement и content.';
-      if (v < 15) return `${v.toFixed(1)}% — слабо присъствие; конкуренти вероятно доминират.`;
-      if (v < 40) return `${v.toFixed(1)}% — умерена видимост; оптимизацията има ефект.`;
-      return `${v.toFixed(1)}% — силно AI присъствие в вертикала за този период.`;
+      if (v == null) return 'Нужни са повече проверени цитати за процент.';
+      if (v === 0) return '0% — AI не ви споменава; проверете конкуренцията и текста на сайта.';
+      if (v < 15) return `${v.toFixed(1)}% — слабо присъствие; конкурентите вероятно доминират.`;
+      if (v < 40) return `${v.toFixed(1)}% — умерено; оптимизацията работи.`;
+      return `${v.toFixed(1)}% — силно присъствие в AI за този период.`;
     }
     case 'pending_reprocess': {
       const v = n(ctx.value);
-      if (!v) return '0 — всички runs са обработени; SOV е актуален.';
-      return `${v} runs чакат verify — SOV/displacement са занижени докато не пуснете Reprocess.`;
+      if (!v) return 'Всички отговори са проверени.';
+      return `${v} чакат проверка — процентите са непълни до Reprocess.`;
     }
     case 'cache_median': {
       const v = n(ctx.value);
-      if (v == null) return 'Няма correlate данни — нужни bot hits или dateModified в HTML.';
-      if (v < 24) return `Median ${v.toFixed(1)}h — относително свеж AI cache.`;
-      if (v < 72) return `Median ${v.toFixed(1)}h — умерено остаряване; промените се отразяват за 1–3 дни.`;
-      return `Median ${v.toFixed(1)}h — стар cache; AI може да цитира outdated версия.`;
+      if (v == null) return 'Няма данни — нужни bot посещения или дата на промяна в HTML.';
+      if (v < 24) return `Средно ${v.toFixed(1)} ч — относително свежо.`;
+      if (v < 72) return `Средно ${v.toFixed(1)} ч — промените се виждат след 1–3 дни.`;
+      return `Средно ${v.toFixed(1)} ч — стар кеш; AI може да цитира остаряла версия.`;
     }
     case 'cache_p25':
     case 'cache_p75': {
       const v = n(ctx.value);
-      if (v == null) return 'Изчислява се след cache-index correlate.';
-      return `${v.toFixed(1)} часа — перцентил в 72h прозореца на observations.`;
+      if (v == null) return 'Ще се изчисли след повече данни.';
+      return `${v.toFixed(1)} часа (прозорец 72 ч).`;
     }
     case 'cache_coverage': {
       const v = n(ctx.value);
-      if (v == null) return 'Няма покритие — insufficient bot/dateModified signals.';
-      if (v < 30) return `${Math.round(v)}% — ниско; cache-index е ориентир, не пълен.`;
-      if (v < 70) return `${Math.round(v)}% — частично; добавете Edge bot log (CNAME).`;
-      return `${Math.round(v)}% — добро покритие за cache age анализ.`;
+      if (v == null) return 'Няма достатъчно сигнали за изчисление.';
+      if (v < 30) return `${Math.round(v)}% — ориентир, не пълна картина.`;
+      if (v < 70) return `${Math.round(v)}% — частично; добавете CNAME за bot логове.`;
+      return `${Math.round(v)}% — добро покритие.`;
     }
     case 'bot_verified': {
       const v = n(ctx.value);
-      if (!v) return '0 verified hits — CNAME + Edge bot log или изчакайте crawl.';
-      return `${v} verified bot visits (7d) — реален AI/crawler трафик към tenant.`;
+      if (!v) return '0 — настройте CNAME и изчакайте bot crawl.';
+      return `${v} потвърдени посещения (7 дни).`;
     }
     case 'bot_fake': {
       const v = n(ctx.value);
-      if (!v) return '0 — няма spoofed bot UA шум.';
-      return `${v} unverified — вероятно fake bots; не влияят на cache-index.`;
+      if (!v) return 'Няма съмнителен шум.';
+      return `${v} непотвърдени — не влияят на статистиката.`;
     }
     case 'pillar_visibility':
     case 'pillar_content':
     case 'pillar_citation':
     case 'pillar_competition':
       return ctx.status
-        ? `Сега: ${ctx.status}${ctx.action ? ' → ' + ctx.action : ''}`
-        : 'Заредете стратегия за актуален статус на пилара.';
+        ? `Сега: ${ctx.status}${ctx.action ? '. Следва: ' + ctx.action : ''}`
+        : 'Заредете сайт за актуален статус.';
     case 'displacement_rate': {
       const v = n(ctx.value);
-      if (v == null) return 'Нужни са runs + tracked competitors във vertical.';
-      if (v >= 0.4) return `${Math.round(v * 100)}% displacement — често изброяват конкуренти без вас.`;
-      if (v >= 0.15) return `${Math.round(v * 100)}% — периодично изместване; content + measure приоритет.`;
+      if (v == null) return 'Нужни са измервания и проследявани конкуренти.';
+      if (v >= 0.4) return `${Math.round(v * 100)}% — често дават конкуренти без вас.`;
+      if (v >= 0.15) return `${Math.round(v * 100)}% — периодично изместване; подобрете текст и измерване.`;
       return `${Math.round(v * 100)}% — ниско изместване в текущите данни.`;
     }
     case 'baseline_gate':
-      return ctx.message ?? 'Baseline gate — вижте banner за pilot/closed статус.';
+      return ctx.message ?? 'Вижте banner-а за статус на baseline.';
     case 'drift':
-      return ctx.message ?? (ctx.critical ? 'Critical drift — проверете алармите.' : 'Системата е стабилна.');
+      return ctx.message ?? (ctx.critical ? 'Има критични аларми — проверете.' : 'Системата е стабилна.');
     case 'edge_status':
-      return ctx.message ?? 'Edge — вижте panel за fixes и CNAME стъпки.';
+      return ctx.message ?? 'Вижте Edge панела и плана на оптимизация.';
     case 'optimizer':
-      return ctx.message ?? 'Auto-оптимизация — вижте plan и human gates.';
+      return ctx.message ?? 'Вижте „План на оптимизация“ за текущи стъпки.';
     case 'questions': {
       const v = n(ctx.value);
-      if (!v) return 'Няма въпроси — Auto-генерирай или пуснете анализ.';
-      if (v < 5) return `${v} въпроса — минимум 5 за стабилен tenant measure.`;
-      return `${v} въпроса — OK за pipeline measure.`;
+      if (!v) return 'Няма въпроси — генерирайте или пуснете анализ.';
+      if (v < 5) return `${v} въпроса — нужни са поне 5.`;
+      return `${v} въпроса — готови за измерване.`;
     }
     default:
       return m.what;

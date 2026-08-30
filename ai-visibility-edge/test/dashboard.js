@@ -26,6 +26,9 @@ export function testDashboardV2Page() {
   assert(html.includes('metric-modal'));
   assert(html.includes('findings-panel'));
   assert(html.includes('renderFindings'));
+  assert(html.includes('finding-apply'));
+  assert(html.includes('finding-manual-save'));
+  assert(html.includes('applyFindingFix'));
   assert(html.includes('renderRoadmap'));
   assert(html.includes('interpretMetricNow'));
   assert(html.includes('admin-token'));

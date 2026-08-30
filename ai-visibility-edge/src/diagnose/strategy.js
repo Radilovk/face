@@ -45,6 +45,7 @@ export function buildStrategy(input = {}) {
     edgeActive = false,
     edgeStatus = 'measurement_only',
     observationQuality = null,
+    worker_host,
   } = input;
 
   const brand = tenant?.name ?? null;
@@ -57,6 +58,7 @@ export function buildStrategy(input = {}) {
     observationQuality,
     tenant,
     edgeActive,
+    worker_host,
   });
 
   const recommendations = findingsToRecommendations(findingsPack.findings);
@@ -552,6 +554,7 @@ export async function fetchDomainStrategy(env, domain, options = {}) {
     edgeActive,
     edgeStatus,
     observationQuality,
+    worker_host: options.worker_host ?? env?.WORKER_PUBLIC_HOST,
   });
 
   return {

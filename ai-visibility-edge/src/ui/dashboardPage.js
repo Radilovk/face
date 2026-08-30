@@ -510,8 +510,12 @@ function script(origin) {
       $('findings-count-badge').textContent = critical + ' критични · ' + warning + ' предупр.';
       $('findings-count-badge').className = 'advisor-badge ' + (critical > 0 ? 'err' : warning > 0 ? 'warn' : 'ok');
       $('findings-summary').textContent = strategyData.findings_summary || '';
+
+      const modeLabel = { auto: '🤖 Автоматично', semi_auto: '🤖+👤 Auto + publish', manual: '👤 Ръчно' };
+
       $('findings-list').innerHTML = findings.map(f => {
         const sevClass = 'finding-' + f.severity;
+        const auto = f.automation || {};
         const ev = f.evidence || {};
         const evLines = [];
         if (ev.url) evLines.push('URL: ' + ev.url);
@@ -530,15 +534,105 @@ function script(origin) {
         const evHtml = evLines.length
           ? '<ul class="finding-evidence">' + evLines.map(l => '<li>' + escHtml(l) + '</li>').join('') + '</ul>'
           : '';
-        const steps = (f.fix?.steps || []).length
-          ? '<ol class="finding-steps">' + f.fix.steps.map(s => '<li>' + escHtml(s) + '</li>').join('') + '</ol>'
+
+        const artifactHtml = auto.artifact?.content
+          ? '<details class="finding-artifact"><summary>Draft: ' + escHtml(auto.artifact.title || 'artifact') + '</summary>' +
+            '<pre class="finding-artifact-pre">' + escHtml(auto.artifact.content.slice(0, 1500)) + '</pre></details>'
           : '';
+
+        let manualHtml = '';
+        if (auto.manual_form?.fields?.length) {
+          manualHtml = '<div class="finding-manual" data-finding-id="' + escHtml(f.id) + '">' +
+            '<p class="finding-manual-title">' + escHtml(auto.manual_form.title) + '</p>' +
+            (auto.manual_form.hint ? '<p class="sub mono">' + escHtml(auto.manual_form.hint) + '</p>' : '') +
+            auto.manual_form.fields.map(field => {
+              if (field.type === 'checkbox') {
+                return '<label class="finding-field"><input type="checkbox" data-field="' + escHtml(field.id) + '"> ' + escHtml(field.label) + '</label>';
+              }
+              if (field.type === 'textarea') {
+                return '<label class="finding-field">' + escHtml(field.label) +
+                  '<textarea data-field="' + escHtml(field.id) + '" rows="2" placeholder="' + escHtml(field.placeholder || '') + '"></textarea></label>';
+              }
+              return '<label class="finding-field">' + escHtml(field.label) +
+                '<input type="text" data-field="' + escHtml(field.id) + '" placeholder="' + escHtml(field.placeholder || '') + '"></label>';
+            }).join('') +
+            '<button type="button" class="btn btn-sm btn-ghost finding-manual-save" data-finding-id="' + escHtml(f.id) + '">Запази ръчна стъпка</button></div>';
+        }
+
+        const applyBtn = auto.can_apply_now && auto.action
+          ? '<button type="button" class="btn btn-sm finding-apply" data-finding-id="' + escHtml(f.id) + '" data-intent="' + escHtml(auto.intent || '') + '">' +
+            escHtml(auto.label || 'Приложи автоматично') + '</button>'
+          : '';
+
         return '<li class="finding-card ' + sevClass + '">' +
           '<div class="finding-head"><span class="finding-cat">' + escHtml(f.category) + '</span>' +
+          '<span class="finding-mode">' + escHtml(modeLabel[auto.mode] || '') + '</span>' +
           '<strong>' + escHtml(f.title) + '</strong></div>' +
           '<p class="finding-impact">' + escHtml(f.impact) + '</p>' +
-          evHtml + steps + '</li>';
+          evHtml + artifactHtml +
+          '<div class="finding-actions">' + applyBtn + '</div>' +
+          (auto.note ? '<p class="finding-note sub">' + escHtml(auto.note) + '</p>' : '') +
+          manualHtml + '</li>';
       }).join('');
+
+      panel.querySelectorAll('.finding-apply').forEach(btn => {
+        btn.onclick = () => applyFindingFix(btn.dataset.findingId, btn.dataset.intent || null);
+      });
+      panel.querySelectorAll('.finding-manual-save').forEach(btn => {
+        btn.onclick = () => saveFindingManual(btn.dataset.findingId, btn.closest('.finding-manual'));
+      });
+    }
+
+    async function applyFindingFix(findingId, intent) {
+      if (!selectedDomain || busy) return;
+      busy = true;
+      log('Auto-fix: ' + findingId + '…');
+      try {
+        const manualInput = collectManualInput(findingId);
+        const res = await apiFetch('/api/findings/' + encodeURIComponent(selectedDomain) + '/apply', {
+          method: 'POST',
+          body: JSON.stringify({ finding_id: findingId, intent, manual_input: manualInput }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.message || res.status);
+        log('Fix OK: ' + findingId + ' — ' + (data.result?.message || data.action || 'готово'));
+        await loadStrategy();
+        await loadOptimizer();
+      } catch (e) {
+        log('Fix: ' + e.message);
+      } finally {
+        busy = false;
+      }
+    }
+
+    function collectManualInput(findingId) {
+      const box = document.querySelector('.finding-manual[data-finding-id="' + findingId + '"]');
+      if (!box) return null;
+      const out = {};
+      box.querySelectorAll('[data-field]').forEach(el => {
+        const key = el.dataset.field;
+        out[key] = el.type === 'checkbox' ? el.checked : el.value;
+      });
+      return Object.keys(out).length ? out : null;
+    }
+
+    async function saveFindingManual(findingId, box) {
+      if (!selectedDomain) return;
+      const manual_input = {};
+      box.querySelectorAll('[data-field]').forEach(el => {
+        manual_input[el.dataset.field] = el.type === 'checkbox' ? el.checked : el.value;
+      });
+      try {
+        const res = await apiFetch('/api/findings/' + encodeURIComponent(selectedDomain) + '/apply', {
+          method: 'POST',
+          body: JSON.stringify({ finding_id: findingId, manual_only: true, manual_input }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.status);
+        log('Ръчна стъпка записана: ' + findingId);
+      } catch (e) {
+        log('Ръчна стъпка: ' + e.message);
+      }
     }
 
     function renderPillars(pillars) {
@@ -1154,6 +1248,16 @@ h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted);text-transform:uppercase
 .finding-evidence,.finding-steps{margin:.45rem 0 0 1rem;padding:0;font-size:.8rem;color:var(--muted)}
 .finding-evidence li,.finding-steps li{margin:.2rem 0}
 .finding-steps{color:var(--accent)}
+.finding-mode{font-size:.65rem;color:var(--accent);display:block;margin:.15rem 0}
+.finding-actions{margin:.5rem 0 .25rem}
+.finding-note{margin:.25rem 0 0;font-size:.8rem}
+.finding-artifact{margin:.5rem 0;font-size:.8rem}
+.finding-artifact-pre{max-height:140px;overflow:auto;font-size:.7rem;background:var(--bg);padding:.5rem;border-radius:6px;margin:.35rem 0 0}
+.finding-manual{margin-top:.65rem;padding:.65rem;background:var(--bg);border-radius:8px;border:1px dashed var(--border)}
+.finding-manual-title{font-size:.8rem;font-weight:600;margin:0 0 .35rem}
+.finding-field{display:flex;flex-direction:column;gap:.2rem;font-size:.75rem;color:var(--muted);margin:.35rem 0}
+.finding-field input,.finding-field textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.35rem .5rem;border-radius:6px}
+.finding-field input[type=checkbox]{width:auto;align-self:flex-start}
 .draft-preview{max-height:200px;overflow:auto;font-size:.75rem;background:#1e293b;padding:.75rem;border-radius:6px;white-space:pre-wrap}
 .human-gate{color:#fbbf24}
 .info-btn{position:absolute;top:0;right:0;transform:translate(50%,-30%);width:1.25rem;height:1.25rem;padding:0;border:1px solid var(--border);border-radius:50%;background:var(--surface2);color:var(--muted);font-size:.65rem;line-height:1.1;cursor:pointer;z-index:2}

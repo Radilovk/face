@@ -3,6 +3,7 @@
  */
 
 import { passageAutonomy } from './score.js';
+import { enrichFindingsWithAutomation } from './findingsAutomation.js';
 
 const SEVERITY_ORDER = { critical: 0, warning: 1, info: 2, ok: 3 };
 
@@ -84,7 +85,13 @@ export function buildSiteFindings(input = {}) {
   }
 
   return {
-    findings: sortFindings(findings),
+    findings: enrichFindingsWithAutomation(sortFindings(findings), {
+      probe,
+      brand,
+      tenant,
+      edgeActive,
+      worker_host: input.worker_host,
+    }),
     summary: summarizeFindings(findings),
     categories: countByCategory(findings),
   };

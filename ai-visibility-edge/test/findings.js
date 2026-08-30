@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { buildSiteFindings, findingsToRecommendations } from '../src/diagnose/findings.js';
+import { enrichFindingsWithAutomation, resolveAutomationSpec } from '../src/diagnose/findingsAutomation.js';
 import { detectNoindexSignals } from '../src/diagnose/probe.js';
 import { computeDiagnosticScore } from '../src/diagnose/score.js';
 
@@ -97,4 +98,72 @@ export function testNoindexCapsScore() {
 export function testDetectNoindex() {
   assert(detectNoindexSignals('<meta name="robots" content="noindex,nofollow">'));
   assert(!detectNoindexSignals('<meta name="robots" content="index,follow">'));
+}
+
+export function testFindingsAutomationOnEveryFinding() {
+  const pack = buildSiteFindings({
+    probe: thinProbe,
+    brand: 'ShopBG',
+    tenant: { apex_host: 'shop.bg', name: 'ShopBG', vertical_name: 'health' },
+    edgeActive: false,
+    worker_host: 'edge.example.workers.dev',
+    observationQuality: {
+      total_observations: 20,
+      misattributed_count: 4,
+      misattribution_rate: 0.2,
+      fabricated_count: 1,
+      by_model: [{ model: 'openai', runs_with_obs: 5, grounded: 0, misattributed: 2 }],
+      negative_samples: [],
+      stale_cache: { count: 2, avg_age_hours: 96 },
+    },
+    displacement: {
+      displacement_rate: 0.55,
+      displaced_count: 5,
+      total_runs: 9,
+      events: [],
+      by_model: { openai: { total: 4, rate: 0.75 } },
+    },
+  });
+
+  assert(pack.findings.length > 0);
+  for (const f of pack.findings) {
+    assert(f.automation, `missing automation for ${f.id}`);
+    assert(f.automation.mode, `missing mode for ${f.id}`);
+    assert(f.automation.label || f.automation.mode === 'manual', `missing label for ${f.id}`);
+    if (f.automation.mode !== 'manual') {
+      assert(f.automation.action, `missing action for ${f.id}`);
+      assert(f.automation.can_apply_now, `cannot apply ${f.id}`);
+    }
+  }
+
+  const robots = pack.findings.find((f) => f.id === 'missing_jsonld');
+  assert(robots?.automation?.artifact?.content?.includes('application/ld+json'));
+  assert(robots?.automation?.manual_form?.id === 'cname');
+
+  const httpErr = pack.findings.find((f) => f.id === 'http_error');
+  if (httpErr) {
+    assert.equal(httpErr.automation.mode, 'manual');
+    assert.equal(httpErr.automation.action, null);
+    assert(httpErr.automation.manual_form?.fields?.length >= 2);
+  }
+}
+
+export function testFindingsHttpErrorManualOnly() {
+  const pack = buildSiteFindings({
+    probe: { ...thinProbe, http_status: 503 },
+    brand: 'ShopBG',
+  });
+  const err = pack.findings.find((f) => f.id === 'http_error');
+  assert(err);
+  assert.equal(err.automation.mode, 'manual');
+  assert.equal(err.automation.action, null);
+  assert(!err.automation.can_apply_now);
+  assert.equal(err.automation.manual_form.id, 'hosting');
+}
+
+export function testResolveAutomationSpecDynamicIds() {
+  const model = resolveAutomationSpec('model_gap_openai');
+  assert.equal(model.action, 'run_auto_optimizer');
+  const disp = resolveAutomationSpec('displacement_perplexity');
+  assert.equal(disp.action, 'displacement_optimize');
 }

@@ -27,6 +27,7 @@ import { getApplyPlan, runApplyPrep } from './api/apply.js';
 import { getEdgeDecision, activateEdgeOptimization, getEdgeStatus } from './api/edge.js';
 import { handleAdvisorStatus, handleAdvisorChat } from './api/advisor.js';
 import { fetchOptimizerPlan, runOptimizer, fetchOptimizerStatus } from './api/optimizer.js';
+import { applyFindingFix, saveFindingManualOnly } from './api/findingsApply.js';
 import { isPlatformHost } from './config/platform.js';
 import { loadEdgeConfig } from './config/tenantEdge.js';
 import { handleTenantRequest } from './enhance/handleTenant.js';
@@ -248,6 +249,25 @@ async function handleRequest(request, env, ctx) {
   if (strategyMatch) {
     const strategy = await fetchDomainStrategy(env, decodeURIComponent(strategyMatch[1]));
     return json(strategy);
+  }
+
+  const findingApplyMatch = url.pathname.match(/^\/api\/findings\/([^/]+)\/apply$/);
+  if (findingApplyMatch && request.method === 'POST') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
+    const domain = decodeURIComponent(findingApplyMatch[1]);
+    const body = await request.json().catch(() => ({}));
+    if (!body.finding_id) return json({ error: 'finding_id_required' }, 400);
+    const result = body.manual_only
+      ? await saveFindingManualOnly(env, domain, body.finding_id, body.manual_input ?? {})
+      : await applyFindingFix(env, domain, body.finding_id, {
+          manual_input: body.manual_input,
+          intent: body.intent,
+          max_actions: body.max_actions,
+        });
+    return json(result, result.error || result.status === 'error' ? 400 : 200);
   }
 
   const pipelineMatch = url.pathname.match(/^\/api\/pipeline\/([^/]+)$/);

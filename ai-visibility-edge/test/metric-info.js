@@ -3,6 +3,7 @@ import {
   METRIC_CATALOG,
   interpretMetricNow,
   buildMetricInfoClientScript,
+  sanitizeMetricClientFn,
   pillarMetricId,
 } from '../src/ui/metricInfo.js';
 
@@ -47,6 +48,16 @@ export function testMetricInfoClientScript() {
   const js = buildMetricInfoClientScript();
   assert(js.includes('METRIC_CATALOG'));
   assert(js.includes('function interpretMetricNow'));
+  assert(!js.includes('__name'), 'client script must not contain esbuild __name helpers');
+}
+
+export function testSanitizeMetricClientFn() {
+  const bundled =
+    'export function interpretMetricNow(id){const n=/* @__PURE__ */ __name((v)=>v,"n"); function n(v){return v;} __name(n,"n");}';
+  const clean = sanitizeMetricClientFn(bundled);
+  assert(clean.startsWith('function interpretMetricNow'));
+  assert(!clean.includes('__name'));
+  assert(clean.includes('function n(v){return v;}'));
 }
 
 export function testPillarMetricId() {

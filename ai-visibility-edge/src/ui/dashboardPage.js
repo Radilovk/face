@@ -93,9 +93,18 @@ export function renderDashboardPage(origin) {
         </details>
       </section>
 
-      <section id="findings-panel" class="findings-panel hidden" aria-label="Слабости">
+      <section id="manual-workbench" class="manual-workbench hidden" aria-label="Ръчни задачи">
         <div class="findings-head">
-          <h3 class="findings-subhead">Слабости с auto-fix</h3>
+          <h3 class="findings-subhead">👤 Ръчни задачи</h3>
+          <span id="manual-count-badge" class="advisor-badge">—</span>
+        </div>
+        <p class="sub manual-hint">Копирайте draft → CMS/DNS → маркирайте „Готово“. Без admin token.</p>
+        <ul id="manual-task-list" class="manual-task-list"></ul>
+      </section>
+
+      <section id="findings-panel" class="findings-panel hidden" aria-label="Автоматични поправки">
+        <div class="findings-head">
+          <h3 class="findings-subhead">🤖 Автоматични поправки</h3>
           <span id="findings-count-badge" class="advisor-badge">—</span>
         </div>
         <p id="findings-summary" class="findings-summary sub hidden">…</p>
@@ -502,9 +511,142 @@ function script(origin) {
       $('verdict-summary').textContent = v?.summary || '';
     }
 
+    function mergeApplyManualTasks(tasks, applyPlan) {
+      const out = [...(tasks || [])];
+      const seen = new Set(out.map(t => t.id));
+      for (const fix of applyPlan?.fixes ?? []) {
+        if (fix.type !== 'manual') continue;
+        const id = 'apply_' + fix.id;
+        if (seen.has(id) || seen.has(fix.id)) continue;
+        seen.add(id);
+        out.push({
+          id,
+          source: 'apply_plan',
+          title: fix.title,
+          instructions: fix.instructions ?? null,
+          artifact: fix.artifact
+            ? { format: fix.artifact_format ?? 'text', title: fix.title, content: String(fix.artifact) }
+            : null,
+          manual_form: {
+            id: 'cms_publish',
+            title: 'Публикуване / копиране',
+            fields: [
+              { id: 'applied', type: 'checkbox', label: 'Направих промяната в сайта' },
+              { id: 'notes', type: 'textarea', label: 'Бележки', placeholder: '' },
+            ],
+          },
+          severity: fix.priority === 'critical' ? 'critical' : 'warning',
+          can_generate: false,
+        });
+      }
+      return out;
+    }
+
+    function renderManualFormFields(form, taskId) {
+      if (!form?.fields?.length) return '';
+      return '<div class="finding-manual manual-task-form" data-finding-id="' + escHtml(taskId) + '">' +
+        '<p class="finding-manual-title">' + escHtml(form.title) + '</p>' +
+        (form.hint ? '<p class="sub mono">' + escHtml(form.hint) + '</p>' : '') +
+        form.fields.map(field => {
+          if (field.type === 'checkbox') {
+            return '<label class="finding-field"><input type="checkbox" data-field="' + escHtml(field.id) + '"> ' + escHtml(field.label) + '</label>';
+          }
+          if (field.type === 'textarea') {
+            return '<label class="finding-field">' + escHtml(field.label) +
+              '<textarea data-field="' + escHtml(field.id) + '" rows="2" placeholder="' + escHtml(field.placeholder || '') + '"></textarea></label>';
+          }
+          return '<label class="finding-field">' + escHtml(field.label) +
+            '<input type="text" data-field="' + escHtml(field.id) + '" placeholder="' + escHtml(field.placeholder || '') + '"></label>';
+        }).join('') +
+        '</div>';
+    }
+
+    function renderManualWorkbench(strategyData, applyPlan) {
+      const panel = $('manual-workbench');
+      const tasks = mergeApplyManualTasks(strategyData?.manual_tasks ?? [], applyPlan);
+      if (!tasks.length) {
+        panel.classList.add('hidden');
+        return;
+      }
+      panel.classList.remove('hidden');
+      $('manual-count-badge').textContent = tasks.length + ' задачи';
+      $('manual-count-badge').className = 'advisor-badge warn';
+
+      $('manual-task-list').innerHTML = tasks.map(t => {
+        const sev = t.severity === 'critical' ? 'finding-critical' : (t.severity === 'warning' ? 'finding-warning' : '');
+        const artifactBlock = t.artifact?.content
+          ? '<div class="manual-artifact-wrap">' +
+            '<div class="manual-artifact-head">' +
+            '<span class="sub">' + escHtml(t.artifact.title || 'Draft') + '</span>' +
+            '<button type="button" class="btn btn-sm btn-ghost manual-copy" data-task-id="' + escHtml(t.id) + '">Копирай</button>' +
+            '</div>' +
+            '<textarea class="manual-artifact" data-task-id="' + escHtml(t.id) + '" rows="6">' +
+            escHtml(t.artifact.content) + '</textarea></div>'
+          : '';
+        const genBtn = t.can_generate
+          ? '<button type="button" class="btn btn-sm btn-ghost manual-generate" data-finding-id="' + escHtml(t.id) + '" data-intent="' + escHtml(t.intent || '') + '">' +
+            escHtml(t.generate_label || 'Генерирай draft') + '</button>'
+          : '';
+        return '<li class="manual-task-card ' + sev + '" data-task-id="' + escHtml(t.id) + '">' +
+          '<div class="manual-task-head"><strong>' + escHtml(t.title) + '</strong></div>' +
+          (t.instructions ? '<p class="sub">' + escHtml(t.instructions) + '</p>' : '') +
+          (t.impact ? '<p class="finding-impact">' + escHtml(t.impact) + '</p>' : '') +
+          artifactBlock +
+          renderManualFormFields(t.manual_form, t.id) +
+          '<div class="manual-task-actions">' + genBtn +
+          '<button type="button" class="btn btn-sm manual-save" data-finding-id="' + escHtml(t.id) + '">✓ Готово</button></div></li>';
+      }).join('');
+
+      panel.querySelectorAll('.manual-copy').forEach(btn => {
+        btn.onclick = () => {
+          const ta = panel.querySelector('.manual-artifact[data-task-id="' + btn.dataset.taskId + '"]');
+          if (!ta?.value) return;
+          navigator.clipboard.writeText(ta.value).then(() => log('Копирано в clipboard')).catch(() => log('Clipboard недостъпен'));
+        };
+      });
+      panel.querySelectorAll('.manual-save').forEach(btn => {
+        btn.onclick = () => saveManualTask(btn.dataset.findingId, btn.closest('.manual-task-card'));
+      });
+      panel.querySelectorAll('.manual-generate').forEach(btn => {
+        btn.onclick = () => applyFindingFix(btn.dataset.findingId, btn.dataset.intent || null);
+      });
+    }
+
+    async function saveManualTask(findingId, card) {
+      if (!selectedDomain || !card) return;
+      const manual_input = {};
+      card.querySelectorAll('[data-field]').forEach(el => {
+        manual_input[el.dataset.field] = el.type === 'checkbox' ? el.checked : el.value;
+      });
+      const artifactEl = card.querySelector('.manual-artifact');
+      const body = {
+        finding_id: findingId,
+        manual_only: true,
+        manual_input,
+      };
+      if (artifactEl?.value) {
+        body.edited_artifact = artifactEl.value;
+        body.artifact_title = card.querySelector('.manual-artifact-head span')?.textContent || 'Ръчен draft';
+      }
+      try {
+        const res = await apiFetch('/api/findings/' + encodeURIComponent(selectedDomain) + '/apply', {
+          method: 'POST',
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.message || res.status);
+        log('Ръчна задача записана: ' + findingId);
+      } catch (e) {
+        log('Ръчна задача: ' + e.message);
+      }
+    }
+
     function renderFindings(strategyData) {
       const panel = $('findings-panel');
-      const findings = strategyData?.findings ?? [];
+      const findings = (strategyData?.findings ?? []).filter(f => {
+        const a = f.automation || {};
+        return a.mode === 'auto' && !a.manual_form?.fields?.length;
+      });
       if (!findings.length) {
         panel.classList.add('hidden');
         return;
@@ -616,8 +758,24 @@ function script(origin) {
       }
     }
 
+    let applyPlanCache = null;
+
+    async function loadApplyPlan() {
+      if (!selectedDomain) return null;
+      try {
+        const res = await fetch(API('/api/apply/' + encodeURIComponent(selectedDomain)));
+        const data = await res.json();
+        if (!res.ok) return null;
+        applyPlanCache = data;
+        return data;
+      } catch {
+        return null;
+      }
+    }
+
     function collectManualInput(findingId) {
-      const box = document.querySelector('.finding-manual[data-finding-id="' + findingId + '"]');
+      const box = document.querySelector('.finding-manual[data-finding-id="' + findingId + '"]') ||
+        document.querySelector('.manual-task-card[data-task-id="' + findingId + '"] .manual-task-form');
       if (!box) return null;
       const out = {};
       box.querySelectorAll('[data-field]').forEach(el => {
@@ -948,6 +1106,8 @@ function script(origin) {
         strategy = await res.json();
         if (!res.ok) throw new Error(strategy.error || res.status);
         renderVerdict(strategy.verdict, strategy.score);
+        const applyPlan = await loadApplyPlan();
+        renderManualWorkbench(strategy, applyPlan);
         renderFindings(strategy);
         renderPillars(strategy.pillars);
         renderTech(strategy.probe, strategy.stats);
@@ -1217,6 +1377,16 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .roadmap-list-compact .roadmap-step{padding:.45rem .65rem;opacity:.85}
 .roadmap-step-compact .roadmap-summary{display:none}
 .findings-panel{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
+.manual-workbench{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
+.manual-workbench.hidden{display:none}
+.manual-hint{margin:0 0 .65rem;font-size:.8rem}
+.manual-task-list{list-style:none;padding:0;margin:0;display:grid;gap:.65rem}
+.manual-task-card{padding:.75rem;border-radius:8px;background:var(--bg);border:1px solid var(--border)}
+.manual-task-head{margin-bottom:.35rem;font-size:.9rem}
+.manual-artifact-wrap{margin:.5rem 0}
+.manual-artifact-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.25rem}
+.manual-artifact{width:100%;font-family:ui-monospace,monospace;font-size:.72rem;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.5rem;resize:vertical}
+.manual-task-actions{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
 .findings-panel.hidden{display:none}
 .findings-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.65rem}
 .findings-subhead{font-size:.9rem;margin:0;font-weight:600}

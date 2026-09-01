@@ -623,6 +623,12 @@ function script(origin) {
           '<li><span class="disp-q">„' + escHtml(ex.question || '') + '“</span> → ' +
           escHtml((ex.competitors || []).join(', ') || ex.model || '') + '</li>'
         ).join('');
+      } else if (dispRate != null && dispRate > 0) {
+        exWrap.classList.remove('hidden');
+        $('displacement-list').innerHTML = '<li class="sub">Има изместване — вижте секция „Автоматични поправки“.</li>';
+      } else if ((disp?.total_runs ?? 0) === 0) {
+        exWrap.classList.remove('hidden');
+        $('displacement-list').innerHTML = '<li class="sub">Няма измерване — пуснете „Първи анализ“.</li>';
       } else {
         exWrap.classList.add('hidden');
       }

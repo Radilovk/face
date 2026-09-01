@@ -3,6 +3,11 @@
  * mode: auto = one click | semi_auto = auto artifact + optional manual publish | manual = form only
  */
 import { buildHomepageCopy, buildJsonLd, buildRobotsAllow, buildMetaDescription, buildTitleFix, buildSitemapXml } from '../apply/generate.js';
+import {
+  isRichLanding,
+  resolveManualGate,
+  shouldSuggestContentDraft,
+} from './siteProfile.js';
 
 /** @typedef {'auto'|'semi_auto'|'manual'} AutomationMode */
 
@@ -199,11 +204,34 @@ function inferAutomation(f, ctx) {
 
 function buildAutomationBlock(finding, spec, ctx) {
   const { brand, domain, vertical, edgeActive, workerHost, probe } = ctx;
-  let artifact = spec.artifact_type
-    ? buildArtifact(spec.artifact_type, { brand, domain, vertical, probe, finding })
+  const richSite = isRichLanding(probe, brand);
+  let effectiveSpec = { ...spec };
+
+  if (richSite && effectiveSpec.artifact_type === 'homepage') {
+    effectiveSpec = {
+      ...effectiveSpec,
+      mode: 'manual',
+      action: null,
+      label: 'Сайтът вече има съдържание — не е нужен CMS draft',
+      artifact_type: null,
+      manual_gate: null,
+      note: 'Поправките са в кода/repo (HTML, schema, sitemap), не в CMS шаблон.',
+    };
+  } else if (!shouldSuggestContentDraft(probe, brand, finding.id) && effectiveSpec.artifact_type === 'homepage') {
+    effectiveSpec = {
+      ...effectiveSpec,
+      mode: 'manual',
+      action: null,
+      artifact_type: null,
+      manual_gate: resolveManualGate(effectiveSpec.manual_gate, probe),
+    };
+  }
+
+  let artifact = effectiveSpec.artifact_type
+    ? buildArtifact(effectiveSpec.artifact_type, { brand, domain, vertical, probe, finding })
     : null;
 
-  if (!artifact && !edgeActive && spec.action === 'activate_edge') {
+  if (!artifact && !edgeActive && effectiveSpec.action === 'activate_edge') {
     if (/jsonld/i.test(finding.id)) {
       artifact = buildArtifact('jsonld', { brand, domain, vertical, probe, finding });
     } else if (/robots|disallow|noindex/i.test(finding.id)) {
@@ -211,29 +239,30 @@ function buildAutomationBlock(finding, spec, ctx) {
     }
   }
 
-  // CNAME gate only when Edge not live; other CMS gates always when semi_auto
+  const gateId = resolveManualGate(effectiveSpec.manual_gate, probe);
   let manual_form = null;
-  if (spec.manual_gate === 'cname' && !edgeActive) {
+  if (gateId === 'cname' && !edgeActive) {
     manual_form = buildManualForm('cname', { domain, workerHost, brand });
-  } else if (spec.manual_gate && spec.manual_gate !== 'cname') {
-    manual_form = buildManualForm(spec.manual_gate, { domain, workerHost, brand });
+  } else if (gateId && gateId !== 'cname') {
+    manual_form = buildManualForm(gateId, { domain, workerHost, brand });
   }
 
-  const mode = spec.mode === 'auto' && spec.manual_gate === 'cname' && !edgeActive ? 'semi_auto' : spec.mode;
+  const mode = effectiveSpec.mode === 'auto' && gateId === 'cname' && !edgeActive ? 'semi_auto' : effectiveSpec.mode;
 
   return {
     mode,
-    action: spec.action,
-    label: spec.label ?? 'Приложи автоматично',
-    note: spec.note ?? null,
-    intent: spec.intent ?? null,
-    follow_up: spec.follow_up ?? null,
+    action: effectiveSpec.action,
+    label: effectiveSpec.label ?? 'Приложи автоматично',
+    note: effectiveSpec.note ?? null,
+    intent: effectiveSpec.intent ?? null,
+    follow_up: effectiveSpec.follow_up ?? null,
     artifact,
-    manual_gate: spec.manual_gate ?? null,
+    manual_gate: gateId ?? null,
     manual_form,
-    can_apply_now: mode === 'auto' || mode === 'semi_auto',
+    can_apply_now: mode === 'auto' || (mode === 'semi_auto' && Boolean(effectiveSpec.action)),
     can_manual_only: Boolean(manual_form || artifact || mode === 'manual'),
     edge_active: edgeActive,
+    site_rich: richSite,
   };
 }
 
@@ -287,12 +316,23 @@ function buildManualForm(gateId, ctx) {
     case 'cname':
       return {
         id: 'cname',
-        title: 'DNS — единствената задължителна ръчна стъпка',
+        title: 'DNS (опционално — само ако ползвате Edge мониторинг)',
         fields: [
           { id: 'cname_confirmed', type: 'checkbox', label: `CNAME ${domain} → ${workerHost} е направен` },
           { id: 'ssl_ready', type: 'checkbox', label: 'SSL validation е готов (Custom Hostname active)' },
         ],
-        hint: `Тип: CNAME · Име: ${domain} · Стойност: ${workerHost}`,
+        hint: `Не е SEO задължително. Само ако искате Worker да обслужва домейна.`,
+      };
+    case 'site_deploy':
+      return {
+        id: 'site_deploy',
+        title: 'Публикуване в repo / static hosting',
+        fields: [
+          { id: 'published_url', type: 'text', label: 'URL след deploy', placeholder: `https://${domain}/` },
+          { id: 'deploy_target', type: 'text', label: 'Къде deploy-нахте', placeholder: 'GitHub Pages, Cloudflare Pages, FTP…' },
+          { id: 'notes', type: 'textarea', label: 'Бележки (commit/PR)', placeholder: 'PR #143 merged…' },
+        ],
+        hint: 'Промяната е в HTML файлове — не е нужен CMS.',
       };
     case 'cms_publish':
       return {

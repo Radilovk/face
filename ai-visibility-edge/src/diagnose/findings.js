@@ -4,6 +4,11 @@
 
 import { passageAutonomy } from './score.js';
 import { enrichFindingsWithAutomation } from './findingsAutomation.js';
+import {
+  effectiveBrandMentions,
+  hasPriceSignals,
+  shouldRecommendEdge,
+} from './siteProfile.js';
 
 const SEVERITY_ORDER = { critical: 0, warning: 1, info: 2, ok: 3 };
 
@@ -46,14 +51,14 @@ export function buildSiteFindings(input = {}) {
     findings.push(...cacheFindings(cacheIndex, botHits));
   }
 
-  if (tenant && !edgeActive && probe && needsEdgeFromProbe(probe)) {
+  if (tenant && !edgeActive && probe && shouldRecommendEdge(probe)) {
     findings.push(
       finding({
         id: 'edge_activate',
         category: 'technical',
         severity: 'info',
-        title: 'Технически поправки през Edge Worker',
-        impact: 'Robots, JSON-LD и canonical могат да се приложат без CMS — след CNAME.',
+        title: 'Опционално: Edge Worker (само ако ползвате платформата)',
+        impact: 'Robots/JSON-LD/canonical могат да минат през Worker — не е SEO задължително; полезно за мониторинг тук.',
         evidence: {
           robots: probe.robots_ai_policy,
           jsonld_blocks: probe.jsonld_blocks,
@@ -243,7 +248,8 @@ function probeFindings(probe, passage, brand, edgeActive) {
     );
   }
 
-  if (brand && signals.brand_mentions === 0 && chars > 100) {
+  const brandMentions = effectiveBrandMentions(probe, brand);
+  if (brand && brandMentions === 0 && chars > 100) {
     out.push(
       finding({
         id: 'brand_absent',
@@ -342,16 +348,22 @@ function probeFindings(probe, passage, brand, edgeActive) {
     );
   }
 
-  if ((probe.price_tokens ?? 0) === 0 && chars >= 200) {
+  if (!hasPriceSignals(probe) && chars >= 200) {
     out.push(
       finding({
         id: 'no_prices',
         category: 'content',
         severity: 'info',
         title: 'Няма видими цени в HTML текста',
-        impact: 'AI рядко цитира конкретни оферти без цена в plain text.',
-        evidence: { url, price_tokens: 0, text_chars: chars },
-        fix: { owner: 'you', steps: ['Показвайте цени в лв/€ в HTML — не само в JS/cart widget'] },
+        impact: 'AI рядко цитира конкретни оферти без цена в plain text или schema.',
+        evidence: { url, price_tokens: probe.price_tokens ?? 0, text_chars: chars },
+        fix: {
+          owner: 'you',
+          steps: [
+            'Показвайте цени в лв/€ в HTML (напр. €6.99/mo) — не само в JS/cart',
+            'Или добавете Offer/PriceSpecification в JSON-LD',
+          ],
+        },
       }),
     );
   }
@@ -432,19 +444,21 @@ function observationFindings(oq) {
     out.push(
       finding({
         id: 'fabricated_urls',
-        category: 'citation',
-        severity: 'warning',
-        title: `${oq.fabricated_count} измислени URL-и от AI`,
-        impact: 'Моделът „измисля“ страници, които не съществуват — не е реална видимост.',
+        category: 'measurement',
+        severity: 'info',
+        title: `${oq.fabricated_count} измислени URL-и в AI отговори (шум)`,
+        impact:
+          'Моделите често „измислят“ страници — това е ограничение на AI измерването, не задължително липсваща страница на сайта.',
         evidence: {
           fabricated: oq.fabricated_count,
           samples: oq.negative_samples?.filter((s) => s.class === 'FABRICATED_URL').slice(0, 2),
         },
         fix: {
-          owner: 'you',
+          owner: 'system',
           steps: [
-            'Създайте липсващите страници или пренасочете 404',
-            'Подобрете вътрешното linking към реални URL-и',
+            'Пуснете Reprocess за актуализация на класификацията',
+            'Създавайте реални страници само ако URL-ите са в вашия sitemap/навигация',
+            'Не гонете всяко hallucination като „критична CMS задача“',
           ],
         },
       }),
@@ -628,13 +642,6 @@ function titleMatchesBrand(title, brand) {
 function hasUsefulSchema(types) {
   const useful = /Organization|Product|LocalBusiness|Store|WebSite|FAQPage|Brand/i;
   return types.some((t) => useful.test(t));
-}
-
-function needsEdgeFromProbe(probe) {
-  if (probe.robots_ai_policy === 'disallow_all') return true;
-  if ((probe.jsonld_blocks ?? 0) === 0) return true;
-  if (probe.robots_ai_policy === 'none' || probe.robots_ai_policy === 'fetch_error') return true;
-  return (probe.raw_json?.redirect_chain?.length ?? 1) > 1;
 }
 
 /** Map findings to legacy recommendation shape for API compat */

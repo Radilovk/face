@@ -30,7 +30,7 @@ export async function buildOptimizerContext(env, domain) {
     tenant.vertical_id
       ? analyzeDisplacement(env.DB, { domain: normalized, verticalId: tenant.vertical_id }).catch(() => null)
       : null,
-    probeDomain(normalized).catch(() => null),
+    probeDomain(normalized, { brand: tenant.name ?? undefined }).catch(() => null),
   ]);
 
   const stats = await loadTenantStats(env.DB, tenant.id);

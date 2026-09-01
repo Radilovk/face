@@ -14,6 +14,18 @@ import {
   testPerplexityAdapter,
   testReportTemplate,
 } from './diagnose.js';
+import {
+  testCountPriceTokensEuroPrefix,
+  testBrandRecountWhenProbeOmittedBrand,
+  testEdgeDecisionSkipsCanonicalOnRichLanding,
+  testCountBrandMentionsCaseInsensitive,
+} from './probe-accuracy.js';
+import {
+  testSiteProfileRichLanding,
+  testResolveManualGateStaticSite,
+  testRichSiteSuppressesHomepageDraft,
+  testRoadmapSkipsCnameWithoutEdgeFixes,
+} from './siteProfile.js';
 import { testDashboardV2Page } from './dashboard.js';
 import {
   testMetricCatalogComplete,
@@ -253,6 +265,14 @@ async function run() {
   testPerplexityAdapter();
   testReportTemplate();
   testDashboardV2Page();
+  testCountPriceTokensEuroPrefix();
+  testCountBrandMentionsCaseInsensitive();
+  testBrandRecountWhenProbeOmittedBrand();
+  testEdgeDecisionSkipsCanonicalOnRichLanding();
+  testSiteProfileRichLanding();
+  testResolveManualGateStaticSite();
+  testRichSiteSuppressesHomepageDraft();
+  testRoadmapSkipsCnameWithoutEdgeFixes();
   testMetricCatalogComplete();
   testInterpretMetricNowRuns();
   testInterpretMetricSov();

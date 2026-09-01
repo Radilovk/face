@@ -16,7 +16,7 @@ export async function getEdgeDecision(env, domain) {
   const edgeConfig = await loadEdgeConfig(env, tenant.apex_host);
   const edgeActive = Boolean(edgeConfig?.edge?.enabled) && Boolean(tenant.edge_enabled);
 
-  const probe = await probeDomain(tenant.apex_host);
+  const probe = await probeDomain(tenant.apex_host, { brand: tenant.name ?? undefined });
 
   const decision = buildEdgeDecision({
     probe: {

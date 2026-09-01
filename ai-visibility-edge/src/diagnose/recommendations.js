@@ -145,7 +145,7 @@ export async function fetchTenantRecommendations(env, tenant, options = {}) {
 
   try {
     const { probeDomain } = await import('./probe.js');
-    probe = await probeDomain(domain, { fetch: fetchImpl });
+    probe = await probeDomain(domain, { fetch: fetchImpl, brand: tenant.name ?? undefined });
   } catch (err) {
     probe = { domain, error: err.message };
   }

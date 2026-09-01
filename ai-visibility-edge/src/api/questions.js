@@ -105,7 +105,7 @@ export async function generateAndSaveQuestions(db, {
   let activeProbe = probe;
   if (useSiteContext && !activeProbe && env) {
     try {
-      activeProbe = await probeDomain(tenant.apex_host);
+      activeProbe = await probeDomain(tenant.apex_host, { brand: tenant.name ?? undefined });
     } catch (err) {
       console.warn('[questions] probe for context failed:', err.message);
     }

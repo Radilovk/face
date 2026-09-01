@@ -102,7 +102,8 @@ export async function runSitePipeline(env, domain, options = {}) {
 }
 
 async function runAuditStep(env, domain) {
-  const probe = await probeDomain(domain);
+  const tenant = await resolveTenantByDomain(env.DB, domain);
+  const probe = await probeDomain(domain, { brand: tenant?.name ?? undefined });
   const passage = passageAutonomy(probe.raw_json?.text_sample ?? '');
   const score = computeDiagnosticScore(probe, passage);
 

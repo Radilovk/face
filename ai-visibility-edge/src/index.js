@@ -28,6 +28,7 @@ import { getEdgeDecision, activateEdgeOptimization, getEdgeStatus } from './api/
 import { handleAdvisorStatus, handleAdvisorChat } from './api/advisor.js';
 import { fetchOptimizerPlan, runOptimizer, fetchOptimizerStatus } from './api/optimizer.js';
 import { applyFindingFix, saveFindingManualOnly } from './api/findingsApply.js';
+import { fetchManualExport, manualExportResponse } from './api/manualExport.js';
 import { isPlatformHost } from './config/platform.js';
 import { loadEdgeConfig } from './config/tenantEdge.js';
 import { handleTenantRequest } from './enhance/handleTenant.js';
@@ -249,6 +250,14 @@ async function handleRequest(request, env, ctx) {
   if (strategyMatch) {
     const strategy = await fetchDomainStrategy(env, decodeURIComponent(strategyMatch[1]));
     return json(strategy);
+  }
+
+  const manualExportMatch = url.pathname.match(/^\/api\/strategy\/([^/]+)\/manual-export$/);
+  if (manualExportMatch) {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const pack = await fetchManualExport(env, decodeURIComponent(manualExportMatch[1]));
+    return manualExportResponse(pack);
   }
 
   const findingApplyMatch = url.pathname.match(/^\/api\/findings\/([^/]+)\/apply$/);

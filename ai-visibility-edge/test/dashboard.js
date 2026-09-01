@@ -9,11 +9,12 @@ export function testDashboardV2Page() {
   assert(html.includes('id="plan-week"'));
   assert(html.includes('/api/strategy/'));
   assert(html.includes('id="work-hub"'));
-  assert(html.includes('action-bar'));
-  assert(html.includes('Повторен анализ'));
+  assert(html.includes('command-center'));
+  assert(html.includes('activity-panel'));
+  assert(html.includes('recordActivity'));
+  assert(html.includes('renderCommandCenter'));
   assert(html.includes('insights-panel'));
   assert(html.includes('blocker-banner'));
-  assert(html.includes('btn-next-step'));
   assert(html.includes('btn-primary-action'));
   assert(html.includes('renderInsights'));
   assert(html.includes('edge-panel'));
@@ -50,4 +51,8 @@ export function testDashboardV2Page() {
   assert(html.includes('btn-export-manual'));
   assert(html.includes('manual-export'));
   assert(html.includes('exportManualRecommendations'));
+  assert(html.includes('btn-activity-retry'));
+  assert(html.includes('btn-activity-dismiss'));
+  assert(!html.includes('btn-analyze'));
+  assert(!html.includes('btn-next-step'));
 }

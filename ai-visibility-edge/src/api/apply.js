@@ -49,7 +49,10 @@ export async function runApplyPrep(env, domain, options = {}) {
   if (plan.error) return plan;
 
   if (env.DB && options.persist_probe !== false) {
-    const probe = await probeDomain(domain.replace(/^www\./, ''));
+    const tenant = await resolveTenantByDomain(env.DB, domain.replace(/^www\./, ''));
+    const probe = await probeDomain(domain.replace(/^www\./, ''), {
+      brand: tenant?.name ?? undefined,
+    });
     const passage = passageAutonomy(probe.raw_json?.text_sample ?? '');
     const score = computeDiagnosticScore(probe, passage);
     const { persistDiagnostic } = await import('../diagnose/probe.js');

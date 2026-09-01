@@ -4,7 +4,11 @@
 
 import { passageAutonomy } from './score.js';
 import { enrichFindingsWithAutomation } from './findingsAutomation.js';
-import { countBrandMentions } from './probe.js';
+import {
+  effectiveBrandMentions,
+  hasPriceSignals,
+  shouldRecommendEdge,
+} from './siteProfile.js';
 
 const SEVERITY_ORDER = { critical: 0, warning: 1, info: 2, ok: 3 };
 
@@ -47,7 +51,7 @@ export function buildSiteFindings(input = {}) {
     findings.push(...cacheFindings(cacheIndex, botHits));
   }
 
-  if (tenant && !edgeActive && probe && needsEdgeFromProbe(probe)) {
+  if (tenant && !edgeActive && probe && shouldRecommendEdge(probe)) {
     findings.push(
       finding({
         id: 'edge_activate',
@@ -440,19 +444,21 @@ function observationFindings(oq) {
     out.push(
       finding({
         id: 'fabricated_urls',
-        category: 'citation',
-        severity: 'warning',
-        title: `${oq.fabricated_count} измислени URL-и от AI`,
-        impact: 'Моделът „измисля“ страници, които не съществуват — не е реална видимост.',
+        category: 'measurement',
+        severity: 'info',
+        title: `${oq.fabricated_count} измислени URL-и в AI отговори (шум)`,
+        impact:
+          'Моделите често „измислят“ страници — това е ограничение на AI измерването, не задължително липсваща страница на сайта.',
         evidence: {
           fabricated: oq.fabricated_count,
           samples: oq.negative_samples?.filter((s) => s.class === 'FABRICATED_URL').slice(0, 2),
         },
         fix: {
-          owner: 'you',
+          owner: 'system',
           steps: [
-            'Създайте липсващите страници или пренасочете 404',
-            'Подобрете вътрешното linking към реални URL-и',
+            'Пуснете Reprocess за актуализация на класификацията',
+            'Създавайте реални страници само ако URL-ите са в вашия sitemap/навигация',
+            'Не гонете всяко hallucination като „критична CMS задача“',
           ],
         },
       }),
@@ -636,32 +642,6 @@ function titleMatchesBrand(title, brand) {
 function hasUsefulSchema(types) {
   const useful = /Organization|Product|LocalBusiness|Store|WebSite|FAQPage|Brand/i;
   return types.some((t) => useful.test(t));
-}
-
-function needsEdgeFromProbe(probe) {
-  if (probe.robots_ai_policy === 'disallow_all') return true;
-  if ((probe.jsonld_blocks ?? 0) === 0) return true;
-  if (probe.robots_ai_policy === 'none' || probe.robots_ai_policy === 'fetch_error') return true;
-  const chainLen = probe.raw_json?.redirect_chain?.length ?? 1;
-  const chars = probe.html_text_chars ?? 0;
-  // Redirect към богата landing (GitHub Pages и др.) не е самостоятелен проблем
-  if (chainLen > 1 && chars < 500) return true;
-  return false;
-}
-
-function effectiveBrandMentions(probe, brand) {
-  if (!brand) return probe.signals?.brand_mentions ?? 0;
-  const fromProbe = probe.signals?.brand_mentions ?? 0;
-  if (fromProbe > 0) return fromProbe;
-  const text = probe.raw_json?.text_passage ?? probe.raw_json?.text_sample ?? '';
-  return countBrandMentions(text, brand);
-}
-
-function hasPriceSignals(probe) {
-  if ((probe.price_tokens ?? 0) > 0) return true;
-  const types = probe.raw_json?.jsonld_types ?? probe.signals?.jsonld_types ?? [];
-  if (types.some((t) => /Offer|Product|PriceSpecification/i.test(t))) return true;
-  return false;
 }
 
 /** Map findings to legacy recommendation shape for API compat */

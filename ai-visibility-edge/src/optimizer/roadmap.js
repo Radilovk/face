@@ -63,7 +63,9 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
   const pendingReprocess = stats.pendingReprocess > 0;
   const edgeKvReady = edgeFixes.length > 0 || edge.edge_active || ctx.tenant?.edge_enabled;
   const edgeLive = Boolean(edge.edge_active);
-  const cnameNeeded = edge.status === 'pending_cname' || (ctx.tenant?.edge_enabled && !edge.edge_active);
+  const cnameNeeded =
+    edgeFixes.length > 0 &&
+    (edge.status === 'pending_cname' || (ctx.tenant?.edge_enabled && !edge.edge_active));
 
   const steps = [];
 
@@ -201,21 +203,28 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
   steps.push(
     step('cname', {
       order: 7,
-      title: 'Насочване на домейна (CNAME) — единствената DNS стъпка',
-      status: !edgeKvReady && !ctx.tenant?.edge_enabled
-        ? 'blocked'
-        : edgeLive
+      title: 'CNAME към Worker (опционално — само при Edge поправки)',
+      status:
+        edgeFixes.length === 0
           ? 'done'
-          : cnameNeeded
-            ? 'waiting_manual'
-            : 'blocked',
+          : !edgeKvReady && !ctx.tenant?.edge_enabled
+            ? 'blocked'
+            : edgeLive
+              ? 'done'
+              : cnameNeeded
+                ? 'waiting_manual'
+                : 'blocked',
       owner: 'human',
-      summary: edgeLive
-        ? 'Трафикът минава през Worker — поправките са live.'
-        : `Без CNAME Edge поправките не се виждат от посетители и AI ботове.`,
-      why_waiting: edgeLive
-        ? null
-        : 'Само вие имате достъп до DNS — системата не може да смени записите вместо вас.',
+      summary:
+        edgeFixes.length === 0
+          ? 'Няма Edge поправки — CNAME не е нужен за SEO.'
+          : edgeLive
+            ? 'Трафикът минава през Worker — поправките са live.'
+            : 'Опционално: насочете домейна към Worker, ако ползвате Edge мониторинг.',
+      why_waiting:
+        edgeFixes.length === 0 || edgeLive
+          ? null
+          : 'DNS е единственото, което системата не може да направи вместо вас — но не е задължително без Edge fixes.',
       instructions: edgeLive
         ? []
         : [

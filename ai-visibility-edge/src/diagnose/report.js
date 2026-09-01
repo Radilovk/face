@@ -25,7 +25,10 @@ export async function buildDomainReport(env, domain, options = {}) {
     return { error: 'unknown_domain', domain: normalized };
   }
 
-  const probeResult = await probeDomain(tenant.apex_host, { fetch: fetchImpl });
+  const probeResult = await probeDomain(tenant.apex_host, {
+    fetch: fetchImpl,
+    brand: tenant.name ?? undefined,
+  });
   const passage = passageAutonomy(probeResult.raw_json?.text_sample ?? '');
   const diagnosticScore = computeDiagnosticScore(probeResult, passage);
 

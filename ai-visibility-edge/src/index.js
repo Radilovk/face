@@ -569,7 +569,16 @@ async function probeEndpoint(env, url) {
   const domain = url.searchParams.get('domain');
   if (!domain) return json({ error: 'domain required' }, 400);
 
-  const probeResult = await probeDomain(domain);
+  let brand;
+  if (env.DB) {
+    try {
+      const { resolveTenantByDomain } = await import('./api/questions.js');
+      const tenant = await resolveTenantByDomain(env.DB, domain.replace(/^www\./, ''));
+      brand = tenant?.name;
+    } catch { /* optional */ }
+  }
+
+  const probeResult = await probeDomain(domain, { brand });
   const passage = passageAutonomy(probeResult.raw_json?.text_sample ?? '');
   const score = computeDiagnosticScore(probeResult, passage);
   const saved = await persistDiagnostic(env.DB, probeResult, score);

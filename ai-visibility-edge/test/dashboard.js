@@ -9,8 +9,13 @@ export function testDashboardV2Page() {
   assert(html.includes('id="plan-week"'));
   assert(html.includes('/api/strategy/'));
   assert(html.includes('id="work-hub"'));
-  assert(html.includes('Анализ'));
   assert(html.includes('action-bar'));
+  assert(html.includes('Повторен анализ'));
+  assert(html.includes('insights-panel'));
+  assert(html.includes('blocker-banner'));
+  assert(html.includes('btn-next-step'));
+  assert(html.includes('btn-primary-action'));
+  assert(html.includes('renderInsights'));
   assert(html.includes('edge-panel'));
   assert(html.includes('/api/edge/'));
   assert(html.includes('loadEdgeDecision'));

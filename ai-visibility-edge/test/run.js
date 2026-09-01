@@ -25,6 +25,8 @@ import {
   testResolveManualGateStaticSite,
   testRichSiteSuppressesHomepageDraft,
   testRoadmapSkipsCnameWithoutEdgeFixes,
+  testKasyDeployedMeasurementPhase,
+  testKasyStrategyAfterDeploy,
 } from './siteProfile.js';
 import { testDashboardV2Page } from './dashboard.js';
 import {
@@ -273,6 +275,8 @@ async function run() {
   testResolveManualGateStaticSite();
   testRichSiteSuppressesHomepageDraft();
   testRoadmapSkipsCnameWithoutEdgeFixes();
+  testKasyDeployedMeasurementPhase();
+  testKasyStrategyAfterDeploy();
   testMetricCatalogComplete();
   testInterpretMetricNowRuns();
   testInterpretMetricSov();

@@ -5,9 +5,11 @@ import {
   shouldSuggestContentDraft,
   resolveManualGate,
   inferPublishStack,
+  resolveProductPhase,
 } from '../src/diagnose/siteProfile.js';
 import { enrichFindingsWithAutomation } from '../src/diagnose/findingsAutomation.js';
 import { buildOptimizationRoadmap } from '../src/optimizer/roadmap.js';
+import { buildStrategy } from '../src/diagnose/strategy.js';
 
 const kasyProbe = {
   domain: 'ai-kasy.online',
@@ -50,6 +52,54 @@ export function testRichSiteSuppressesHomepageDraft() {
   const auto = findings[0].automation;
   assert.equal(auto.site_rich, true);
   assert(!auto.artifact?.content?.includes('[опишете'));
+}
+
+export function testKasyDeployedMeasurementPhase() {
+  const probe = {
+    domain: 'ai-kasy.online',
+    http_status: 200,
+    html_text_chars: 2300,
+    jsonld_blocks: 1,
+    robots_ai_policy: 'allow',
+    signals: { brand_mentions: 12, sitemap_ok: true },
+    price_tokens: 3,
+    raw_json: {
+      final_url: 'https://ai-kasy.online/frontend/landing.html',
+      jsonld_types: ['Organization', 'WebSite', 'SoftwareApplication', 'Offer'],
+    },
+  };
+  const phase = resolveProductPhase({ probe, brand: 'KASY', runCount: 0 });
+  assert.equal(phase.product_phase, 'measurement');
+  assert(phase.complete);
+}
+
+export function testKasyStrategyAfterDeploy() {
+  const probe = {
+    domain: 'ai-kasy.online',
+    http_status: 200,
+    html_text_chars: 2300,
+    jsonld_blocks: 1,
+    robots_ai_policy: 'allow',
+    blocked_bots: [],
+    has_canonical: 1,
+    price_tokens: 3,
+    signals: { brand_mentions: 12, sitemap_ok: true, noindex: false, js_shell_suspect: false },
+    raw_json: {
+      final_url: 'https://ai-kasy.online/frontend/landing.html',
+      title: 'KASY — AI Secretary',
+      jsonld_types: ['Organization', 'WebSite', 'SoftwareApplication', 'Offer'],
+    },
+  };
+  const strategy = buildStrategy({
+    probe,
+    tenant: { apex_host: 'ai-kasy.online', name: 'KASY' },
+    registered: true,
+    runCount: 0,
+    diagnostic_score: 82,
+  });
+  assert.equal(strategy.product_phase, 'measurement');
+  assert(strategy.verdict.headline.includes('готова') || strategy.verdict.headline.includes('измерване'));
+  assert(!strategy.plan.this_week.some((a) => a.id === 'activate_edge'));
 }
 
 export function testRoadmapSkipsCnameWithoutEdgeFixes() {

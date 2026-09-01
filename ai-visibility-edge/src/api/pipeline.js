@@ -30,7 +30,7 @@ export async function getSitePipeline(env, domain) {
 
   let probe = null;
   try {
-    probe = await probeDomain(tenant.apex_host);
+    probe = await probeDomain(tenant.apex_host, { brand: tenant.name ?? undefined });
   } catch {
     /* optional */
   }

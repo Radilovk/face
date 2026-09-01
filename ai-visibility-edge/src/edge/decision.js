@@ -36,12 +36,14 @@ export function buildEdgeDecision(input = {}) {
   }
 
   const chain = probe?.raw_json?.redirect_chain ?? probe?.redirect_chain ?? [];
-  if (chain.length > 1) {
+  const landingChars = probe?.html_text_chars ?? 0;
+  const landingHasSchema = (probe?.jsonld_blocks ?? 0) > 0;
+  if (chain.length > 1 && (landingChars < 500 || !landingHasSchema)) {
     fixes.push({
       id: 'canonical_root',
       layer: 'edge',
       title: 'Canonical + видим текст на root',
-      detail: `Root е redirect stub → landing: ${chain[chain.length - 1]?.url ?? '—'}. Edge може да инжектира meta/canonical.`,
+      detail: `Root е redirect stub → landing: ${chain[chain.length - 1]?.url ?? '—'}. Edge може да инжектира meta/canonical — опционално, не е задължително ако landing е пълна.`,
     });
   }
 

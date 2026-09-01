@@ -184,7 +184,7 @@ function detectNoindex(html) {
   return false;
 }
 
-function countBrandMentions(text, brand) {
+export function countBrandMentions(text, brand) {
   if (!text || !brand) return 0;
   const escaped = brand.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const re = new RegExp(escaped, 'gi');
@@ -205,9 +205,21 @@ async function checkSitemap(fetchImpl, host) {
   }
 }
 
-function countPriceTokens(text) {
-  const matches = text.match(/\d+[.,]?\d*\s*(€|лв|лв\.|BGN|EUR|USD|\$)/gi) ?? [];
-  return matches.length;
+export function countPriceTokens(text) {
+  if (!text) return 0;
+  const patterns = [
+    /\d+[.,]?\d*\s*(€|лв|лв\.|BGN|EUR|USD|\$)/gi,
+    /(€|\$|USD|EUR|BGN)\s*\d+[.,]?\d*/gi,
+    /\d+[.,]?\d*\s*\/\s*(mo|month|мес|year|yr|год)/gi,
+    /(?:free|безплатно)\s*[—–-]?\s*(€|\$)?\s*0\b/gi,
+  ];
+  const seen = new Set();
+  for (const re of patterns) {
+    for (const m of text.matchAll(re)) {
+      seen.add(m[0].toLowerCase());
+    }
+  }
+  return seen.size;
 }
 
 function randomBetween(min, max) {

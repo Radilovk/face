@@ -14,6 +14,12 @@ import {
   testPerplexityAdapter,
   testReportTemplate,
 } from './diagnose.js';
+import {
+  testCountPriceTokensEuroPrefix,
+  testBrandRecountWhenProbeOmittedBrand,
+  testEdgeDecisionSkipsCanonicalOnRichLanding,
+  testCountBrandMentionsCaseInsensitive,
+} from './probe-accuracy.js';
 import { testDashboardV2Page } from './dashboard.js';
 import {
   testMetricCatalogComplete,
@@ -253,6 +259,10 @@ async function run() {
   testPerplexityAdapter();
   testReportTemplate();
   testDashboardV2Page();
+  testCountPriceTokensEuroPrefix();
+  testCountBrandMentionsCaseInsensitive();
+  testBrandRecountWhenProbeOmittedBrand();
+  testEdgeDecisionSkipsCanonicalOnRichLanding();
   testMetricCatalogComplete();
   testInterpretMetricNowRuns();
   testInterpretMetricSov();

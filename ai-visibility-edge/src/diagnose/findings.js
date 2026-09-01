@@ -4,6 +4,7 @@
 
 import { passageAutonomy } from './score.js';
 import { enrichFindingsWithAutomation } from './findingsAutomation.js';
+import { countBrandMentions } from './probe.js';
 
 const SEVERITY_ORDER = { critical: 0, warning: 1, info: 2, ok: 3 };
 
@@ -52,8 +53,8 @@ export function buildSiteFindings(input = {}) {
         id: 'edge_activate',
         category: 'technical',
         severity: 'info',
-        title: 'Технически поправки през Edge Worker',
-        impact: 'Robots, JSON-LD и canonical могат да се приложат без CMS — след CNAME.',
+        title: 'Опционално: Edge Worker (само ако ползвате платформата)',
+        impact: 'Robots/JSON-LD/canonical могат да минат през Worker — не е SEO задължително; полезно за мониторинг тук.',
         evidence: {
           robots: probe.robots_ai_policy,
           jsonld_blocks: probe.jsonld_blocks,
@@ -243,7 +244,8 @@ function probeFindings(probe, passage, brand, edgeActive) {
     );
   }
 
-  if (brand && signals.brand_mentions === 0 && chars > 100) {
+  const brandMentions = effectiveBrandMentions(probe, brand);
+  if (brand && brandMentions === 0 && chars > 100) {
     out.push(
       finding({
         id: 'brand_absent',
@@ -342,16 +344,22 @@ function probeFindings(probe, passage, brand, edgeActive) {
     );
   }
 
-  if ((probe.price_tokens ?? 0) === 0 && chars >= 200) {
+  if (!hasPriceSignals(probe) && chars >= 200) {
     out.push(
       finding({
         id: 'no_prices',
         category: 'content',
         severity: 'info',
         title: 'Няма видими цени в HTML текста',
-        impact: 'AI рядко цитира конкретни оферти без цена в plain text.',
-        evidence: { url, price_tokens: 0, text_chars: chars },
-        fix: { owner: 'you', steps: ['Показвайте цени в лв/€ в HTML — не само в JS/cart widget'] },
+        impact: 'AI рядко цитира конкретни оферти без цена в plain text или schema.',
+        evidence: { url, price_tokens: probe.price_tokens ?? 0, text_chars: chars },
+        fix: {
+          owner: 'you',
+          steps: [
+            'Показвайте цени в лв/€ в HTML (напр. €6.99/mo) — не само в JS/cart',
+            'Или добавете Offer/PriceSpecification в JSON-LD',
+          ],
+        },
       }),
     );
   }
@@ -634,7 +642,26 @@ function needsEdgeFromProbe(probe) {
   if (probe.robots_ai_policy === 'disallow_all') return true;
   if ((probe.jsonld_blocks ?? 0) === 0) return true;
   if (probe.robots_ai_policy === 'none' || probe.robots_ai_policy === 'fetch_error') return true;
-  return (probe.raw_json?.redirect_chain?.length ?? 1) > 1;
+  const chainLen = probe.raw_json?.redirect_chain?.length ?? 1;
+  const chars = probe.html_text_chars ?? 0;
+  // Redirect към богата landing (GitHub Pages и др.) не е самостоятелен проблем
+  if (chainLen > 1 && chars < 500) return true;
+  return false;
+}
+
+function effectiveBrandMentions(probe, brand) {
+  if (!brand) return probe.signals?.brand_mentions ?? 0;
+  const fromProbe = probe.signals?.brand_mentions ?? 0;
+  if (fromProbe > 0) return fromProbe;
+  const text = probe.raw_json?.text_passage ?? probe.raw_json?.text_sample ?? '';
+  return countBrandMentions(text, brand);
+}
+
+function hasPriceSignals(probe) {
+  if ((probe.price_tokens ?? 0) > 0) return true;
+  const types = probe.raw_json?.jsonld_types ?? probe.signals?.jsonld_types ?? [];
+  if (types.some((t) => /Offer|Product|PriceSpecification/i.test(t))) return true;
+  return false;
 }
 
 /** Map findings to legacy recommendation shape for API compat */

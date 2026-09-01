@@ -72,6 +72,22 @@ export function renderDashboardPage(origin) {
       <button type="button" class="btn btn-sm" id="btn-blocker-fix">Поправи</button>
     </section>
 
+    <section id="activity-panel" class="activity-panel hidden" aria-live="polite">
+      <div class="activity-head">
+        <span id="activity-status-icon" class="activity-icon" aria-hidden="true">⏳</span>
+        <div class="activity-body">
+          <strong id="activity-title">Последна операция</strong>
+          <p id="activity-detail" class="sub">—</p>
+        </div>
+        <div class="activity-actions">
+          <button type="button" class="btn btn-sm" id="btn-activity-retry" hidden>Повтори</button>
+          <button type="button" class="btn btn-sm btn-ghost" id="btn-activity-dismiss" aria-label="Затвори">×</button>
+        </div>
+      </div>
+      <ul id="activity-metrics" class="activity-metrics hidden"></ul>
+      <p id="activity-next" class="activity-next sub hidden"></p>
+    </section>
+
     <section id="insights-panel" class="insights-panel hidden" aria-label="AI позициониране">
       <h3 class="insights-title">Как AI ви вижда ${infoBtn('sov')}</h3>
       <div class="insights-grid">
@@ -97,35 +113,31 @@ export function renderDashboardPage(origin) {
       </div>
     </section>
 
-    <section id="next-step-bar" class="next-step-bar hidden">
-      <div class="next-step-text">
-        <span class="next-step-label">Следващо</span>
-        <p id="next-step-desc">—</p>
-      </div>
-      <button type="button" class="btn btn-lg" id="btn-next-step">—</button>
-    </section>
-
-    <section id="work-hub" class="work-hub" aria-label="План и поправки">
-      <div class="work-hub-head">
-        <div>
-          <h2 class="work-hub-title">План и поправки</h2>
-          <p id="roadmap-honesty" class="roadmap-honesty sub">Заредете сайт за пълен план.</p>
+    <section id="work-hub" class="work-hub" aria-label="Действия и план">
+      <div class="command-center">
+        <div class="command-primary">
+          <button type="button" class="btn btn-lg" id="btn-primary-action">🚀 Стартирай</button>
+          <p id="command-hint" class="command-hint sub">Изберете сайт за препоръка какво да направите.</p>
         </div>
-        <span id="roadmap-badge" class="advisor-badge">…</span>
-      </div>
-
-      <div class="action-bar">
-        <button type="button" class="btn btn-lg" id="btn-primary-action">🚀 Анализ</button>
-        <button type="button" class="btn btn-ghost" id="btn-auto-optimize">Auto-оптимизация</button>
-        <button type="button" class="btn btn-ghost" id="btn-analyze">Повторен анализ</button>
-        <button type="button" class="btn btn-ghost btn-sm" id="btn-edge-activate">⚡ Edge</button>
-        <button type="button" class="btn btn-ghost btn-sm" id="btn-refresh">↻ Обнови</button>
-        <button type="button" class="btn btn-ghost btn-sm" id="btn-reprocess">Reprocess</button>
-        <a class="btn btn-ghost btn-sm" id="btn-report" href="#" target="_blank" rel="noopener">📄 Отчет</a>
-        <button type="button" class="btn btn-ghost btn-sm" id="btn-export-manual-bar" title="Текстов файл с ръчни препоръки за админа">📥 Ръчен checklist</button>
+        <details class="command-more" id="command-more">
+          <summary>Още действия</summary>
+          <div class="command-more-grid">
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-auto-optimize">Auto-оптимизация</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-reprocess">Reprocess цитати</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-edge-activate">Edge (опционално)</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-refresh">↻ Обнови данни</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-export-manual-bar">📥 Ръчен checklist</button>
+            <a class="btn btn-ghost btn-sm" id="btn-report" href="#" target="_blank" rel="noopener">📄 PDF отчет</a>
+          </div>
+        </details>
       </div>
 
       <section id="optimization-roadmap" class="roadmap-panel hidden" aria-label="План">
+        <div class="roadmap-head-inline">
+          <h3 class="findings-subhead">📋 План</h3>
+          <span id="roadmap-badge" class="advisor-badge">…</span>
+        </div>
+        <p id="roadmap-honesty" class="roadmap-honesty sub">Заредете сайт за пълен план.</p>
         <ol id="roadmap-steps" class="roadmap-list"></ol>
         <details id="roadmap-done-wrap" class="roadmap-done-wrap hidden">
           <summary id="roadmap-done-summary">Готови стъпки</summary>
@@ -155,22 +167,21 @@ export function renderDashboardPage(origin) {
       </section>
     </section>
 
-    <section id="metrics-panel" class="metrics-panel" aria-label="Метрики">
-      <section id="site-stats" class="site-stats hidden">
-        <div class="stat-grid">
-          <div class="stat">${infoBtn('runs')}<strong id="stat-runs">—</strong><small>Отговори</small></div>
-          <div class="stat">${infoBtn('observations')}<strong id="stat-obs">—</strong><small>Цитати</small></div>
-          <div class="stat">${infoBtn('sov')}<strong id="stat-sov">—</strong><small>Дял</small></div>
-          <div class="stat">${infoBtn('pending_reprocess')}<strong id="stat-pending">—</strong><small>Чака</small></div>
-        </div>
-      </section>
+    <section id="metrics-panel" class="metrics-panel hidden" aria-label="Обзор">
       <div class="pillars-wrap">
-        <h3 class="metrics-subhead">Обзор ${infoBtn('pillar_visibility')}</h3>
+        <h3 class="metrics-subhead">4 стълба ${infoBtn('pillar_visibility')}</h3>
         <div id="pillars" class="pillars pillars-compact"></div>
       </div>
     </section>
 
-    <p id="status-line" class="status-line">…</p>
+    <div id="site-stats" class="hidden" aria-hidden="true">
+      <strong id="stat-runs">—</strong>
+      <strong id="stat-obs">—</strong>
+      <strong id="stat-sov">—</strong>
+      <strong id="stat-pending">—</strong>
+    </div>
+
+    <p id="status-line" class="status-line hidden" aria-hidden="true">…</p>
 
     <nav id="pipeline-bar" class="pipeline-bar hidden" aria-hidden="true"></nav>
     <ol id="plan-week" class="hidden" aria-hidden="true"></ol>
@@ -378,20 +389,122 @@ function script(origin) {
       document.body.classList.remove('operation-busy');
     }
 
-    async function withOperation(title, initialStatus, fn, steps) {
+    let lastActivityRetry = null;
+
+    function snapshotDashboardMetrics() {
+      return {
+        score: strategy?.score ?? null,
+        runs: $('stat-runs')?.textContent?.trim() || '—',
+        obs: $('stat-obs')?.textContent?.trim() || '—',
+        sov: $('insight-sov-val')?.textContent?.trim() || '—',
+        disp: $('insight-disp-val')?.textContent?.trim() || '—',
+        phase: strategy?.product_phase ?? null,
+      };
+    }
+
+    function buildMetricsDelta(before, after, result) {
+      const rows = [];
+      if (!before || !after) return rows;
+      if (before.score !== after.score && after.score != null) {
+        rows.push({ label: 'Оценка', value: (before.score ?? '—') + ' → ' + after.score });
+      }
+      if (before.runs !== after.runs) rows.push({ label: 'AI отговори', value: before.runs + ' → ' + after.runs });
+      if (before.obs !== after.obs) rows.push({ label: 'Цитати', value: before.obs + ' → ' + after.obs });
+      if (before.sov !== after.sov) rows.push({ label: 'AI-SOV', value: before.sov + ' → ' + after.sov });
+      if (before.disp !== after.disp) rows.push({ label: 'Изместване', value: before.disp + ' → ' + after.disp });
+      if (result?.pipeline_runs != null) rows.push({ label: 'Нови runs', value: String(result.pipeline_runs) });
+      if (result?.observations != null) rows.push({ label: 'Observations', value: String(result.observations) });
+      if (result?.executed?.length) rows.push({ label: 'Изпълнено', value: result.executed.join(', ') });
+      return rows;
+    }
+
+    function pickActivityNextHint() {
+      if (!strategy) return 'Прегледайте плана и AI метриките по-горе.';
+      const phase = strategy.product_phase;
+      if (phase === 'measurement') return 'Следва: пълен AI анализ — натиснете отново главния бутон.';
+      if (phase === 'positioning') return 'Следва: situational въпроси и content срещу конкуренти (вижте плана).';
+      if (phase === 'technical') return 'Следва: поправете техническите задачи, после remeasure.';
+      return strategy.phase_focus || strategy.verdict?.summary || 'Monitor и remeasure след 2–4 седмици.';
+    }
+
+    function recordActivity({ title, status, detail, metrics, nextHint, retryFn }) {
+      const panel = $('activity-panel');
+      if (!panel) return;
+      panel.classList.remove('hidden', 'activity-ok', 'activity-error', 'activity-running');
+      panel.classList.add('activity-' + (status === 'ok' ? 'ok' : status === 'error' ? 'error' : 'running'));
+      $('activity-status-icon').textContent = status === 'ok' ? '✓' : status === 'error' ? '✕' : '⏳';
+      $('activity-title').textContent = title;
+      $('activity-detail').textContent = detail || '';
+      const metricsEl = $('activity-metrics');
+      if (metrics?.length) {
+        metricsEl.classList.remove('hidden');
+        metricsEl.innerHTML = metrics.map((m) =>
+          '<li><span class="activity-metric-label">' + escHtml(m.label) + '</span>' +
+          '<strong class="activity-metric-val">' + escHtml(m.value) + '</strong></li>'
+        ).join('');
+      } else {
+        metricsEl.classList.add('hidden');
+        metricsEl.innerHTML = '';
+      }
+      const nextEl = $('activity-next');
+      if (nextHint) {
+        nextEl.classList.remove('hidden');
+        nextEl.textContent = '▸ ' + nextHint;
+      } else {
+        nextEl.classList.add('hidden');
+      }
+      lastActivityRetry = retryFn || null;
+      const retryBtn = $('btn-activity-retry');
+      if (retryFn && status === 'error') {
+        retryBtn.hidden = false;
+        retryBtn.onclick = () => retryFn();
+      } else {
+        retryBtn.hidden = true;
+      }
+      panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function withOperation(title, initialStatus, fn, steps, options = {}) {
       if (busy) return;
       busy = true;
       showOperationModal(title, initialStatus, steps);
+      recordActivity({ title, status: 'running', detail: initialStatus });
       const setStatus = (msg, opts) => setOperationStatus(msg, opts);
+      const before = options.trackMetrics !== false ? snapshotDashboardMetrics() : null;
       try {
         const result = await fn(setStatus);
         setOperationStatus('Готово ✓', { done: true });
-        await new Promise((r) => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, 500));
+        if (options.refresh !== false) {
+          await loadSiteStats().catch(() => {});
+        }
+        const after = before ? snapshotDashboardMetrics() : null;
+        const metrics = buildMetricsDelta(before, after, result);
+        let okDetail = (typeof options.successDetail === 'function' ? options.successDetail(result) : options.successDetail) ||
+          'Операцията приключи — данните по-горе са обновени.';
+        if (before && after && !metrics.length && options.trackMetrics !== false) {
+          okDetail += ' Видимите метрики не се промениха — ако очаквахте промяна, проверете плана или повторете след CMS/DNS.';
+        }
+        recordActivity({
+          title,
+          status: 'ok',
+          detail: okDetail,
+          metrics,
+          nextHint: (typeof options.nextHint === 'function' ? options.nextHint(result) : options.nextHint) ||
+            pickActivityNextHint(),
+          retryFn: options.retry,
+        });
         return result;
       } catch (e) {
         setOperationStatus('Грешка: ' + e.message, { error: true });
-        log(title + ': ' + e.message);
-        await new Promise((r) => setTimeout(r, 2200));
+        recordActivity({
+          title,
+          status: 'error',
+          detail: e.message,
+          retryFn: options.retry,
+          nextHint: 'Проверете Admin token, мрежа, или натиснете „Повтори“.',
+        });
+        await new Promise((r) => setTimeout(r, 1800));
         throw e;
       } finally {
         hideOperationModal();
@@ -551,13 +664,13 @@ function script(origin) {
         selectedDomain = '';
         addPanel.classList.remove('hidden');
         addLead.textContent = 'Няма регистрирани сайтове. Добавете домейн по-долу — това е единственият вход.';
-        $('btn-analyze').disabled = true;
+        $('btn-primary-action').disabled = true;
         $('verdict-headline').textContent = 'Добавете първи сайт';
         $('verdict-summary').textContent = 'Домейн, марка, вертикал — след това „Добави + анализ“.';
         return;
       }
       addPanel.classList.add('hidden');
-      $('btn-analyze').disabled = false;
+      $('btn-primary-action').disabled = false;
       sel.innerHTML = sites.map(s =>
         '<option value="' + s.domain + '">' + s.domain + '</option>'
       ).join('');
@@ -691,9 +804,10 @@ function script(origin) {
 
       const sov = statsExtra?.sov?.sov ?? strategyData?.sov_summary?.sov;
       $('insight-sov-val').textContent = sov != null ? sov.toFixed(1) + '%' : '—';
+      const runs = statsExtra?.runs;
       $('insight-sov-note').textContent = sov != null
-        ? 'дял в AI отговори (вертикал)'
-        : 'Нужни observations с вашата марка';
+        ? (runs != null ? runs + ' AI отговора · дял в вертикала' : 'дял в AI отговори')
+        : (runs != null && runs > 0 ? runs + ' отговора — SOV след observations' : 'Пуснете пълен анализ');
 
       const disp = strategyData?.displacement;
       const dispFinding = (strategyData?.findings ?? []).find(f => f.id === 'high_displacement');
@@ -767,16 +881,16 @@ function script(origin) {
       return { desc: 'Подобрете слабостите и remeasure след CMS промени', label: 'Auto-оптимизация', action: 'auto' };
     }
 
-    function renderNextStep(strategyData) {
-      const bar = $('next-step-bar');
+    function renderCommandCenter(strategyData) {
       const step = pickNextStep(strategyData);
-      bar.classList.remove('hidden');
-      $('next-step-desc').textContent = step.desc;
-      const btn = $('btn-next-step');
+      const btn = $('btn-primary-action');
+      const hint = $('command-hint');
       btn.textContent = step.label;
       btn.onclick = () => executeNextStep(step);
-      $('btn-primary-action').textContent = step.label;
-      $('btn-primary-action').onclick = () => executeNextStep(step);
+      hint.textContent = step.desc;
+      if (strategyData?.product_phase) {
+        hint.textContent = (strategyData.phase_focus || step.desc) + ' · Фаза: ' + strategyData.product_phase;
+      }
     }
 
     function executeNextStep(step) {
@@ -1277,24 +1391,26 @@ function script(origin) {
           log(data.message || 'Edge конфигурация записана');
           await loadEdgeDecision();
           await loadStrategy();
+          return data;
         } catch (e) {
           await loadEdgeDecision();
           throw e;
         } finally {
           $('btn-edge-activate').disabled = false;
         }
+      }, null, {
+        retry: () => activateEdge(),
+        successDetail: (data) => data?.message || 'Edge правилата са записани — проверете DNS/CNAME в onboarding.',
       });
     }
 
     async function loadSiteStats() {
       if (!selectedDomain) return;
-      const panel = $('site-stats');
       const cachePanel = $('cache-index-panel');
       try {
         const res = await fetch(API('/api/dashboard/site-stats?domain=' + encodeURIComponent(selectedDomain)));
         const data = await res.json();
-        if (!res.ok) { panel.classList.add('hidden'); cachePanel.classList.add('hidden'); return; }
-        panel.classList.remove('hidden');
+        if (!res.ok) { cachePanel?.classList.add('hidden'); return; }
         $('stat-runs').textContent = data.runs ?? 0;
         $('stat-obs').textContent = data.observations ?? 0;
         $('stat-sov').textContent = data.sov?.sov != null ? (data.sov.sov.toFixed(1) + '%') : '—';
@@ -1304,18 +1420,12 @@ function script(origin) {
         setMetricContext('sov', { value: data.sov?.sov });
         setMetricContext('pending_reprocess', { value: data.pending_reprocess });
         setMetricContext('questions', { value: data.questions });
-        if (data.needs_reprocess) {
-          $('stat-pending').parentElement.classList.add('stat-warn');
-        } else {
-          $('stat-pending').parentElement.classList.remove('stat-warn');
-        }
 
         renderCacheIndex(data.cache_index, data.bot_hits);
         renderInsights(strategy, data);
-        cachePanel.classList.remove('hidden');
+        cachePanel?.classList.remove('hidden');
       } catch {
-        panel.classList.add('hidden');
-        cachePanel.classList.add('hidden');
+        cachePanel?.classList.add('hidden');
       }
     }
 
@@ -1386,11 +1496,12 @@ function script(origin) {
         if (!res.ok) throw new Error(strategy.error || res.status);
         renderVerdict(strategy.verdict, strategy.score);
         renderBlockers(strategy);
-        renderNextStep(strategy);
+        renderCommandCenter(strategy);
         const applyPlan = await loadApplyPlan();
         renderManualWorkbench(strategy, applyPlan);
         renderFindings(strategy);
         renderPillars(strategy.pillars);
+        $('metrics-panel')?.classList.toggle('hidden', !(strategy.pillars?.length));
         renderInsights(strategy, null);
         renderTech(strategy.probe, strategy.stats);
         log('Обновено ' + new Date().toLocaleTimeString('bg-BG'));
@@ -1415,6 +1526,10 @@ function script(origin) {
         log('Reprocess: ' + (data.observations ?? 0) + ' observations');
         await loadSiteStats();
         await loadStrategy();
+        return data;
+      }, null, {
+        retry: () => runReprocess(),
+        successDetail: (data) => 'Обработени ' + (data?.observations ?? 0) + ' observations — цитатите и SOV са преизчислени.',
       });
     }
 
@@ -1475,9 +1590,20 @@ function script(origin) {
           await loadEdgeDecision();
           await loadOptimizer();
           await loadOnboarding();
+          return data;
         } finally {
           $('btn-auto-optimize').disabled = false;
         }
+      }, null, {
+        retry: () => runAutoOptimize(),
+        successDetail: (data) => {
+          const done = (data?.executed || []).map(e => e.action).join(', ');
+          const gates = data?.human_gates?.length || 0;
+          if (done) return 'Изпълнено автоматично: ' + done + (gates ? ' · ' + gates + ' чакат вас (ръчни задачи).' : '.');
+          return gates
+            ? 'Няма auto действия — ' + gates + ' стъпки изискват CMS/DNS (вижте ръчните задачи).'
+            : 'Планът не намери нови auto действия — проверете плана и метриките.';
+        },
       });
     }
 
@@ -1485,7 +1611,6 @@ function script(origin) {
       if (!selectedDomain || busy) return;
       const steps = ['Одит на сайта', 'Генериране на въпроси', 'AI измерване', 'Обновяване на стратегия'];
       return withOperation('Пълен анализ', steps[0] + '…', async (setStatus) => {
-        $('btn-analyze').disabled = true;
         $('btn-primary-action').disabled = true;
         try {
           setStatus('Pipeline: одит → въпроси → измерване (~2 мин)', { stepIndex: 0 });
@@ -1499,11 +1624,23 @@ function script(origin) {
           await loadStrategy();
           await loadEdgeDecision();
           log('Анализът приключи успешно');
+          return data;
         } finally {
-          $('btn-analyze').disabled = false;
           $('btn-primary-action').disabled = false;
         }
-      }, steps);
+      }, steps, {
+        retry: () => runFullAnalysis(),
+        successDetail: (data) => {
+          const runs = data?.pipeline_runs ?? data?.runs;
+          const obs = data?.observations;
+          const parts = [];
+          if (runs != null) parts.push(runs + ' AI runs');
+          if (obs != null) parts.push(obs + ' observations');
+          return parts.length
+            ? 'Пълен анализ приключи — ' + parts.join(', ') + '. Вижте AI-SOV и плана по-горе.'
+            : 'Пълен анализ приключи — вердиктът и метриките са обновени.';
+        },
+      });
     }
 
     async function submitAddSite(thenRun) {
@@ -1575,9 +1712,13 @@ function script(origin) {
     };
     $('add-site-form').onsubmit = (e) => { e.preventDefault(); submitAddSite(false); };
     $('btn-add-run').onclick = () => submitAddSite(true);
-    $('btn-analyze').onclick = runFullAnalysis;
-    $('btn-primary-action').onclick = runFullAnalysis;
     $('btn-auto-optimize').onclick = runAutoOptimize;
+    $('btn-activity-dismiss').onclick = () => {
+      $('activity-panel').classList.add('hidden');
+    };
+    $('btn-activity-retry').onclick = () => {
+      if (lastActivityRetry) lastActivityRetry();
+    };
     $('btn-edge-activate').onclick = activateEdge;
     $('btn-refresh').onclick = () => { loadStrategy(); loadEdgeDecision(); loadSiteStats(); loadOnboarding(); loadDriftStatus(); loadOptimizer(); };
     $('btn-reprocess').onclick = runReprocess;
@@ -1587,13 +1728,25 @@ function script(origin) {
       if (!selectedDomain || busy) return;
       return withOperation('Генериране на въпроси', 'Gemini + site brief…', async (setStatus) => {
         setStatus('Създаване на въпроси за измерване…');
-        await apiFetch('/api/questions/generate', {
+        const res = await apiFetch('/api/questions/generate', {
           method: 'POST',
           body: JSON.stringify({ domain: selectedDomain, replace_auto: true })
         });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(authErrorHint(res, data));
         setStatus('Обновяване на списъка…');
         await loadQuestionsQuiet();
         log('Въпросите са генерирани');
+        return data;
+      }, null, {
+        retry: () => $('btn-gen-q').click(),
+        successDetail: (data) => {
+          const n = data?.count ?? data?.questions?.length;
+          return n != null
+            ? 'Генерирани ' + n + ' въпроса — стартирайте пълен анализ за измерване.'
+            : 'Въпросите са обновени — стартирайте пълен анализ.';
+        },
+        trackMetrics: false,
       });
     };
     $('btn-add-q').onclick = async () => {
@@ -1659,6 +1812,27 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .blocker-icon{font-size:1.25rem;line-height:1}
 .blocker-body{flex:1;min-width:0}
 .blocker-body strong{display:block;margin-bottom:.2rem}
+.activity-panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem}
+.activity-panel.hidden{display:none}
+.activity-panel.activity-ok{border-color:var(--ok);background:#102a1818}
+.activity-panel.activity-error{border-color:var(--err);background:#2a151518}
+.activity-panel.activity-running{border-color:var(--accent);background:#1e3a5f18}
+.activity-head{display:flex;align-items:flex-start;gap:.65rem}
+.activity-icon{font-size:1.15rem;line-height:1.4;flex-shrink:0}
+.activity-body{flex:1;min-width:0}
+.activity-body strong{display:block;font-size:.9rem;margin-bottom:.15rem}
+.activity-actions{display:flex;gap:.35rem;flex-shrink:0}
+.activity-metrics{list-style:none;padding:0;margin:.55rem 0 0;display:flex;flex-wrap:wrap;gap:.45rem .75rem}
+.activity-metrics.hidden{display:none}
+.activity-metrics li{font-size:.78rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.25rem .5rem}
+.activity-metric-label{color:var(--muted);margin-right:.35rem}
+.activity-next{margin:.55rem 0 0;padding-top:.5rem;border-top:1px solid var(--border);font-size:.82rem;color:var(--accent)}
+.command-center{margin-bottom:1rem;padding-bottom:.85rem;border-bottom:1px solid var(--border)}
+.command-primary{display:flex;flex-direction:column;align-items:flex-start;gap:.45rem;margin-bottom:.65rem}
+.command-hint{margin:0;max-width:36rem;line-height:1.4}
+.command-more summary{cursor:pointer;font-size:.82rem;color:var(--muted);padding:.25rem 0;list-style:none}
+.command-more summary::-webkit-details-marker{display:none}
+.command-more-grid{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.45rem;padding:.5rem;background:var(--surface2);border-radius:8px;border:1px solid var(--border)}
 .insights-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.85rem 1rem;margin-bottom:.75rem}
 .insights-panel.hidden{display:none}
 .insights-title{font-size:.9rem;margin:0 0 .65rem;font-weight:600}

@@ -12,6 +12,7 @@ import { analyzeDisplacement } from './displacement.js';
 import { computeSov, currentPeriod } from '../index/sov.js';
 import { buildManualTaskList } from './manualTasks.js';
 import { loadEdgeConfig } from '../config/tenantEdge.js';
+import { resolveProductPhase, shouldRecommendEdge } from './siteProfile.js';
 
 export const PILLARS = [
   { id: 'visibility', label: 'Видимост', icon: '👁' },
@@ -65,7 +66,7 @@ export function buildStrategy(input = {}) {
   const recommendations = findingsToRecommendations(findingsPack.findings);
   const scoreBreakdown = buildScoreBreakdown(probe, passage, findingsPack.findings);
 
-  const verdict = buildVerdict(probe, passage, diagnostic_score, displacement, sov, runCount, findingsPack);
+  const verdict = buildVerdict(probe, passage, diagnostic_score, displacement, sov, runCount, findingsPack, brand);
   const pillars = buildPillars(probe, passage, displacement, sov, runCount);
   const plan = buildActionPlan(probe, recommendations, displacement, sov, {
     registered,
@@ -86,6 +87,14 @@ export function buildStrategy(input = {}) {
     edgeActive,
   });
 
+  const productPhase = resolveProductPhase({
+    probe,
+    brand,
+    runCount,
+    displacement,
+    sov,
+  });
+
   return {
     domain: tenant?.apex_host ?? probe?.domain ?? null,
     brand: tenant?.name ?? null,
@@ -93,6 +102,13 @@ export function buildStrategy(input = {}) {
     score: diagnostic_score ?? null,
     edge_active: edgeActive,
     edge_status: edgeStatus,
+    product_phase: productPhase.product_phase,
+    phase_focus: productPhase.focus,
+    technical_baseline: {
+      complete: productPhase.complete,
+      gaps: productPhase.gaps,
+      soft_gaps: productPhase.soft_gaps,
+    },
     verdict,
     pillars,
     plan,
@@ -108,7 +124,7 @@ export function buildStrategy(input = {}) {
   };
 }
 
-function buildVerdict(probe, passage, score, displacement, sov, runCount, findingsPack = null) {
+function buildVerdict(probe, passage, score, displacement, sov, runCount, findingsPack = null, brand = null) {
   if (!probe) {
     return {
       level: 'unknown',
@@ -116,6 +132,8 @@ function buildVerdict(probe, passage, score, displacement, sov, runCount, findin
       summary: 'Добавете домейн и стартирайте анализ.',
     };
   }
+
+  const phase = resolveProductPhase({ probe, brand, runCount, displacement, sov });
 
   if (probe.signals?.noindex) {
     return {
@@ -158,14 +176,22 @@ function buildVerdict(probe, passage, score, displacement, sov, runCount, findin
     };
   }
 
+  if (runCount === 0 && phase.product_phase === 'measurement') {
+    return {
+      level: 'info',
+      headline: 'Техническата основа е готова — време за AI измерване',
+      summary: phase.focus,
+    };
+  }
+
   if (runCount === 0) {
     return {
       level: 'warning',
       headline: score != null && score < 60 ? 'Технически проблеми — още няма AI измерване' : 'Сайтът е достъпен, но още не е измерен в AI',
       summary:
         score != null && score < 60
-          ? `Оценка ${score}/100. Поправете съдържанието и стартирайте измерване, за да видите дали AI ви препоръчва.`
-          : 'Стартирайте пълен анализ — системата ще зададе въпроси на OpenAI/Gemini и ще покаже дали ви цитират.',
+          ? `Оценка ${score}/100. ${phase.focus}`
+          : 'Стартирайте пълен анализ — SOV и displacement показват дали AI ви препоръчва.',
     };
   }
 
@@ -173,8 +199,8 @@ function buildVerdict(probe, passage, score, displacement, sov, runCount, findin
   if (dispRate >= 0.25) {
     return {
       level: 'critical',
-      headline: 'Конкурентите ви изместват в AI отговорите',
-      summary: `В ${Math.round(dispRate * 100)}% от случаите AI изброява други марки, а вас липсвате. Фокус: по-богато съдържание + structured data.`,
+      headline: 'Конкурентите ви изместват в AI препоръките',
+      summary: `В ${Math.round(dispRate * 100)}% от отговорите AI дава други марки. ${phase.focus}`,
     };
   }
 
@@ -182,8 +208,19 @@ function buildVerdict(probe, passage, score, displacement, sov, runCount, findin
   if (sovShare != null && sovShare < 0.05 && (sov?.total_observations ?? 0) > 5) {
     return {
       level: 'warning',
-      headline: 'Нисък дял от AI препоръките',
-      summary: `SOV ~${Math.round(sovShare * 1000) / 10}% — конкурентите доминират. Продължете оптимизацията по плана по-долу.`,
+      headline: 'Нисък AI-SOV — не сте в top препоръките',
+      summary: `SOV ~${Math.round(sovShare * 1000) / 10}%. ${phase.focus}`,
+    };
+  }
+
+  if (phase.product_phase === 'positioning' || phase.product_phase === 'dominance') {
+    return {
+      level: phase.product_phase === 'dominance' ? 'ok' : 'info',
+      headline:
+        phase.product_phase === 'dominance'
+          ? 'Силна AI позиция — задръжте и разширете'
+          : 'Техниката е наред — атакувайте позицията в AI',
+      summary: phase.focus,
     };
   }
 
@@ -307,36 +344,63 @@ function buildActionPlan(probe, recommendations, displacement, sov, ctx) {
   const thisWeek = [];
   const thisMonth = [];
   let step = 1;
+  const brand = ctx.brand ?? null;
+  const phase = resolveProductPhase({
+    probe,
+    brand,
+    runCount: ctx.runCount,
+    displacement,
+    sov,
+  });
+  const technicalDone = phase.complete;
 
   if (!ctx.registered) {
     thisWeek.push(action(step++, 'register', 'Регистрирайте сайта в системата', 'high', 'you', '30 сек'));
   }
 
-  if (ctx.runCount === 0) {
+  if (ctx.runCount === 0 && technicalDone) {
+    thisWeek.push(
+      action(
+        step++,
+        'measure',
+        'Пълен анализ — AI измерване (SOV + displacement)',
+        'high',
+        'system',
+        'След deploy в repo: измерете дали ChatGPT/Gemini/Perplexity ви препоръчват.',
+      ),
+    );
+  } else if (ctx.runCount === 0) {
     thisWeek.push(action(step++, 'measure', 'Стартирайте пълен анализ (одит → въпроси → AI измерване)', 'high', 'system', '2–3 мин'));
   }
 
-  if (!ctx.edgeActive && probe && hasEdgeFixableIssues(probe)) {
+  if (!ctx.edgeActive && probe && shouldRecommendEdge(probe)) {
     thisWeek.unshift(
       action(
         step++,
         'activate_edge',
-        'Приложете Edge оптимизация (Worker proxy)',
-        'high',
+        'Edge (опционално) — само ако искате Worker мониторинг',
+        'medium',
         'system',
-        'Dashboard → „2. Приложи Edge“ → CNAME. Без CMS промени — robots + JSON-LD автоматично.',
+        'Не е SEO задължително. Полезно за robots/schema/canonical през нашата платформа.',
       ),
     );
   }
 
-  for (const rec of recommendations.filter((r) => r.severity === 'critical' || r.severity === 'warning')) {
+  const recFilter = (r) => {
+    if (technicalDone && ['missing_jsonld', 'missing_sitemap', 'thin_content', 'brand_absent', 'no_prices', 'edge_activate'].includes(r.id)) {
+      return false;
+    }
+    return r.severity === 'critical' || r.severity === 'warning';
+  };
+
+  for (const rec of recommendations.filter(recFilter)) {
     const when = rec.layer === 'content' || rec.id === 'thin_content' ? 'this_week' : 'this_week';
     const item = action(step++, rec.id, rec.title, rec.severity === 'critical' ? 'high' : 'medium', rec.owner, rec.action);
     if (when === 'this_week') thisWeek.push(item);
     else thisMonth.push(item);
   }
 
-  if (probe && (probe.html_text_chars ?? 0) < 500) {
+  if (probe && (probe.html_text_chars ?? 0) < 500 && !technicalDone) {
     const exists = thisWeek.some((a) => a.id === 'thin_content');
     if (!exists) {
       thisWeek.unshift(
@@ -352,7 +416,7 @@ function buildActionPlan(probe, recommendations, displacement, sov, ctx) {
     }
   }
 
-  if (probe && (probe.jsonld_blocks ?? 0) === 0 && !ctx.edgeActive) {
+  if (probe && (probe.jsonld_blocks ?? 0) === 0 && !ctx.edgeActive && !technicalDone) {
     const exists = thisWeek.some((a) => a.id === 'add_jsonld' || a.id === 'activate_edge');
     if (!exists) {
       thisWeek.push(
@@ -368,22 +432,46 @@ function buildActionPlan(probe, recommendations, displacement, sov, ctx) {
     }
   }
 
-  if (ctx.questionCount < 5 && ctx.registered) {
-    thisWeek.push(
-      action(step++, 'questions', 'Прегледайте автоматичните въпроси (редактирайте при нужда)', 'medium', 'you', 'Въпросите симулират реални BG заявки към AI.'),
+  if (technicalDone && ctx.runCount > 0) {
+    thisWeek.unshift(
+      action(
+        step++,
+        'positioning_situational',
+        'Situational въпроси — покрийте подтеми (цена, интеграции, език)',
+        'high',
+        'system',
+        'Слой 5 от конвейера: AI разбива въпроса — трябва пасажи за всяка подтема.',
+      ),
     );
   }
 
   if (ctx.runCount > 0 && (displacement?.displacement_rate ?? 0) >= 0.15) {
+    thisWeek.unshift(
+      action(
+        step++,
+        'compete_content',
+        'Страници срещу конкурентите в AI отговорите',
+        'high',
+        'you',
+        '„KASY vs Todoist“, comparison таблици, FAQ — displacement пада когато AI ви изброява.',
+      ),
+    );
+  } else if (technicalDone && ctx.runCount > 0) {
     thisMonth.push(
       action(
         step++,
         'compete_content',
-        'Създайте страници срещу конкурентите',
-        'high',
+        'Comparison + FAQ за category въпроси',
+        'medium',
         'you',
-        'FAQ и сравнения: „защо [марка] vs X“ — AI често изброява конкуренти при category въпроси.',
+        'Подгответе пасажи, които AI може да цитира при „кой е най-добрият…“',
       ),
+    );
+  }
+
+  if (ctx.questionCount < 5 && ctx.registered) {
+    thisWeek.push(
+      action(step++, 'questions', 'Прегледайте автоматичните въпроси (редактирайте при нужда)', 'medium', 'you', 'Въпросите симулират реални BG заявки към AI.'),
     );
   }
 
@@ -418,12 +506,7 @@ function dedupeActions(list) {
 }
 
 function hasEdgeFixableIssues(probe) {
-  if (!probe) return false;
-  if (probe.robots_ai_policy === 'disallow_all') return true;
-  if ((probe.jsonld_blocks ?? 0) === 0) return true;
-  if (probe.robots_ai_policy === 'none' || probe.robots_ai_policy === 'fetch_error') return true;
-  const chain = probe.redirect_chain ?? probe.raw_json?.redirect_chain ?? [];
-  return chain.length > 1;
+  return shouldRecommendEdge(probe);
 }
 
 function buildPipelineGuide(ctx) {

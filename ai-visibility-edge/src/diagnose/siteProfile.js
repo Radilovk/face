@@ -88,3 +88,82 @@ export function isMeasurementNoiseFinding(id) {
 export function probeOptionsFromTenant(tenant) {
   return { brand: tenant?.name ?? undefined };
 }
+
+/**
+ * Technical baseline (Layers 2–3 of conveyor): crawlable, readable, identity, schema.
+ * When complete, product focus shifts to measurement + positioning (Layers 5–6, SOV).
+ */
+export function assessTechnicalBaseline(probe, brand) {
+  const gaps = [];
+  if (!probe) return { complete: false, gaps: ['no_probe'], phase: 'technical' };
+
+  if (probe.signals?.noindex) gaps.push('noindex');
+  if (probe.robots_ai_policy === 'disallow_all') gaps.push('robots');
+  if ((probe.http_status ?? 0) < 200 || (probe.http_status ?? 0) >= 400) gaps.push('http');
+  if (probe.signals?.js_shell_suspect) gaps.push('js_shell');
+  if ((probe.html_text_chars ?? 0) < 500) gaps.push('thin_content');
+  if ((probe.jsonld_blocks ?? 0) === 0) gaps.push('jsonld');
+  if (!probe.signals?.sitemap_ok) gaps.push('sitemap');
+  if (brand && effectiveBrandMentions(probe, brand) === 0) gaps.push('brand');
+
+  const soft = [];
+  if (!hasPriceSignals(probe)) soft.push('prices');
+
+  return {
+    complete: gaps.length === 0,
+    gaps,
+    soft_gaps: soft,
+    phase: gaps.length === 0 ? 'positioning_ready' : 'technical',
+  };
+}
+
+/**
+ * Product phase per MASTER/СТРАТЕГИЯ: measure first, then fight for AI recommendation rank.
+ */
+export function resolveProductPhase(input = {}) {
+  const { probe, brand, runCount = 0, displacement, sov } = input;
+  const baseline = assessTechnicalBaseline(probe, brand);
+
+  if (!baseline.complete) {
+    return {
+      ...baseline,
+      product_phase: 'technical',
+      focus: 'Поправете crawl/read/schema — без това AI не може да ви цитира.',
+    };
+  }
+
+  if (runCount === 0) {
+    return {
+      ...baseline,
+      product_phase: 'measurement',
+      focus: 'Техническата основа е готова. Пуснете AI измерване — SOV и displacement са истината.',
+    };
+  }
+
+  const dispRate = displacement?.displacement_rate ?? 0;
+  const sovShare = sov?.share ?? sov?.sov ?? null;
+  const obs = sov?.total_observations ?? displacement?.total_runs ?? 0;
+
+  if (dispRate >= 0.15 || (sovShare != null && sovShare < 0.1 && obs > 5)) {
+    return {
+      ...baseline,
+      product_phase: 'positioning',
+      focus:
+        'Битка за позиция: situational въпроси, сравнения с конкуренти, самостоятелни пасажи — не още schema/sitemap.',
+    };
+  }
+
+  if (sovShare != null && sovShare >= 0.15 && dispRate < 0.1) {
+    return {
+      ...baseline,
+      product_phase: 'dominance',
+      focus: 'Силна позиция — мониторинг, remeasure, parametric recall и нови вертикални въпроси.',
+    };
+  }
+
+  return {
+    ...baseline,
+    product_phase: 'positioning',
+    focus: 'Натрупайте observations и атакувайте displacement — целта е top-of-mind в AI препоръките.',
+  };
+}

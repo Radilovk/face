@@ -58,8 +58,51 @@ export function renderDashboardPage(origin) {
         <div class="verdict-text">
           <h2 id="verdict-headline">Изберете сайт или добавете нов</h2>
           <p id="verdict-summary" class="sub">Системата ще покаже вердикт и какво да направите следващо.</p>
+          <p id="last-measured" class="last-measured sub hidden"></p>
         </div>
       </div>
+    </section>
+
+    <section id="blocker-banner" class="blocker-banner hidden" aria-live="polite">
+      <span class="blocker-icon">🚨</span>
+      <div class="blocker-body">
+        <strong id="blocker-title">Блокер</strong>
+        <p id="blocker-detail" class="sub">…</p>
+      </div>
+      <button type="button" class="btn btn-sm" id="btn-blocker-fix">Поправи</button>
+    </section>
+
+    <section id="insights-panel" class="insights-panel hidden" aria-label="AI позициониране">
+      <h3 class="insights-title">Как AI ви вижда ${infoBtn('sov')}</h3>
+      <div class="insights-grid">
+        <div class="insight-card" id="insight-sov">
+          <span class="insight-label">AI-SOV ${infoBtn('sov')}</span>
+          <strong id="insight-sov-val" class="insight-val">—</strong>
+          <small id="insight-sov-note" class="sub">дял в отговорите</small>
+        </div>
+        <div class="insight-card" id="insight-displacement">
+          <span class="insight-label">Изместване ${infoBtn('displacement_rate')}</span>
+          <strong id="insight-disp-val" class="insight-val">—</strong>
+          <small id="insight-disp-note" class="sub">конкуренти вместо вас</small>
+        </div>
+        <div class="insight-card" id="insight-citations">
+          <span class="insight-label">Цитати ${infoBtn('observations')}</span>
+          <strong id="insight-cite-val" class="insight-val">—</strong>
+          <small id="insight-cite-note" class="sub">качество</small>
+        </div>
+      </div>
+      <div id="displacement-examples" class="displacement-examples hidden">
+        <p class="sub insight-examples-title">Примери — AI дава други марки:</p>
+        <ul id="displacement-list" class="displacement-list"></ul>
+      </div>
+    </section>
+
+    <section id="next-step-bar" class="next-step-bar hidden">
+      <div class="next-step-text">
+        <span class="next-step-label">Следващо</span>
+        <p id="next-step-desc">—</p>
+      </div>
+      <button type="button" class="btn btn-lg" id="btn-next-step">—</button>
     </section>
 
     <section id="work-hub" class="work-hub" aria-label="План и поправки">
@@ -72,17 +115,13 @@ export function renderDashboardPage(origin) {
       </div>
 
       <div class="action-bar">
-        <button type="button" class="btn btn-lg" id="btn-auto-optimize">🤖 Auto-оптимизация</button>
-        <button type="button" class="btn btn-ghost" id="btn-analyze">Анализ</button>
-        <details class="action-more">
-          <summary class="btn btn-ghost btn-sm">Още</summary>
-          <div class="action-more-menu">
-            <button type="button" class="btn btn-sm btn-ghost" id="btn-edge-activate">⚡ Edge</button>
-            <button type="button" class="btn btn-sm btn-ghost" id="btn-reprocess">Reprocess</button>
-            <button type="button" class="btn btn-sm btn-ghost" id="btn-refresh">↻ Обнови</button>
-            <a class="btn btn-sm btn-ghost" id="btn-report" href="#" target="_blank" rel="noopener">📄 Отчет</a>
-          </div>
-        </details>
+        <button type="button" class="btn btn-lg" id="btn-primary-action">🚀 Анализ</button>
+        <button type="button" class="btn btn-ghost" id="btn-auto-optimize">Auto-оптимизация</button>
+        <button type="button" class="btn btn-ghost" id="btn-analyze">Повторен анализ</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-edge-activate">⚡ Edge</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-refresh">↻ Обнови</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-reprocess">Reprocess</button>
+        <a class="btn btn-ghost btn-sm" id="btn-report" href="#" target="_blank" rel="noopener">📄 Отчет</a>
       </div>
 
       <section id="optimization-roadmap" class="roadmap-panel hidden" aria-label="План">
@@ -511,6 +550,147 @@ function script(origin) {
       $('verdict-summary').textContent = v?.summary || '';
     }
 
+    function renderBlockers(strategyData) {
+      const banner = $('blocker-banner');
+      const critical = (strategyData?.findings ?? []).find(f =>
+        f.severity === 'critical' && (f.category === 'visibility' || f.id === 'http_error' || f.id === 'meta_noindex'));
+      if (!critical) {
+        banner.classList.add('hidden');
+        return;
+      }
+      banner.classList.remove('hidden');
+      $('blocker-title').textContent = critical.title;
+      $('blocker-detail').textContent = critical.impact || critical.fix?.steps?.[0] || '';
+      const btn = $('btn-blocker-fix');
+      const auto = critical.automation || {};
+      if (auto.manual_form) {
+        btn.textContent = 'Към ръчна задача';
+        btn.onclick = () => {
+          const el = document.querySelector('.manual-task-card[data-task-id="' + critical.id + '"]');
+          el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el?.classList.add('manual-task-highlight');
+        };
+      } else if (auto.action === 'activate_edge') {
+        btn.textContent = '⚡ Edge';
+        btn.onclick = () => activateEdge();
+      } else {
+        btn.textContent = 'Виж детайли';
+        btn.onclick = () => $('manual-workbench')?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    function renderInsights(strategyData, statsExtra) {
+      const panel = $('insights-panel');
+      if (!strategyData?.registered && !strategyData?.probe) {
+        panel.classList.add('hidden');
+        return;
+      }
+      panel.classList.remove('hidden');
+
+      const sov = statsExtra?.sov?.sov ?? strategyData?.sov_summary?.sov;
+      $('insight-sov-val').textContent = sov != null ? sov.toFixed(1) + '%' : '—';
+      $('insight-sov-note').textContent = sov != null
+        ? 'дял в AI отговори (вертикал)'
+        : 'Нужни observations с вашата марка';
+
+      const disp = strategyData?.displacement;
+      const dispFinding = (strategyData?.findings ?? []).find(f => f.id === 'high_displacement');
+      const dispRate = disp?.displacement_rate ?? (dispFinding?.evidence?.displaced_count != null
+        ? dispFinding.evidence.displaced_count / Math.max(dispFinding.evidence.total_runs, 1) : null);
+      $('insight-disp-val').textContent = dispRate != null ? Math.round(dispRate * 100) + '%' : '—';
+      $('insight-disp-note').textContent = disp
+        ? disp.displaced_count + '/' + disp.total_runs + ' пъти без вас'
+        : 'Нужно измерване (мин. 5 runs)';
+
+      const mis = (strategyData?.findings ?? []).find(f => f.id === 'misattributed_citations');
+      const obs = statsExtra?.observations ?? strategyData?.stats?.runCount;
+      const citeTotal = mis?.evidence?.total ?? statsExtra?.observations;
+      const citeBad = mis?.evidence?.misattributed ?? 0;
+      if (citeTotal) {
+        const ok = citeTotal - citeBad;
+        $('insight-cite-val').textContent = ok + '/' + citeTotal;
+        $('insight-cite-note').textContent = citeBad ? citeBad + ' грешни · ' + Math.round((citeBad / citeTotal) * 100) + '%' : 'верифицирани';
+      } else {
+        $('insight-cite-val').textContent = '—';
+        $('insight-cite-note').textContent = 'Пуснете анализ';
+      }
+
+      const exWrap = $('displacement-examples');
+      const examples = dispFinding?.evidence?.examples ?? [];
+      if (examples.length) {
+        exWrap.classList.remove('hidden');
+        $('displacement-list').innerHTML = examples.slice(0, 4).map(ex =>
+          '<li><span class="disp-q">„' + escHtml(ex.question || '') + '“</span> → ' +
+          escHtml((ex.competitors || []).join(', ') || ex.model || '') + '</li>'
+        ).join('');
+      } else if (dispRate != null && dispRate > 0) {
+        exWrap.classList.remove('hidden');
+        $('displacement-list').innerHTML = '<li class="sub">Има изместване — вижте секция „Автоматични поправки“.</li>';
+      } else if ((disp?.total_runs ?? 0) === 0) {
+        exWrap.classList.remove('hidden');
+        $('displacement-list').innerHTML = '<li class="sub">Няма измерване — пуснете „Първи анализ“.</li>';
+      } else {
+        exWrap.classList.add('hidden');
+      }
+
+      if (strategyData?.generated_at) {
+        const lm = $('last-measured');
+        lm.textContent = 'Данни от ' + new Date(strategyData.generated_at).toLocaleString('bg-BG');
+        lm.classList.remove('hidden');
+      }
+      setMetricContext('displacement_rate', { value: dispRate });
+    }
+
+    function pickNextStep(strategyData) {
+      const critical = (strategyData?.findings ?? []).find(f => f.severity === 'critical');
+      if (critical) {
+        const auto = critical.automation || {};
+        return {
+          desc: critical.title + ' — ' + (critical.impact || '').slice(0, 120),
+          label: auto.label || 'Поправи блокера',
+          action: auto.action === 'activate_edge' ? 'edge' : (auto.manual_form ? 'manual:' + critical.id : 'analyze'),
+          findingId: critical.id,
+        };
+      }
+      const pipeline = strategyData?.pipeline;
+      if (pipeline?.next_action) {
+        return { desc: pipeline.next_action, label: 'Продължи', action: pipeline.current === 'edge' ? 'edge' : 'auto' };
+      }
+      if ((strategyData?.stats?.runCount ?? 0) === 0) {
+        return { desc: 'Няма AI измерване — първи анализ (~2 мин)', label: '🚀 Първи анализ', action: 'analyze' };
+      }
+      if ((strategyData?.stats?.questionCount ?? 0) < 5) {
+        return { desc: 'Добавете поне 5 въпроса за смислено измерване', label: 'Генерирай въпроси', action: 'questions' };
+      }
+      return { desc: 'Подобрете слабостите и remeasure след CMS промени', label: 'Auto-оптимизация', action: 'auto' };
+    }
+
+    function renderNextStep(strategyData) {
+      const bar = $('next-step-bar');
+      const step = pickNextStep(strategyData);
+      bar.classList.remove('hidden');
+      $('next-step-desc').textContent = step.desc;
+      const btn = $('btn-next-step');
+      btn.textContent = step.label;
+      btn.onclick = () => executeNextStep(step);
+      $('btn-primary-action').textContent = step.label;
+      $('btn-primary-action').onclick = () => executeNextStep(step);
+    }
+
+    function executeNextStep(step) {
+      if (step.action === 'analyze') return runFullAnalysis();
+      if (step.action === 'auto') return runAutoOptimize();
+      if (step.action === 'edge') return activateEdge();
+      if (step.action === 'questions') { $('btn-gen-q')?.click(); return; }
+      if (step.action?.startsWith('manual:')) {
+        const id = step.action.slice(7);
+        document.querySelector('.manual-task-card[data-task-id="' + id + '"]')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      runFullAnalysis();
+    }
+
     function mergeApplyManualTasks(tasks, applyPlan) {
       const out = [...(tasks || [])];
       const seen = new Set(out.map(t => t.id));
@@ -587,7 +767,7 @@ function script(origin) {
           ? '<button type="button" class="btn btn-sm btn-ghost manual-generate" data-finding-id="' + escHtml(t.id) + '" data-intent="' + escHtml(t.intent || '') + '">' +
             escHtml(t.generate_label || 'Генерирай draft') + '</button>'
           : '';
-        return '<li class="manual-task-card ' + sev + '" data-task-id="' + escHtml(t.id) + '">' +
+        return '<li class="manual-task-card ' + sev + (t.severity === 'critical' ? ' manual-task-open' : '') + '" data-task-id="' + escHtml(t.id) + '">' +
           '<div class="manual-task-head"><strong>' + escHtml(t.title) + '</strong></div>' +
           (t.instructions ? '<p class="sub">' + escHtml(t.instructions) + '</p>' : '') +
           (t.impact ? '<p class="finding-impact">' + escHtml(t.impact) + '</p>' : '') +
@@ -1033,6 +1213,7 @@ function script(origin) {
         }
 
         renderCacheIndex(data.cache_index, data.bot_hits);
+        renderInsights(strategy, data);
         cachePanel.classList.remove('hidden');
       } catch {
         panel.classList.add('hidden');
@@ -1106,10 +1287,13 @@ function script(origin) {
         strategy = await res.json();
         if (!res.ok) throw new Error(strategy.error || res.status);
         renderVerdict(strategy.verdict, strategy.score);
+        renderBlockers(strategy);
+        renderNextStep(strategy);
         const applyPlan = await loadApplyPlan();
         renderManualWorkbench(strategy, applyPlan);
         renderFindings(strategy);
         renderPillars(strategy.pillars);
+        renderInsights(strategy, null);
         renderTech(strategy.probe, strategy.stats);
         log('Обновено ' + new Date().toLocaleTimeString('bg-BG'));
         loadQuestionsQuiet();
@@ -1289,6 +1473,7 @@ function script(origin) {
     $('add-site-form').onsubmit = (e) => { e.preventDefault(); submitAddSite(false); };
     $('btn-add-run').onclick = () => submitAddSite(true);
     $('btn-analyze').onclick = runFullAnalysis;
+    $('btn-primary-action').onclick = runFullAnalysis;
     $('btn-auto-optimize').onclick = runAutoOptimize;
     $('btn-edge-activate').onclick = activateEdge;
     $('btn-refresh').onclick = () => { loadStrategy(); loadEdgeDecision(); loadSiteStats(); loadOnboarding(); loadDriftStatus(); loadOptimizer(); };
@@ -1360,6 +1545,33 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .verdict-top{display:flex;gap:1rem;align-items:center}
 .verdict-text{flex:1;min-width:0}
 .verdict h2{font-size:1rem;margin:0 0 .25rem;line-height:1.35}
+.last-measured{font-size:.75rem;margin-top:.35rem!important;opacity:.85}
+.blocker-banner{display:flex;align-items:flex-start;gap:.75rem;padding:.85rem 1rem;margin-bottom:.75rem;background:#2a1515;border:1px solid var(--err);border-radius:10px}
+.blocker-banner.hidden{display:none}
+.blocker-icon{font-size:1.25rem;line-height:1}
+.blocker-body{flex:1;min-width:0}
+.blocker-body strong{display:block;margin-bottom:.2rem}
+.insights-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:.85rem 1rem;margin-bottom:.75rem}
+.insights-panel.hidden{display:none}
+.insights-title{font-size:.9rem;margin:0 0 .65rem;font-weight:600}
+.insights-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}
+@media(max-width:560px){.insights-grid{grid-template-columns:1fr}}
+.insight-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:.65rem .75rem;text-align:center}
+.insight-label{font-size:.65rem;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.2rem}
+.insight-val{font-size:1.35rem;color:var(--accent);display:block;line-height:1.2}
+.insight-card small{font-size:.7rem;display:block;margin-top:.15rem}
+.displacement-examples{margin-top:.65rem;padding-top:.55rem;border-top:1px solid var(--border)}
+.insight-examples-title{margin:0 0 .35rem;font-size:.78rem}
+.displacement-list{list-style:none;padding:0;margin:0;font-size:.78rem;color:var(--muted)}
+.displacement-list li{padding:.25rem 0;border-bottom:1px solid var(--border)}
+.disp-q{color:var(--text)}
+.next-step-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;padding:.85rem 1rem;margin-bottom:.75rem;background:linear-gradient(135deg,#1e3a5f22,#121820);border:1px solid var(--accent);border-radius:10px}
+.next-step-bar.hidden{display:none}
+.next-step-label{font-size:.65rem;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:.15rem}
+.next-step-text{flex:1;min-width:200px}
+.next-step-text p{margin:0;font-size:.875rem}
+.manual-task-open{border-color:var(--warn)!important}
+.manual-task-highlight{outline:2px solid var(--accent);outline-offset:2px}
 .score{position:relative;font-size:2.25rem;font-weight:700;line-height:1;color:var(--accent);flex-shrink:0;min-width:2.75rem;text-align:center}
 .work-hub{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem 1.15rem;margin-bottom:1rem}
 .work-hub-head{display:flex;justify-content:space-between;align-items:flex-start;gap:.75rem;margin-bottom:.75rem}

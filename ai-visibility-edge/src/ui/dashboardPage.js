@@ -122,6 +122,7 @@ export function renderDashboardPage(origin) {
         <button type="button" class="btn btn-ghost btn-sm" id="btn-refresh">↻ Обнови</button>
         <button type="button" class="btn btn-ghost btn-sm" id="btn-reprocess">Reprocess</button>
         <a class="btn btn-ghost btn-sm" id="btn-report" href="#" target="_blank" rel="noopener">📄 Отчет</a>
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-export-manual-bar" title="Текстов файл с ръчни препоръки за админа">📥 Ръчен checklist</button>
       </div>
 
       <section id="optimization-roadmap" class="roadmap-panel hidden" aria-label="План">
@@ -135,7 +136,10 @@ export function renderDashboardPage(origin) {
       <section id="manual-workbench" class="manual-workbench hidden" aria-label="Ръчни задачи">
         <div class="findings-head">
           <h3 class="findings-subhead">👤 Ръчни задачи</h3>
-          <span id="manual-count-badge" class="advisor-badge">—</span>
+          <div class="manual-head-actions">
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-export-manual" title="Текстов файл за администратора на сайта">📥 Експорт .txt</button>
+            <span id="manual-count-badge" class="advisor-badge">—</span>
+          </div>
         </div>
         <p class="sub manual-hint">Копирайте draft → CMS/DNS → маркирайте „Готово“. Без admin token.</p>
         <ul id="manual-task-list" class="manual-task-list"></ul>
@@ -277,6 +281,15 @@ export function renderDashboardPage(origin) {
       </dl>
     </div>
   </div>
+  <div id="operation-modal" class="operation-modal hidden" role="dialog" aria-labelledby="operation-modal-title" aria-modal="true" aria-live="polite">
+    <div class="operation-modal-backdrop" id="operation-modal-backdrop"></div>
+    <div class="operation-modal-box">
+      <div class="operation-spinner" aria-hidden="true"></div>
+      <h3 id="operation-modal-title">Операция</h3>
+      <p id="operation-modal-status" class="operation-status">…</p>
+      <ul id="operation-modal-steps" class="operation-steps hidden"></ul>
+    </div>
+  </div>
   <script>${script(origin)}</script>
 </body>
 </html>`;
@@ -324,6 +337,95 @@ function script(origin) {
 
     function closeMetricInfo() {
       $('metric-modal')?.classList.add('hidden');
+    }
+
+    function showOperationModal(title, status, steps) {
+      const modal = $('operation-modal');
+      if (!modal) return;
+      modal.classList.remove('hidden', 'operation-error', 'operation-done');
+      $('operation-modal-title').textContent = title || 'Операция';
+      $('operation-modal-status').textContent = status || 'Стартиране…';
+      const stepsEl = $('operation-modal-steps');
+      if (steps?.length) {
+        stepsEl.classList.remove('hidden');
+        stepsEl.innerHTML = steps.map((s, i) =>
+          '<li class="operation-step" data-step="' + i + '">' + escHtml(s) + '</li>'
+        ).join('');
+      } else {
+        stepsEl.classList.add('hidden');
+        stepsEl.innerHTML = '';
+      }
+      document.body.classList.add('operation-busy');
+    }
+
+    function setOperationStatus(status, opts = {}) {
+      const el = $('operation-modal-status');
+      if (el && status) el.textContent = status;
+      const modal = $('operation-modal');
+      if (!modal) return;
+      if (opts.error) modal.classList.add('operation-error');
+      if (opts.done) modal.classList.add('operation-done');
+      if (opts.stepIndex != null) {
+        $('operation-modal-steps')?.querySelectorAll('.operation-step').forEach((li, i) => {
+          li.classList.toggle('done', i < opts.stepIndex);
+          li.classList.toggle('active', i === opts.stepIndex);
+        });
+      }
+    }
+
+    function hideOperationModal() {
+      $('operation-modal')?.classList.add('hidden');
+      document.body.classList.remove('operation-busy');
+    }
+
+    async function withOperation(title, initialStatus, fn, steps) {
+      if (busy) return;
+      busy = true;
+      showOperationModal(title, initialStatus, steps);
+      const setStatus = (msg, opts) => setOperationStatus(msg, opts);
+      try {
+        const result = await fn(setStatus);
+        setOperationStatus('Готово ✓', { done: true });
+        await new Promise((r) => setTimeout(r, 400));
+        return result;
+      } catch (e) {
+        setOperationStatus('Грешка: ' + e.message, { error: true });
+        log(title + ': ' + e.message);
+        await new Promise((r) => setTimeout(r, 2200));
+        throw e;
+      } finally {
+        hideOperationModal();
+        busy = false;
+      }
+    }
+
+    async function exportManualRecommendations() {
+      if (!selectedDomain) {
+        log('Изберете сайт за експорт');
+        return;
+      }
+      return withOperation('Експорт на ръчни препоръки', 'Събиране на задачи и drafts…', async (setStatus) => {
+        setStatus('Генериране на текстов файл…');
+        const res = await fetch(API('/api/strategy/' + encodeURIComponent(selectedDomain) + '/manual-export'));
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || data.hint || String(res.status));
+        }
+        const blob = await res.blob();
+        const disp = res.headers.get('Content-Disposition') || '';
+        const match = disp.match(/filename="([^"]+)"/);
+        const filename = match ? match[1] : 'aiv-rachni-preporuki.txt';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        log('Изтеглен файл: ' + filename);
+        setStatus('Файлът е изтеглен: ' + filename, { done: true });
+      });
     }
 
     document.addEventListener('click', (e) => {
@@ -808,17 +910,17 @@ function script(origin) {
         body.edited_artifact = artifactEl.value;
         body.artifact_title = card.querySelector('.manual-artifact-head span')?.textContent || 'Ръчен draft';
       }
-      try {
+      return withOperation('Запис на ръчна задача', 'Запазване на „Готово“…', async (setStatus) => {
         const res = await apiFetch('/api/findings/' + encodeURIComponent(selectedDomain) + '/apply', {
           method: 'POST',
           body: JSON.stringify(body),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || data.message || res.status);
+        setStatus('Обновяване на плана…');
+        await loadStrategy();
         log('Ръчна задача записана: ' + findingId);
-      } catch (e) {
-        log('Ръчна задача: ' + e.message);
-      }
+      });
     }
 
     function renderFindings(strategyData) {
@@ -918,24 +1020,20 @@ function script(origin) {
 
     async function applyFindingFix(findingId, intent) {
       if (!selectedDomain || busy) return;
-      busy = true;
-      log('Auto-fix: ' + findingId + '…');
-      try {
+      return withOperation('Автоматична поправка', 'Прилагане: ' + findingId + '…', async (setStatus) => {
         const manualInput = collectManualInput(findingId);
+        setStatus('Изпращане към сървъра…');
         const res = await apiFetch('/api/findings/' + encodeURIComponent(selectedDomain) + '/apply', {
           method: 'POST',
           body: JSON.stringify({ finding_id: findingId, intent, manual_input: manualInput }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || data.message || res.status);
-        log('Fix OK: ' + findingId + ' — ' + (data.result?.message || data.action || 'готово'));
+        setStatus('Обновяване на стратегия…');
         await loadStrategy();
         await loadOptimizer();
-      } catch (e) {
-        log('Fix: ' + e.message);
-      } finally {
-        busy = false;
-      }
+        log('Fix OK: ' + findingId + ' — ' + (data.result?.message || data.action || 'готово'));
+      });
     }
 
     let applyPlanCache = null;
@@ -971,7 +1069,7 @@ function script(origin) {
       box.querySelectorAll('[data-field]').forEach(el => {
         manual_input[el.dataset.field] = el.type === 'checkbox' ? el.checked : el.value;
       });
-      try {
+      return withOperation('Запис на ръчна стъпка', 'Запазване…', async () => {
         const res = await apiFetch('/api/findings/' + encodeURIComponent(selectedDomain) + '/apply', {
           method: 'POST',
           body: JSON.stringify({ finding_id: findingId, manual_only: true, manual_input }),
@@ -979,9 +1077,7 @@ function script(origin) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || res.status);
         log('Ръчна стъпка записана: ' + findingId);
-      } catch (e) {
-        log('Ръчна стъпка: ' + e.message);
-      }
+      });
     }
 
     function renderPillars(pillars) {
@@ -1168,24 +1264,26 @@ function script(origin) {
 
     async function activateEdge() {
       if (!selectedDomain || busy) return;
-      busy = true;
-      $('btn-edge-activate').disabled = true;
-      log('Прилагане на Edge конфигурация (KV)…');
-      try {
-        const res = await apiFetch('/api/edge/' + encodeURIComponent(selectedDomain) + '/activate', {
-          method: 'POST', body: '{}'
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(authErrorHint(res, data));
-        log(data.message || 'Edge конфигурация записана');
-        await loadEdgeDecision();
-        await loadStrategy();
-      } catch (e) {
-        log('Edge: ' + e.message);
-        await loadEdgeDecision();
-      } finally {
-        busy = false;
-      }
+      return withOperation('Edge конфигурация', 'Запис в KV…', async (setStatus) => {
+        $('btn-edge-activate').disabled = true;
+        try {
+          setStatus('Прилагане на Edge правила…');
+          const res = await apiFetch('/api/edge/' + encodeURIComponent(selectedDomain) + '/activate', {
+            method: 'POST', body: '{}'
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(authErrorHint(res, data));
+          setStatus('Обновяване на панелите…');
+          log(data.message || 'Edge конфигурация записана');
+          await loadEdgeDecision();
+          await loadStrategy();
+        } catch (e) {
+          await loadEdgeDecision();
+          throw e;
+        } finally {
+          $('btn-edge-activate').disabled = false;
+        }
+      });
     }
 
     async function loadSiteStats() {
@@ -1308,20 +1406,16 @@ function script(origin) {
 
     async function runReprocess() {
       if (busy) return;
-      busy = true;
-      log('Reprocess: verify + classify…');
-      try {
+      return withOperation('Reprocess на цитати', 'Verify + classify…', async (setStatus) => {
+        setStatus('Обработка на observations…');
         const res = await apiFetch('/api/citations/reprocess', { method: 'POST' });
         const data = await res.json();
         if (!res.ok) throw new Error(authErrorHint(res, data));
+        setStatus('Презареждане на метрики…');
         log('Reprocess: ' + (data.observations ?? 0) + ' observations');
         await loadSiteStats();
         await loadStrategy();
-      } catch (e) {
-        log('Reprocess: ' + e.message);
-      } finally {
-        busy = false;
-      }
+      });
     }
 
     async function loadOptimizer() {
@@ -1364,55 +1458,56 @@ function script(origin) {
 
     async function runAutoOptimize() {
       if (!selectedDomain || busy) return;
-      busy = true;
-      $('btn-auto-optimize').disabled = true;
-      log('Auto-оптимизация: Gemini plan + auto execute…');
-      try {
-        const res = await apiFetch('/api/optimizer/' + encodeURIComponent(selectedDomain) + '/run', {
-          method: 'POST',
-          body: JSON.stringify({ max_actions: 6 })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(authErrorHint(res, data));
-        const done = (data.executed || []).map(e => e.action).join(', ');
-        log('Auto OK: ' + (done || 'nothing') + ' | gates: ' + (data.human_gates?.length || 0));
-        await loadStrategy();
-        await loadEdgeDecision();
-        await loadOptimizer();
-        await loadOnboarding();
-      } catch (e) {
-        log('Auto-оптимизация: ' + e.message);
-      } finally {
-        busy = false;
-        $('btn-auto-optimize').disabled = false;
-      }
+      return withOperation('Auto-оптимизация', 'Gemini plan + автоматично изпълнение…', async (setStatus) => {
+        $('btn-auto-optimize').disabled = true;
+        try {
+          setStatus('Генериране и изпълнение на план…');
+          const res = await apiFetch('/api/optimizer/' + encodeURIComponent(selectedDomain) + '/run', {
+            method: 'POST',
+            body: JSON.stringify({ max_actions: 6 })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(authErrorHint(res, data));
+          const done = (data.executed || []).map(e => e.action).join(', ');
+          setStatus('Обновяване на dashboard…');
+          log('Auto OK: ' + (done || 'nothing') + ' | gates: ' + (data.human_gates?.length || 0));
+          await loadStrategy();
+          await loadEdgeDecision();
+          await loadOptimizer();
+          await loadOnboarding();
+        } finally {
+          $('btn-auto-optimize').disabled = false;
+        }
+      });
     }
 
     async function runFullAnalysis() {
       if (!selectedDomain || busy) return;
-      busy = true;
-      $('btn-analyze').disabled = true;
-      log('Анализ: одит → въпроси → AI измерване… (~2 мин)');
-
-      try {
-        const res = await apiFetch('/api/pipeline/' + encodeURIComponent(selectedDomain) + '/run', {
-          method: 'POST',
-          body: JSON.stringify({ measure: true, question_limit: 5, repetitions: 1 })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(authErrorHint(res, data));
-        log('Готов! Презареждам стратегия…');
-        await loadStrategy();
-        await loadEdgeDecision();
-      } catch (e) {
-        log('Грешка: ' + e.message);
-      } finally {
-        busy = false;
-        $('btn-analyze').disabled = false;
-      }
+      const steps = ['Одит на сайта', 'Генериране на въпроси', 'AI измерване', 'Обновяване на стратегия'];
+      return withOperation('Пълен анализ', steps[0] + '…', async (setStatus) => {
+        $('btn-analyze').disabled = true;
+        $('btn-primary-action').disabled = true;
+        try {
+          setStatus('Pipeline: одит → въпроси → измерване (~2 мин)', { stepIndex: 0 });
+          const res = await apiFetch('/api/pipeline/' + encodeURIComponent(selectedDomain) + '/run', {
+            method: 'POST',
+            body: JSON.stringify({ measure: true, question_limit: 5, repetitions: 1 })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(authErrorHint(res, data));
+          setStatus('Презареждане на стратегия…', { stepIndex: 3 });
+          await loadStrategy();
+          await loadEdgeDecision();
+          log('Анализът приключи успешно');
+        } finally {
+          $('btn-analyze').disabled = false;
+          $('btn-primary-action').disabled = false;
+        }
+      }, steps);
     }
 
     async function submitAddSite(thenRun) {
+      if (busy) return;
       const fd = new FormData($('add-site-form'));
       const body = {
         domain: fd.get('domain'),
@@ -1421,21 +1516,29 @@ function script(origin) {
       };
       const box = $('add-result');
       box.classList.remove('hidden');
-      box.textContent = 'Регистрация…';
-      const res = await apiFetch('/api/sites', {
-        method: 'POST', body: JSON.stringify(body)
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        box.textContent = 'Грешка: ' + authErrorHint(res, data);
-        return;
-      }
-      box.textContent = '✓ ' + data.domain + ' добавен';
-      selectedDomain = data.domain;
-      $('add-panel').classList.add('hidden');
-      await loadSites();
-      if (thenRun) await runFullAnalysis();
-      else await loadStrategy();
+      try {
+        await withOperation(
+          'Добавяне на сайт',
+          'Регистрация на ' + body.domain + '…',
+          async (setStatus) => {
+            const res = await apiFetch('/api/sites', {
+              method: 'POST', body: JSON.stringify(body)
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              box.textContent = 'Грешка: ' + authErrorHint(res, data);
+              throw new Error(authErrorHint(res, data));
+            }
+            box.textContent = '✓ ' + data.domain + ' добавен';
+            selectedDomain = data.domain;
+            $('add-panel').classList.add('hidden');
+            setStatus('Зареждане на списъка…');
+            await loadSites();
+            if (!thenRun) await loadStrategy();
+          },
+        );
+        if (thenRun) await runFullAnalysis();
+      } catch { /* withOperation вече показа грешката */ }
     }
 
     async function loadQuestionsQuiet() {
@@ -1478,15 +1581,20 @@ function script(origin) {
     $('btn-edge-activate').onclick = activateEdge;
     $('btn-refresh').onclick = () => { loadStrategy(); loadEdgeDecision(); loadSiteStats(); loadOnboarding(); loadDriftStatus(); loadOptimizer(); };
     $('btn-reprocess').onclick = runReprocess;
+    $('btn-export-manual').onclick = exportManualRecommendations;
+    $('btn-export-manual-bar').onclick = exportManualRecommendations;
     $('btn-gen-q').onclick = async () => {
-      if (!selectedDomain) return;
-      log('Генериране на въпроси…');
-      await apiFetch('/api/questions/generate', {
-        method: 'POST',
-        body: JSON.stringify({ domain: selectedDomain, replace_auto: true })
+      if (!selectedDomain || busy) return;
+      return withOperation('Генериране на въпроси', 'Gemini + site brief…', async (setStatus) => {
+        setStatus('Създаване на въпроси за измерване…');
+        await apiFetch('/api/questions/generate', {
+          method: 'POST',
+          body: JSON.stringify({ domain: selectedDomain, replace_auto: true })
+        });
+        setStatus('Обновяване на списъка…');
+        await loadQuestionsQuiet();
+        log('Въпросите са генерирани');
       });
-      loadQuestionsQuiet();
-      log('Готово');
     };
     $('btn-add-q').onclick = async () => {
       const text = prompt('Нов въпрос:');
@@ -1698,6 +1806,29 @@ h4{font-size:.85rem;margin:0 0 .5rem;color:var(--muted)}
 .metric-dl dt:first-child{margin-top:0}
 .metric-dl dd{margin:.25rem 0 0;font-size:.9rem;line-height:1.45}
 .metric-now{color:var(--accent);font-weight:500}
+.operation-modal{position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center;padding:1rem}
+.operation-modal.hidden{display:none!important}
+body.operation-busy{overflow:hidden}
+.operation-modal-backdrop{position:absolute;inset:0;z-index:0;background:rgba(0,0,0,.72)}
+.operation-modal-box{position:relative;z-index:1;max-width:24rem;width:100%;background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:1.35rem 1.5rem 1.25rem;box-shadow:0 12px 40px rgba(0,0,0,.5);text-align:center}
+.operation-modal-box h3{margin:0 0 .65rem;font-size:1rem}
+.operation-status{margin:0;font-size:.875rem;color:var(--muted);line-height:1.45;min-height:2.5em}
+.operation-modal.operation-error .operation-modal-box{border-color:var(--err)}
+.operation-modal.operation-error .operation-status{color:var(--err)}
+.operation-modal.operation-done .operation-modal-box{border-color:var(--ok)}
+.operation-modal.operation-done .operation-status{color:var(--ok)}
+.operation-spinner{width:2.25rem;height:2.25rem;margin:0 auto .85rem;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:operation-spin .75s linear infinite}
+.operation-modal.operation-done .operation-spinner,.operation-modal.operation-error .operation-spinner{animation:none;border-top-color:var(--border);opacity:.35}
+@keyframes operation-spin{to{transform:rotate(360deg)}}
+.operation-steps{list-style:none;padding:0;margin:.85rem 0 0;text-align:left;font-size:.78rem;color:var(--muted)}
+.operation-steps.hidden{display:none}
+.operation-step{padding:.25rem 0 .25rem 1.1rem;position:relative}
+.operation-step::before{content:'○';position:absolute;left:0;color:var(--border)}
+.operation-step.active{color:var(--accent);font-weight:500}
+.operation-step.active::before{content:'▸';color:var(--accent)}
+.operation-step.done{color:var(--ok)}
+.operation-step.done::before{content:'✓';color:var(--ok)}
+.manual-head-actions{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap}
 .section-hint{display:none}
 .hero-actions{display:none}
 .btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:.5rem 1rem;font-size:.85rem;cursor:pointer}

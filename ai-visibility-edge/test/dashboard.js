@@ -45,4 +45,9 @@ export function testDashboardV2Page() {
   assert(html.includes('Gemini'));
   assert(html.includes('/api/advisor/chat'));
   assert(!html.includes('data-tab="workflow"'));
+  assert(html.includes('operation-modal'));
+  assert(html.includes('withOperation'));
+  assert(html.includes('btn-export-manual'));
+  assert(html.includes('manual-export'));
+  assert(html.includes('exportManualRecommendations'));
 }

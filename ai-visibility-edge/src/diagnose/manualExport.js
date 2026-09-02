@@ -157,7 +157,7 @@ export function buildManualExportText(input = {}) {
   }
 
   lines.push('─'.repeat(72));
-  lines.push('След като приложите промените: dashboard → „Повторен анализ“.');
+  lines.push('След като приложите промените: dashboard → главният бутон „Пълен анализ“ (или „Продължи“).');
   lines.push('═'.repeat(72));
 
   return lines.join('\n');

@@ -11,6 +11,13 @@ export function testDashboardV2Page() {
   assert(html.includes('id="work-hub"'));
   assert(html.includes('command-center'));
   assert(html.includes('activity-panel'));
+  assert(html.includes('journey-bar'));
+  assert(html.includes('renderJourneyBar'));
+  assert(html.includes('welcome-wizard'));
+  assert(html.includes('renderWelcomeWizard'));
+  assert(html.includes('operation-history'));
+  assert(html.includes('unified-plan'));
+  assert(html.includes('renderUnifiedPlan'));
   assert(html.includes('recordActivity'));
   assert(html.includes('renderCommandCenter'));
   assert(html.includes('insights-panel'));
@@ -21,6 +28,7 @@ export function testDashboardV2Page() {
   assert(html.includes('/api/edge/'));
   assert(html.includes('loadEdgeDecision'));
   assert(html.includes('activateEdge'));
+  assert(html.includes('applyContextualVisibility'));
   assert(html.includes('apiFetch'));
   assert(html.includes('site-stats'));
   assert(html.includes('cache-index-panel'));
@@ -29,6 +37,7 @@ export function testDashboardV2Page() {
   assert(html.includes('loadDriftStatus'));
   assert(html.includes('renderCacheIndex'));
   assert(html.includes('btn-reprocess'));
+  assert(html.includes('Провери цитатите'));
   assert(html.includes('loadSiteStats'));
   assert(html.includes('info-btn'));
   assert(html.includes('metric-modal'));
@@ -39,7 +48,6 @@ export function testDashboardV2Page() {
   assert(html.includes('manual-task-list'));
   assert(html.includes('manual-save'));
   assert(html.includes('renderManualWorkbench'));
-  assert(html.includes('Автоматични поправки'));
   assert(html.includes('renderRoadmap'));
   assert(html.includes('interpretMetricNow'));
   assert(html.includes('admin-token'));
@@ -53,6 +61,7 @@ export function testDashboardV2Page() {
   assert(html.includes('exportManualRecommendations'));
   assert(html.includes('btn-activity-retry'));
   assert(html.includes('btn-activity-dismiss'));
+  assert(html.includes('btn-wizard-dismiss'));
   assert(!html.includes('btn-analyze'));
   assert(!html.includes('btn-next-step'));
 }

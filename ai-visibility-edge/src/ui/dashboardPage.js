@@ -72,6 +72,19 @@ export function renderDashboardPage(origin) {
       <button type="button" class="btn btn-sm" id="btn-blocker-fix">Поправи</button>
     </section>
 
+    <section id="welcome-wizard" class="welcome-wizard hidden" aria-label="Първи стъпки">
+      <div class="wizard-head">
+        <strong id="wizard-title">Как работи AI Visibility</strong>
+        <button type="button" class="btn btn-sm btn-ghost" id="btn-wizard-dismiss">Разбрах</button>
+      </div>
+      <ol id="wizard-steps" class="wizard-steps"></ol>
+    </section>
+
+    <section id="journey-bar" class="journey-bar hidden" aria-label="Път на оптимизация">
+      <div class="journey-phases" id="journey-phases"></div>
+      <p id="journey-focus" class="journey-focus sub">—</p>
+    </section>
+
     <section id="activity-panel" class="activity-panel hidden" aria-live="polite">
       <div class="activity-head">
         <span id="activity-status-icon" class="activity-icon" aria-hidden="true">⏳</span>
@@ -86,6 +99,13 @@ export function renderDashboardPage(origin) {
       </div>
       <ul id="activity-metrics" class="activity-metrics hidden"></ul>
       <p id="activity-next" class="activity-next sub hidden"></p>
+    </section>
+
+    <section id="operation-history" class="operation-history hidden" aria-label="История на операции">
+      <details id="op-history-details" open>
+        <summary>Последни операции (<span id="op-history-count">0</span>)</summary>
+        <ul id="op-history-list" class="op-history-list"></ul>
+      </details>
     </section>
 
     <section id="insights-panel" class="insights-panel hidden" aria-label="AI позициониране">
@@ -122,9 +142,9 @@ export function renderDashboardPage(origin) {
         <details class="command-more" id="command-more">
           <summary>Още действия</summary>
           <div class="command-more-grid">
-            <button type="button" class="btn btn-ghost btn-sm" id="btn-auto-optimize">Auto-оптимизация</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="btn-reprocess">Reprocess цитати</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="btn-edge-activate">Edge (опционално)</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-auto-optimize">Авто-оптимизация</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-reprocess">Провери цитатите</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-edge-activate">Edge прокси</button>
             <button type="button" class="btn btn-ghost btn-sm" id="btn-refresh">↻ Обнови данни</button>
             <button type="button" class="btn btn-ghost btn-sm" id="btn-export-manual-bar">📥 Ръчен checklist</button>
             <a class="btn btn-ghost btn-sm" id="btn-report" href="#" target="_blank" rel="noopener">📄 PDF отчет</a>
@@ -132,39 +152,27 @@ export function renderDashboardPage(origin) {
         </details>
       </div>
 
-      <section id="optimization-roadmap" class="roadmap-panel hidden" aria-label="План">
-        <div class="roadmap-head-inline">
-          <h3 class="findings-subhead">📋 План</h3>
-          <span id="roadmap-badge" class="advisor-badge">…</span>
-        </div>
-        <p id="roadmap-honesty" class="roadmap-honesty sub">Заредете сайт за пълен план.</p>
-        <ol id="roadmap-steps" class="roadmap-list"></ol>
-        <details id="roadmap-done-wrap" class="roadmap-done-wrap hidden">
-          <summary id="roadmap-done-summary">Готови стъпки</summary>
-          <ol id="roadmap-done-steps" class="roadmap-list roadmap-list-compact"></ol>
-        </details>
-      </section>
-
-      <section id="manual-workbench" class="manual-workbench hidden" aria-label="Ръчни задачи">
+      <section id="unified-plan" class="unified-plan hidden" aria-label="План">
         <div class="findings-head">
-          <h3 class="findings-subhead">👤 Ръчни задачи</h3>
+          <h3 class="findings-subhead">📋 План за <span id="plan-domain">—</span></h3>
           <div class="manual-head-actions">
             <button type="button" class="btn btn-sm btn-ghost" id="btn-export-manual" title="Текстов файл за администратора на сайта">📥 Експорт .txt</button>
-            <span id="manual-count-badge" class="advisor-badge">—</span>
+            <span id="plan-count-badge" class="advisor-badge">—</span>
           </div>
         </div>
-        <p class="sub manual-hint">Копирайте draft → CMS/DNS → маркирайте „Готово“. Без admin token.</p>
-        <ul id="manual-task-list" class="manual-task-list"></ul>
+        <p id="plan-honesty" class="roadmap-honesty sub hidden">…</p>
+        <p id="plan-summary" class="findings-summary sub hidden">…</p>
+        <p class="sub manual-hint">Един хронологичен списък — системни стъпки, ръчни задачи и автоматични поправки.</p>
+        <ol id="unified-plan-list" class="unified-plan-list"></ol>
+        <details id="plan-done-wrap" class="roadmap-done-wrap hidden">
+          <summary id="plan-done-summary">Готови стъпки</summary>
+          <ol id="unified-plan-done" class="unified-plan-list unified-plan-list-compact"></ol>
+        </details>
       </section>
-
-      <section id="findings-panel" class="findings-panel hidden" aria-label="Автоматични поправки">
-        <div class="findings-head">
-          <h3 class="findings-subhead">🤖 Автоматични поправки</h3>
-          <span id="findings-count-badge" class="advisor-badge">—</span>
-        </div>
-        <p id="findings-summary" class="findings-summary sub hidden">…</p>
-        <ul id="findings-list" class="findings-list"></ul>
-      </section>
+      <div id="manual-workbench" class="hidden" aria-hidden="true"></div>
+      <ul id="manual-task-list" class="hidden" aria-hidden="true"></ul>
+      <section id="findings-panel" class="hidden" aria-hidden="true"><ul id="findings-list"></ul></section>
+      <ol id="roadmap-steps" class="hidden" aria-hidden="true"></ol>
     </section>
 
     <section id="metrics-panel" class="metrics-panel hidden" aria-label="Обзор">
@@ -187,8 +195,9 @@ export function renderDashboardPage(origin) {
     <ol id="plan-week" class="hidden" aria-hidden="true"></ol>
     <ol id="plan-month" class="hidden" aria-hidden="true"></ol>
 
-    <details class="extra extra-tech">
-      <summary>⚙️ Edge, DNS, кеш и drafts</summary>
+    <details class="extra extra-tech" id="extra-tech-wrap">
+      <summary id="extra-tech-summary">⚙️ Технически детайли</summary>
+      <p id="extra-tech-note" class="sub extra-tech-note hidden"></p>
       <div class="extra-body extra-tech-body">
         <section class="tech-block edge-panel" id="edge-panel">
           <div class="tech-block-head">
@@ -390,6 +399,145 @@ function script(origin) {
     }
 
     let lastActivityRetry = null;
+    let lastEdgeDecision = null;
+    let optimizerRoadmap = null;
+    let lastApplyPlan = null;
+
+    const PRODUCT_PHASES = [
+      { id: 'technical', label: 'Техника', hint: 'Crawl, schema, robots' },
+      { id: 'measurement', label: 'Измерване', hint: 'SOV и цитати' },
+      { id: 'positioning', label: 'Позиция', hint: 'Конкуренция в AI' },
+      { id: 'dominance', label: 'Лидерство', hint: 'Monitor & remeasure' },
+    ];
+    const PHASE_ORDER = PRODUCT_PHASES.map(p => p.id);
+    const OP_HISTORY_KEY = 'aiv_op_history';
+    const WIZARD_KEY = 'aiv_wizard_seen';
+    const MAX_OP_HISTORY = 5;
+
+    function wizardStorageKey() {
+      return WIZARD_KEY + ':' + (selectedDomain || '_global');
+    }
+
+    function edgeIsNeeded(decision) {
+      if (!decision || decision.error) return false;
+      if (decision.edge_active) return true;
+      if ((decision.fixes?.length ?? 0) > 0) return true;
+      return decision.status === 'pending_cname';
+    }
+
+    function applyContextualVisibility() {
+      const needed = edgeIsNeeded(lastEdgeDecision);
+      $('edge-panel')?.classList.toggle('context-hidden', !needed);
+      $('btn-edge-activate')?.classList.toggle('hidden', !needed);
+      const note = $('extra-tech-note');
+      if (note) {
+        if (needed) {
+          note.classList.add('hidden');
+        } else {
+          note.textContent = 'Edge/CNAME не са нужни за този сайт — техническата основа е достатъчна за измерване.';
+          note.classList.remove('hidden');
+        }
+      }
+      $('extra-tech-summary').textContent = needed
+        ? '⚙️ Edge, DNS, кеш и drafts'
+        : '⚙️ Кеш и drafts (Edge не е нужен)';
+    }
+
+    function renderJourneyBar(strategyData) {
+      const panel = $('journey-bar');
+      if (!strategyData?.registered && !strategyData?.probe) {
+        panel.classList.add('hidden');
+        return;
+      }
+      panel.classList.remove('hidden');
+      const current = strategyData.product_phase || 'technical';
+      const currentIdx = Math.max(0, PHASE_ORDER.indexOf(current));
+      const baselineDone = Boolean(strategyData.technical_baseline?.complete);
+      const hasRuns = (strategyData.stats?.runCount ?? 0) > 0;
+
+      $('journey-phases').innerHTML = PRODUCT_PHASES.map((phase, idx) => {
+        let state = 'future';
+        if (idx < currentIdx) state = 'done';
+        else if (idx === currentIdx) state = 'current';
+        if (phase.id === 'technical' && baselineDone) state = idx < currentIdx ? 'done' : (idx === currentIdx ? 'current' : state);
+        if (phase.id === 'measurement' && hasRuns && idx <= currentIdx) state = idx < currentIdx ? 'done' : 'current';
+        const icon = state === 'done' ? '✓' : state === 'current' ? '●' : '○';
+        return '<div class="journey-phase journey-' + state + '" data-phase="' + phase.id + '">' +
+          '<span class="journey-icon" aria-hidden="true">' + icon + '</span>' +
+          '<span class="journey-label">' + escHtml(phase.label) + '</span>' +
+          '<small class="journey-hint">' + escHtml(phase.hint) + '</small></div>';
+      }).join('');
+      $('journey-focus').textContent = strategyData.phase_focus || strategyData.verdict?.summary || '—';
+    }
+
+    function renderWelcomeWizard(strategyData) {
+      const panel = $('welcome-wizard');
+      if (!selectedDomain) {
+        panel.classList.add('hidden');
+        return;
+      }
+      if (sessionStorage.getItem(wizardStorageKey()) === '1') {
+        panel.classList.add('hidden');
+        return;
+      }
+      const runs = strategyData?.stats?.runCount ?? 0;
+      const steps = [
+        { id: 'add', label: 'Добавете сайт', done: Boolean(strategyData?.registered), detail: 'Домейн, марка, вертикал' },
+        { id: 'analyze', label: 'Пълен AI анализ', done: runs > 0, detail: 'Одит → въпроси → измерване (~2 мин)' },
+        { id: 'sov', label: 'Вижте AI-SOV и изместване', done: runs > 0, detail: 'Метриките „Как AI ви вижда“ по-горе' },
+        { id: 'fix', label: 'Поправете задачите от плана', done: false, detail: 'Ръчни + автоматични стъпки по-долу' },
+        { id: 'remeasure', label: 'Повторете измерване', done: false, detail: 'След CMS/DNS промени — главният бутон' },
+      ];
+      if (runs > 0 && (strategyData?.manual_tasks?.length ?? 0) === 0) {
+        steps[3].done = true;
+      }
+      panel.classList.remove('hidden');
+      $('wizard-steps').innerHTML = steps.map((s, i) =>
+        '<li class="wizard-step ' + (s.done ? 'done' : '') + '">' +
+        '<span class="wizard-num">' + (s.done ? '✓' : (i + 1)) + '</span>' +
+        '<div><strong>' + escHtml(s.label) + '</strong>' +
+        '<p class="sub">' + escHtml(s.detail) + '</p></div></li>'
+      ).join('');
+    }
+
+    function pushOpHistory(entry) {
+      if (!selectedDomain) return;
+      const all = JSON.parse(sessionStorage.getItem(OP_HISTORY_KEY) || '[]');
+      const row = {
+        domain: selectedDomain,
+        title: entry.title,
+        status: entry.status,
+        detail: entry.detail || '',
+        at: new Date().toISOString(),
+      };
+      const domainRows = [row, ...all.filter(r => r.domain === selectedDomain)].slice(0, MAX_OP_HISTORY);
+      const other = all.filter(r => r.domain !== selectedDomain);
+      sessionStorage.setItem(OP_HISTORY_KEY, JSON.stringify([...domainRows, ...other].slice(0, MAX_OP_HISTORY * 4)));
+      renderOperationHistory();
+    }
+
+    function renderOperationHistory() {
+      const panel = $('operation-history');
+      const list = JSON.parse(sessionStorage.getItem(OP_HISTORY_KEY) || '[]')
+        .filter(r => r.domain === selectedDomain)
+        .slice(0, MAX_OP_HISTORY);
+      if (!selectedDomain || !list.length) {
+        panel.classList.add('hidden');
+        return;
+      }
+      panel.classList.remove('hidden');
+      $('op-history-count').textContent = String(list.length);
+      $('op-history-list').innerHTML = list.map(r => {
+        const icon = r.status === 'ok' ? '✓' : r.status === 'error' ? '✕' : '⏳';
+        const when = new Date(r.at).toLocaleString('bg-BG', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        return '<li class="op-history-item op-history-' + r.status + '">' +
+          '<span class="op-history-icon">' + icon + '</span>' +
+          '<div class="op-history-body"><strong>' + escHtml(r.title) + '</strong>' +
+          '<span class="op-history-when">' + escHtml(when) + '</span>' +
+          (r.detail ? '<p class="sub">' + escHtml(r.detail.slice(0, 160)) + '</p>' : '') +
+          '</div></li>';
+      }).join('');
+    }
 
     function snapshotDashboardMetrics() {
       return {
@@ -462,6 +610,9 @@ function script(origin) {
         retryBtn.hidden = true;
       }
       panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if (status === 'ok' || status === 'error') {
+        pushOpHistory({ title, status, detail: detail || '' });
+      }
     }
 
     async function withOperation(title, initialStatus, fn, steps, options = {}) {
@@ -683,6 +834,7 @@ function script(origin) {
         chatHistory = [];
         $('chat-messages').innerHTML = '';
         $('chat-actions').innerHTML = '';
+        renderOperationHistory();
         loadStrategy();
       };
     }
@@ -713,47 +865,193 @@ function script(origin) {
       publish_cms: '→ „Content drafts“ + CMS',
     };
 
-    function renderRoadmap(roadmap) {
-      const panel = $('optimization-roadmap');
-      const doneWrap = $('roadmap-done-wrap');
-      const doneList = $('roadmap-done-steps');
-      if (!roadmap?.steps?.length) {
+    function htmlRoadmapStep(s, compact) {
+      const why = s.why_waiting && !compact
+        ? '<p class="roadmap-why">' + escHtml(s.why_waiting) + '</p>'
+        : '';
+      const instr = (!compact && (s.instructions || []).length)
+        ? '<ol class="roadmap-instr">' + s.instructions.map(i => '<li>' + escHtml(i) + '</li>').join('') + '</ol>'
+        : '';
+      return '<li class="unified-plan-item roadmap-step ' + escHtml(s.status_css) + (compact ? ' unified-plan-compact' : '') + '" data-kind="roadmap">' +
+        '<div class="unified-plan-head">' +
+        '<span class="unified-kind-badge">📋 План</span>' +
+        '<span class="roadmap-icon">' + s.status_icon + '</span>' +
+        '<div class="unified-plan-body">' +
+        '<strong>' + escHtml(s.title) + '</strong>' +
+        '<span class="roadmap-meta">' + escHtml(s.status_label) + '</span>' +
+        (compact ? '' : '<p class="roadmap-summary">' + escHtml(s.summary) + '</p>') +
+        why + instr +
+        '</div></div></li>';
+    }
+
+    function htmlManualTaskCard(t) {
+      const sev = t.severity === 'critical' ? 'finding-critical' : (t.severity === 'warning' ? 'finding-warning' : '');
+      const artifactBlock = t.artifact?.content
+        ? '<div class="manual-artifact-wrap">' +
+          '<div class="manual-artifact-head">' +
+          '<span class="sub">' + escHtml(t.artifact.title || 'Draft') + '</span>' +
+          '<button type="button" class="btn btn-sm btn-ghost manual-copy" data-task-id="' + escHtml(t.id) + '">Копирай</button>' +
+          '</div>' +
+          '<textarea class="manual-artifact" data-task-id="' + escHtml(t.id) + '" rows="6">' +
+          escHtml(t.artifact.content) + '</textarea></div>'
+        : '';
+      const genBtn = t.can_generate
+        ? '<button type="button" class="btn btn-sm btn-ghost manual-generate" data-finding-id="' + escHtml(t.id) + '" data-intent="' + escHtml(t.intent || '') + '">' +
+          escHtml(t.generate_label || 'Генерирай draft') + '</button>'
+        : '';
+      return '<li class="unified-plan-item manual-task-card ' + sev + (t.severity === 'critical' ? ' manual-task-open' : '') + '" data-kind="manual" data-task-id="' + escHtml(t.id) + '">' +
+        '<div class="unified-plan-head">' +
+        '<span class="unified-kind-badge">👤 Ръчно</span>' +
+        '<div class="unified-plan-body">' +
+        '<strong>' + escHtml(t.title) + '</strong>' +
+        (t.instructions ? '<p class="sub">' + escHtml(t.instructions) + '</p>' : '') +
+        (t.impact ? '<p class="finding-impact">' + escHtml(t.impact) + '</p>' : '') +
+        artifactBlock +
+        renderManualFormFields(t.manual_form, t.id) +
+        '<div class="manual-task-actions">' + genBtn +
+        '<button type="button" class="btn btn-sm manual-save" data-finding-id="' + escHtml(t.id) + '">✓ Готово</button></div>' +
+        '</div></div></li>';
+    }
+
+    function htmlAutoFindingCard(f) {
+      const sevClass = 'finding-' + f.severity;
+      const auto = f.automation || {};
+      const modeShort = { auto: '🤖', semi_auto: '🤖+👤', manual: '👤' };
+      const ev = f.evidence || {};
+      const evLines = [];
+      if (ev.url) evLines.push('URL: ' + ev.url);
+      if (ev.text_chars != null) evLines.push('Текст: ' + ev.text_chars + ' символа');
+      if (ev.title) evLines.push('Title: ' + ev.title);
+      if (ev.blocked_bots?.length) evLines.push('Блокирани: ' + ev.blocked_bots.join(', '));
+      const detailsInner = '<p class="finding-impact">' + escHtml(f.impact) + '</p>' +
+        (evLines.length ? '<ul class="finding-evidence">' + evLines.map(l => '<li>' + escHtml(l) + '</li>').join('') + '</ul>' : '') +
+        (auto.note ? '<p class="finding-note sub">' + escHtml(auto.note) + '</p>' : '');
+      const applyBtn = auto.can_apply_now && auto.action
+        ? '<button type="button" class="btn btn-sm finding-apply" data-finding-id="' + escHtml(f.id) + '" data-intent="' + escHtml(auto.intent || '') + '">' +
+          escHtml(auto.label || 'Приложи') + '</button>'
+        : '';
+      return '<li class="unified-plan-item finding-card ' + sevClass + '" data-kind="auto" data-finding-id="' + escHtml(f.id) + '">' +
+        '<div class="unified-plan-head">' +
+        '<span class="unified-kind-badge">🤖 Авто</span>' +
+        '<span class="finding-mode">' + (modeShort[auto.mode] || '') + '</span>' +
+        '<div class="unified-plan-body">' +
+        '<div class="finding-row"><strong class="finding-title">' + escHtml(f.title) + '</strong>' +
+        '<div class="finding-actions">' + applyBtn + '</div></div>' +
+        '<details class="finding-details"><summary>Детайли</summary>' + detailsInner + '</details>' +
+        '</div></div></li>';
+    }
+
+    function wireUnifiedPlanEvents(root) {
+      if (!root) return;
+      root.querySelectorAll('.manual-copy').forEach(btn => {
+        btn.onclick = () => {
+          const ta = root.querySelector('.manual-artifact[data-task-id="' + btn.dataset.taskId + '"]');
+          if (!ta?.value) return;
+          navigator.clipboard.writeText(ta.value).then(() => log('Копирано в clipboard')).catch(() => log('Clipboard недостъпен'));
+        };
+      });
+      root.querySelectorAll('.manual-save').forEach(btn => {
+        btn.onclick = () => saveManualTask(btn.dataset.findingId, btn.closest('.manual-task-card'));
+      });
+      root.querySelectorAll('.manual-generate').forEach(btn => {
+        btn.onclick = () => applyFindingFix(btn.dataset.findingId, btn.dataset.intent || null);
+      });
+      root.querySelectorAll('.finding-apply').forEach(btn => {
+        btn.onclick = () => applyFindingFix(btn.dataset.findingId, btn.dataset.intent || null);
+      });
+    }
+
+    function renderUnifiedPlan(strategyData, applyPlan, roadmap) {
+      const panel = $('unified-plan');
+      if (!strategyData) {
+        panel.classList.add('hidden');
+        return;
+      }
+      const manualTasks = mergeApplyManualTasks(strategyData.manual_tasks ?? [], applyPlan);
+      const autoFindings = (strategyData.findings ?? []).filter(f => {
+        const a = f.automation || {};
+        return a.mode === 'auto' && !a.manual_form?.fields?.length;
+      });
+      const roadmapSteps = roadmap?.steps ?? [];
+      const activeRoadmap = roadmapSteps.filter(s => s.status !== 'done');
+      const doneRoadmap = roadmapSteps.filter(s => s.status === 'done');
+      const totalActive = activeRoadmap.length + manualTasks.length + autoFindings.length;
+
+      if (!strategyData.registered && !strategyData.probe) {
         panel.classList.add('hidden');
         return;
       }
       panel.classList.remove('hidden');
-      $('roadmap-badge').textContent = roadmap.summary || '—';
-      $('roadmap-honesty').textContent = roadmap.honesty_note || '';
+      $('plan-domain').textContent = selectedDomain || strategyData.domain || '—';
 
-      const renderStep = (s, compact) => {
-        const why = s.why_waiting && !compact
-          ? '<p class="roadmap-why">' + escHtml(s.why_waiting) + '</p>'
-          : '';
-        const instr = (!compact && (s.instructions || []).length)
-          ? '<ol class="roadmap-instr">' + s.instructions.map(i => '<li>' + escHtml(i) + '</li>').join('') + '</ol>'
-          : '';
-        return '<li class="roadmap-step ' + escHtml(s.status_css) + (compact ? ' roadmap-step-compact' : '') + '">' +
-          '<div class="roadmap-step-head">' +
-          '<span class="roadmap-icon">' + s.status_icon + '</span>' +
-          '<div class="roadmap-step-body">' +
-          '<strong>' + escHtml(s.title) + '</strong>' +
-          '<span class="roadmap-meta">' + escHtml(s.status_label) + '</span>' +
-          (compact ? '' : '<p class="roadmap-summary">' + escHtml(s.summary) + '</p>') +
-          why + instr +
-          '</div></div></li>';
-      };
+      const honesty = roadmap?.honesty_note || '';
+      const honestyEl = $('plan-honesty');
+      if (honesty) {
+        honestyEl.textContent = honesty;
+        honestyEl.classList.remove('hidden');
+      } else {
+        honestyEl.classList.add('hidden');
+      }
+      const summaryText = strategyData.findings_summary || roadmap?.summary || '';
+      const summaryEl = $('plan-summary');
+      if (summaryText) {
+        summaryEl.textContent = summaryText;
+        summaryEl.classList.remove('hidden');
+      } else {
+        summaryEl.classList.add('hidden');
+      }
 
-      const active = roadmap.steps.filter(s => s.status !== 'done');
-      const done = roadmap.steps.filter(s => s.status === 'done');
-      $('roadmap-steps').innerHTML = active.map(s => renderStep(s, false)).join('') || done.map(s => renderStep(s, false)).join('');
-      if (done.length && active.length) {
+      const critical = manualTasks.filter(t => t.severity === 'critical').length +
+        autoFindings.filter(f => f.severity === 'critical').length;
+      const warning = manualTasks.filter(t => t.severity === 'warning').length +
+        autoFindings.filter(f => f.severity === 'warning').length;
+      const badge = $('plan-count-badge');
+      const pending = manualTasks.length + autoFindings.length + activeRoadmap.length;
+      badge.textContent = pending ? pending + ' активни' : '✓ готов';
+      badge.className = 'advisor-badge ' + (critical > 0 ? 'err' : warning > 0 ? 'warn' : 'ok');
+
+      const sortManual = [...manualTasks].sort((a, b) => {
+        const w = { critical: 0, warning: 1, info: 2 };
+        return (w[a.severity] ?? 9) - (w[b.severity] ?? 9);
+      });
+      const sortAuto = [...autoFindings].sort((a, b) => {
+        const w = { critical: 0, warning: 1, info: 2 };
+        return (w[a.severity] ?? 9) - (w[b.severity] ?? 9);
+      });
+
+      const activeHtml = [
+        ...activeRoadmap.map(s => htmlRoadmapStep(s, false)),
+        ...sortManual.map(t => htmlManualTaskCard(t)),
+        ...sortAuto.map(f => htmlAutoFindingCard(f)),
+      ].join('');
+
+      $('unified-plan-list').innerHTML = activeHtml ||
+        (doneRoadmap.length ? doneRoadmap.map(s => htmlRoadmapStep(s, false)).join('') : '<li class="sub">Няма активни задачи — продължете с главния бутон.</li>');
+
+      const doneWrap = $('plan-done-wrap');
+      if (doneRoadmap.length && activeHtml) {
         doneWrap.classList.remove('hidden');
-        $('roadmap-done-summary').textContent = '✅ ' + done.length + ' готови стъпки';
-        doneList.innerHTML = done.map(s => renderStep(s, true)).join('');
+        $('plan-done-summary').textContent = '✅ ' + doneRoadmap.length + ' готови стъпки';
+        $('unified-plan-done').innerHTML = doneRoadmap.map(s => htmlRoadmapStep(s, true)).join('');
       } else {
         doneWrap.classList.add('hidden');
-        doneList.innerHTML = '';
+        $('unified-plan-done').innerHTML = '';
       }
+
+      wireUnifiedPlanEvents(panel);
+    }
+
+    function renderRoadmap(roadmap) {
+      optimizerRoadmap = roadmap || null;
+      if (strategy) renderUnifiedPlan(strategy, lastApplyPlan, optimizerRoadmap);
+    }
+
+    function renderManualWorkbench(strategyData, applyPlan) {
+      renderUnifiedPlan(strategyData, applyPlan, optimizerRoadmap);
+    }
+
+    function renderFindings(strategyData) {
+      renderUnifiedPlan(strategyData, lastApplyPlan, optimizerRoadmap);
     }
 
     function renderVerdict(v, score) {
@@ -878,7 +1176,7 @@ function script(origin) {
       if ((strategyData?.stats?.questionCount ?? 0) < 5) {
         return { desc: 'Добавете поне 5 въпроса за смислено измерване', label: 'Генерирай въпроси', action: 'questions' };
       }
-      return { desc: 'Подобрете слабостите и remeasure след CMS промени', label: 'Auto-оптимизация', action: 'auto' };
+      return { desc: 'Подобрете слабостите и remeasure след CMS промени', label: 'Авто-оптимизация', action: 'auto' };
     }
 
     function renderCommandCenter(strategyData) {
@@ -900,7 +1198,7 @@ function script(origin) {
       if (step.action === 'questions') { $('btn-gen-q')?.click(); return; }
       if (step.action?.startsWith('manual:')) {
         const id = step.action.slice(7);
-        document.querySelector('.manual-task-card[data-task-id="' + id + '"]')
+        document.querySelector('.unified-plan-item.manual-task-card[data-task-id="' + id + '"]')
           ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
       }
@@ -957,57 +1255,6 @@ function script(origin) {
         '</div>';
     }
 
-    function renderManualWorkbench(strategyData, applyPlan) {
-      const panel = $('manual-workbench');
-      const tasks = mergeApplyManualTasks(strategyData?.manual_tasks ?? [], applyPlan);
-      if (!tasks.length) {
-        panel.classList.add('hidden');
-        return;
-      }
-      panel.classList.remove('hidden');
-      $('manual-count-badge').textContent = tasks.length + ' задачи';
-      $('manual-count-badge').className = 'advisor-badge warn';
-
-      $('manual-task-list').innerHTML = tasks.map(t => {
-        const sev = t.severity === 'critical' ? 'finding-critical' : (t.severity === 'warning' ? 'finding-warning' : '');
-        const artifactBlock = t.artifact?.content
-          ? '<div class="manual-artifact-wrap">' +
-            '<div class="manual-artifact-head">' +
-            '<span class="sub">' + escHtml(t.artifact.title || 'Draft') + '</span>' +
-            '<button type="button" class="btn btn-sm btn-ghost manual-copy" data-task-id="' + escHtml(t.id) + '">Копирай</button>' +
-            '</div>' +
-            '<textarea class="manual-artifact" data-task-id="' + escHtml(t.id) + '" rows="6">' +
-            escHtml(t.artifact.content) + '</textarea></div>'
-          : '';
-        const genBtn = t.can_generate
-          ? '<button type="button" class="btn btn-sm btn-ghost manual-generate" data-finding-id="' + escHtml(t.id) + '" data-intent="' + escHtml(t.intent || '') + '">' +
-            escHtml(t.generate_label || 'Генерирай draft') + '</button>'
-          : '';
-        return '<li class="manual-task-card ' + sev + (t.severity === 'critical' ? ' manual-task-open' : '') + '" data-task-id="' + escHtml(t.id) + '">' +
-          '<div class="manual-task-head"><strong>' + escHtml(t.title) + '</strong></div>' +
-          (t.instructions ? '<p class="sub">' + escHtml(t.instructions) + '</p>' : '') +
-          (t.impact ? '<p class="finding-impact">' + escHtml(t.impact) + '</p>' : '') +
-          artifactBlock +
-          renderManualFormFields(t.manual_form, t.id) +
-          '<div class="manual-task-actions">' + genBtn +
-          '<button type="button" class="btn btn-sm manual-save" data-finding-id="' + escHtml(t.id) + '">✓ Готово</button></div></li>';
-      }).join('');
-
-      panel.querySelectorAll('.manual-copy').forEach(btn => {
-        btn.onclick = () => {
-          const ta = panel.querySelector('.manual-artifact[data-task-id="' + btn.dataset.taskId + '"]');
-          if (!ta?.value) return;
-          navigator.clipboard.writeText(ta.value).then(() => log('Копирано в clipboard')).catch(() => log('Clipboard недостъпен'));
-        };
-      });
-      panel.querySelectorAll('.manual-save').forEach(btn => {
-        btn.onclick = () => saveManualTask(btn.dataset.findingId, btn.closest('.manual-task-card'));
-      });
-      panel.querySelectorAll('.manual-generate').forEach(btn => {
-        btn.onclick = () => applyFindingFix(btn.dataset.findingId, btn.dataset.intent || null);
-      });
-    }
-
     async function saveManualTask(findingId, card) {
       if (!selectedDomain || !card) return;
       const manual_input = {};
@@ -1034,101 +1281,6 @@ function script(origin) {
         setStatus('Обновяване на плана…');
         await loadStrategy();
         log('Ръчна задача записана: ' + findingId);
-      });
-    }
-
-    function renderFindings(strategyData) {
-      const panel = $('findings-panel');
-      const findings = (strategyData?.findings ?? []).filter(f => {
-        const a = f.automation || {};
-        return a.mode === 'auto' && !a.manual_form?.fields?.length;
-      });
-      if (!findings.length) {
-        panel.classList.add('hidden');
-        return;
-      }
-      panel.classList.remove('hidden');
-      const critical = findings.filter(f => f.severity === 'critical').length;
-      const warning = findings.filter(f => f.severity === 'warning').length;
-      $('findings-count-badge').textContent = critical + ' критични · ' + warning + ' предупр.';
-      $('findings-count-badge').className = 'advisor-badge ' + (critical > 0 ? 'err' : warning > 0 ? 'warn' : 'ok');
-      const summaryEl = $('findings-summary');
-      const summaryText = strategyData.findings_summary || '';
-      if (summaryText) {
-        summaryEl.textContent = summaryText;
-        summaryEl.classList.remove('hidden');
-      } else {
-        summaryEl.classList.add('hidden');
-      }
-
-      const modeShort = { auto: '🤖', semi_auto: '🤖+👤', manual: '👤' };
-
-      $('findings-list').innerHTML = findings.map(f => {
-        const sevClass = 'finding-' + f.severity;
-        const auto = f.automation || {};
-        const ev = f.evidence || {};
-        const evLines = [];
-        if (ev.url) evLines.push('URL: ' + ev.url);
-        if (ev.text_chars != null) evLines.push('Текст: ' + ev.text_chars + ' символа');
-        if (ev.title) evLines.push('Title: ' + ev.title);
-        if (ev.blocked_bots?.length) evLines.push('Блокирани: ' + ev.blocked_bots.join(', '));
-        if (ev.examples?.length) {
-          ev.examples.forEach(ex => {
-            if (ex.question) evLines.push('„' + ex.question + '“ → ' + (ex.competitors || []).join(', '));
-          });
-        }
-        if (ev.samples?.length) ev.samples.forEach(s => {
-          if (s.passage) evLines.push('Цитат: ' + s.passage);
-          else if (typeof s === 'string') evLines.push('„' + s + '…“');
-        });
-
-        const detailsInner = '<p class="finding-impact">' + escHtml(f.impact) + '</p>' +
-          (evLines.length ? '<ul class="finding-evidence">' + evLines.map(l => '<li>' + escHtml(l) + '</li>').join('') + '</ul>' : '') +
-          (auto.artifact?.content
-            ? '<details class="finding-artifact"><summary>Draft</summary><pre class="finding-artifact-pre">' +
-              escHtml(auto.artifact.content.slice(0, 1200)) + '</pre></details>'
-            : '') +
-          (auto.note ? '<p class="finding-note sub">' + escHtml(auto.note) + '</p>' : '');
-
-        let manualHtml = '';
-        if (auto.manual_form?.fields?.length) {
-          manualHtml = '<div class="finding-manual" data-finding-id="' + escHtml(f.id) + '">' +
-            '<p class="finding-manual-title">' + escHtml(auto.manual_form.title) + '</p>' +
-            (auto.manual_form.hint ? '<p class="sub mono">' + escHtml(auto.manual_form.hint) + '</p>' : '') +
-            auto.manual_form.fields.map(field => {
-              if (field.type === 'checkbox') {
-                return '<label class="finding-field"><input type="checkbox" data-field="' + escHtml(field.id) + '"> ' + escHtml(field.label) + '</label>';
-              }
-              if (field.type === 'textarea') {
-                return '<label class="finding-field">' + escHtml(field.label) +
-                  '<textarea data-field="' + escHtml(field.id) + '" rows="2" placeholder="' + escHtml(field.placeholder || '') + '"></textarea></label>';
-              }
-              return '<label class="finding-field">' + escHtml(field.label) +
-                '<input type="text" data-field="' + escHtml(field.id) + '" placeholder="' + escHtml(field.placeholder || '') + '"></label>';
-            }).join('') +
-            '<button type="button" class="btn btn-sm btn-ghost finding-manual-save" data-finding-id="' + escHtml(f.id) + '">Запази</button></div>';
-        }
-
-        const applyBtn = auto.can_apply_now && auto.action
-          ? '<button type="button" class="btn btn-sm finding-apply" data-finding-id="' + escHtml(f.id) + '" data-intent="' + escHtml(auto.intent || '') + '">' +
-            escHtml(auto.label || 'Приложи') + '</button>'
-          : '';
-
-        return '<li class="finding-card ' + sevClass + '">' +
-          '<div class="finding-row">' +
-          '<div class="finding-main">' +
-          '<span class="finding-mode" title="' + escHtml(auto.mode || '') + '">' + (modeShort[auto.mode] || '') + '</span>' +
-          '<strong class="finding-title">' + escHtml(f.title) + '</strong>' +
-          '</div>' +
-          '<div class="finding-actions">' + applyBtn + '</div></div>' +
-          '<details class="finding-details"><summary>Детайли</summary>' + detailsInner + manualHtml + '</details></li>';
-      }).join('');
-
-      panel.querySelectorAll('.finding-apply').forEach(btn => {
-        btn.onclick = () => applyFindingFix(btn.dataset.findingId, btn.dataset.intent || null);
-      });
-      panel.querySelectorAll('.finding-manual-save').forEach(btn => {
-        btn.onclick = () => saveFindingManual(btn.dataset.findingId, btn.closest('.finding-manual'));
       });
     }
 
@@ -1358,7 +1510,7 @@ function script(origin) {
       ).join('');
 
       btn.disabled = !decision.fixes?.length || decision.edge_active;
-      btn.textContent = decision.edge_active ? 'Edge активен' : 'Приложи Edge';
+      btn.textContent = decision.edge_active ? 'Edge активен' : 'Приложи Edge прокси';
       setMetricContext('edge_status', {
         message: (v.headline || '') + ' — ' + (decision.fixes?.length || 0) + ' fixes, status=' + (decision.status || ''),
       });
@@ -1371,14 +1523,18 @@ function script(origin) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || data.hint || res.status);
         renderEdgeDecision(data);
+        lastEdgeDecision = data;
+        applyContextualVisibility();
       } catch (e) {
         renderEdgeDecision({ error: true, hint: 'Edge: ' + e.message });
+        lastEdgeDecision = { error: true };
+        applyContextualVisibility();
       }
     }
 
     async function activateEdge() {
       if (!selectedDomain || busy) return;
-      return withOperation('Edge конфигурация', 'Запис в KV…', async (setStatus) => {
+      return withOperation('Edge прокси', 'Запис в Cloudflare KV…', async (setStatus) => {
         $('btn-edge-activate').disabled = true;
         try {
           setStatus('Прилагане на Edge правила…');
@@ -1400,7 +1556,7 @@ function script(origin) {
         }
       }, null, {
         retry: () => activateEdge(),
-        successDetail: (data) => data?.message || 'Edge правилата са записани — проверете DNS/CNAME в onboarding.',
+        successDetail: (data) => data?.message || 'Edge прокси правилата са записани.',
       });
     }
 
@@ -1470,6 +1626,10 @@ function script(origin) {
     async function loadOnboarding() {
       if (!selectedDomain) return;
       const panel = $('onboarding-panel');
+      if (!edgeIsNeeded(lastEdgeDecision)) {
+        panel.classList.add('hidden');
+        return;
+      }
       try {
         const res = await fetch(API('/api/onboarding/' + encodeURIComponent(selectedDomain)));
         const data = await res.json();
@@ -1496,20 +1656,22 @@ function script(origin) {
         if (!res.ok) throw new Error(strategy.error || res.status);
         renderVerdict(strategy.verdict, strategy.score);
         renderBlockers(strategy);
+        renderJourneyBar(strategy);
+        renderWelcomeWizard(strategy);
         renderCommandCenter(strategy);
-        const applyPlan = await loadApplyPlan();
-        renderManualWorkbench(strategy, applyPlan);
-        renderFindings(strategy);
+        lastApplyPlan = await loadApplyPlan();
         renderPillars(strategy.pillars);
         $('metrics-panel')?.classList.toggle('hidden', !(strategy.pillars?.length));
         renderInsights(strategy, null);
         renderTech(strategy.probe, strategy.stats);
         log('Обновено ' + new Date().toLocaleTimeString('bg-BG'));
         loadQuestionsQuiet();
-        loadEdgeDecision();
+        await loadEdgeDecision();
         loadSiteStats();
-        loadOnboarding();
-        loadOptimizer();
+        await loadOnboarding();
+        await loadOptimizer();
+        renderUnifiedPlan(strategy, lastApplyPlan, optimizerRoadmap);
+        renderOperationHistory();
       } catch (e) {
         log('Грешка: ' + e.message);
       }
@@ -1517,7 +1679,7 @@ function script(origin) {
 
     async function runReprocess() {
       if (busy) return;
-      return withOperation('Reprocess на цитати', 'Verify + classify…', async (setStatus) => {
+      return withOperation('Проверка на цитатите', 'Verify + classify…', async (setStatus) => {
         setStatus('Обработка на observations…');
         const res = await apiFetch('/api/citations/reprocess', { method: 'POST' });
         const data = await res.json();
@@ -1573,7 +1735,7 @@ function script(origin) {
 
     async function runAutoOptimize() {
       if (!selectedDomain || busy) return;
-      return withOperation('Auto-оптимизация', 'Gemini plan + автоматично изпълнение…', async (setStatus) => {
+      return withOperation('Авто-оптимизация', 'Gemini план + автоматично изпълнение…', async (setStatus) => {
         $('btn-auto-optimize').disabled = true;
         try {
           setStatus('Генериране и изпълнение на план…');
@@ -1716,6 +1878,10 @@ function script(origin) {
     $('btn-activity-dismiss').onclick = () => {
       $('activity-panel').classList.add('hidden');
     };
+    $('btn-wizard-dismiss').onclick = () => {
+      sessionStorage.setItem(wizardStorageKey(), '1');
+      $('welcome-wizard').classList.add('hidden');
+    };
     $('btn-activity-retry').onclick = () => {
       if (lastActivityRetry) lastActivityRetry();
     };
@@ -1827,6 +1993,47 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .activity-metrics li{font-size:.78rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.25rem .5rem}
 .activity-metric-label{color:var(--muted);margin-right:.35rem}
 .activity-next{margin:.55rem 0 0;padding-top:.5rem;border-top:1px solid var(--border);font-size:.82rem;color:var(--accent)}
+.welcome-wizard{background:linear-gradient(135deg,#1e3a5f33,#121820);border:1px solid var(--accent);border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem}
+.welcome-wizard.hidden{display:none}
+.wizard-head{display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin-bottom:.65rem}
+.wizard-steps{list-style:none;padding:0;margin:0;display:grid;gap:.45rem}
+.wizard-step{display:flex;gap:.65rem;align-items:flex-start;padding:.45rem .55rem;border-radius:8px;background:var(--surface2);border:1px solid var(--border)}
+.wizard-step.done{opacity:.75;border-color:#14532d}
+.wizard-num{flex-shrink:0;width:1.35rem;height:1.35rem;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:600}
+.wizard-step.done .wizard-num{background:#14532d22;color:var(--ok)}
+.journey-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem}
+.journey-bar.hidden{display:none}
+.journey-phases{display:grid;grid-template-columns:repeat(4,1fr);gap:.35rem;margin-bottom:.55rem}
+@media(max-width:560px){.journey-phases{grid-template-columns:repeat(2,1fr)}}
+.journey-phase{text-align:center;padding:.45rem .35rem;border-radius:8px;border:1px solid var(--border);background:var(--surface2)}
+.journey-phase.journey-done{border-color:#14532d;background:#102a1818}
+.journey-phase.journey-current{border-color:var(--accent);background:#1e3a5f22;box-shadow:0 0 0 1px #3b82f644}
+.journey-phase.journey-future{opacity:.55}
+.journey-icon{display:block;font-size:.85rem;margin-bottom:.15rem}
+.journey-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.02em}
+.journey-hint{display:block;font-size:.62rem;color:var(--muted);margin-top:.1rem;line-height:1.2}
+.journey-focus{margin:0;font-size:.82rem;color:var(--accent)}
+.operation-history{margin-bottom:.75rem}
+.operation-history.hidden{display:none}
+.operation-history details{font-size:.82rem;color:var(--muted)}
+.operation-history summary{cursor:pointer;padding:.25rem 0;color:var(--text);font-weight:500}
+.op-history-list{list-style:none;padding:.35rem 0 0;margin:0;display:grid;gap:.35rem}
+.op-history-item{display:flex;gap:.5rem;align-items:flex-start;padding:.45rem .55rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:.78rem}
+.op-history-ok{border-left:3px solid var(--ok)}
+.op-history-error{border-left:3px solid var(--err)}
+.op-history-running{border-left:3px solid var(--accent)}
+.op-history-icon{flex-shrink:0;font-weight:700}
+.op-history-when{display:block;font-size:.68rem;color:var(--muted);margin-top:.1rem}
+.unified-plan{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
+.unified-plan.hidden{display:none}
+.unified-plan-list{list-style:none;padding:0;margin:.65rem 0 0;display:grid;gap:.55rem}
+.unified-plan-item{padding:.65rem .85rem;border-radius:8px;background:var(--bg);border:1px solid var(--border)}
+.unified-plan-compact{padding:.45rem .65rem;opacity:.85}
+.unified-plan-head{display:flex;flex-wrap:wrap;gap:.45rem;align-items:flex-start}
+.unified-kind-badge{font-size:.65rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:.12rem .4rem;flex-shrink:0}
+.unified-plan-body{flex:1;min-width:0}
+.context-hidden{display:none!important}
+.extra-tech-note{margin:0 0 .65rem;padding:.45rem .65rem;background:#102a1818;border-radius:6px;border-left:3px solid var(--ok)}
 .command-center{margin-bottom:1rem;padding-bottom:.85rem;border-bottom:1px solid var(--border)}
 .command-primary{display:flex;flex-direction:column;align-items:flex-start;gap:.45rem;margin-bottom:.65rem}
 .command-hint{margin:0;max-width:36rem;line-height:1.4}

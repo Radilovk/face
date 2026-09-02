@@ -1079,16 +1079,17 @@ function script(origin) {
       if (auto.manual_form) {
         btn.textContent = 'Към ръчна задача';
         btn.onclick = () => {
-          const el = document.querySelector('.manual-task-card[data-task-id="' + critical.id + '"]');
+          const el = document.querySelector('.unified-plan-item.manual-task-card[data-task-id="' + critical.id + '"]') ||
+            document.querySelector('.manual-task-card[data-task-id="' + critical.id + '"]');
           el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
           el?.classList.add('manual-task-highlight');
         };
       } else if (auto.action === 'activate_edge') {
-        btn.textContent = '⚡ Edge';
+        btn.textContent = '⚡ Edge прокси';
         btn.onclick = () => activateEdge();
       } else {
         btn.textContent = 'Виж детайли';
-        btn.onclick = () => $('manual-workbench')?.scrollIntoView({ behavior: 'smooth' });
+        btn.onclick = () => $('unified-plan')?.scrollIntoView({ behavior: 'smooth' });
       }
     }
 

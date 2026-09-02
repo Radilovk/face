@@ -418,15 +418,39 @@ function script(origin) {
       return WIZARD_KEY + ':' + (selectedDomain || '_global');
     }
 
-    function edgeIsNeeded(decision) {
-      if (!decision || decision.error) return false;
-      if (decision.edge_active) return true;
-      if ((decision.fixes?.length ?? 0) > 0) return true;
-      return decision.status === 'pending_cname';
+    function normPlanTitle(t) {
+      return String(t || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    }
+
+    function planSeverityRank(sev) {
+      return { critical: 0, warning: 1, info: 2 }[sev] ?? 3;
+    }
+
+    function planRoadmapRank(status) {
+      return { current: 0, waiting_manual: 1, waiting_auto: 2, blocked: 3, done: 9 }[status] ?? 5;
+    }
+
+    function computePlanPending(strategyData, applyPlan, roadmap) {
+      const manualTasks = mergeApplyManualTasks(strategyData?.manual_tasks ?? [], applyPlan);
+      const autoFindings = (strategyData?.findings ?? []).filter(f => {
+        const a = f.automation || {};
+        return a.mode === 'auto' && !a.manual_form?.fields?.length;
+      });
+      const activeRoadmap = (roadmap?.steps ?? []).filter(s => s.status !== 'done');
+      return { manualTasks, autoFindings, activeRoadmap };
+    }
+
+    function edgeIsNeeded(decision, strategyData) {
+      if (decision?.edge_active) return true;
+      if (decision && !decision.error) {
+        if ((decision.fixes?.length ?? 0) > 0) return true;
+        if (decision.status === 'pending_cname') return true;
+      }
+      return (strategyData?.findings ?? []).some(f => f.automation?.action === 'activate_edge');
     }
 
     function applyContextualVisibility() {
-      const needed = edgeIsNeeded(lastEdgeDecision);
+      const needed = edgeIsNeeded(lastEdgeDecision, strategy);
       $('edge-panel')?.classList.toggle('context-hidden', !needed);
       $('btn-edge-activate')?.classList.toggle('hidden', !needed);
       const note = $('extra-tech-note');
@@ -455,12 +479,16 @@ function script(origin) {
       const baselineDone = Boolean(strategyData.technical_baseline?.complete);
       const hasRuns = (strategyData.stats?.runCount ?? 0) > 0;
 
+      function journeyPhaseState(phaseId, idx) {
+        if (phaseId === 'technical' && baselineDone && currentIdx > 0) return 'done';
+        if (phaseId === 'measurement' && hasRuns && currentIdx > 1) return 'done';
+        if (idx < currentIdx) return 'done';
+        if (idx === currentIdx) return 'current';
+        return 'future';
+      }
+
       $('journey-phases').innerHTML = PRODUCT_PHASES.map((phase, idx) => {
-        let state = 'future';
-        if (idx < currentIdx) state = 'done';
-        else if (idx === currentIdx) state = 'current';
-        if (phase.id === 'technical' && baselineDone) state = idx < currentIdx ? 'done' : (idx === currentIdx ? 'current' : state);
-        if (phase.id === 'measurement' && hasRuns && idx <= currentIdx) state = idx < currentIdx ? 'done' : 'current';
+        const state = journeyPhaseState(phase.id, idx);
         const icon = state === 'done' ? '✓' : state === 'current' ? '●' : '○';
         return '<div class="journey-phase journey-' + state + '" data-phase="' + phase.id + '">' +
           '<span class="journey-icon" aria-hidden="true">' + icon + '</span>' +
@@ -481,16 +509,27 @@ function script(origin) {
         return;
       }
       const runs = strategyData?.stats?.runCount ?? 0;
+      const pending = computePlanPending(strategyData, lastApplyPlan, optimizerRoadmap);
+      const pendingTasks = pending.manualTasks.length +
+        pending.autoFindings.filter(f => f.severity === 'critical' || f.severity === 'warning').length;
+      const waitingManualRoadmap = pending.activeRoadmap.some(s => s.status === 'waiting_manual');
       const steps = [
         { id: 'add', label: 'Добавете сайт', done: Boolean(strategyData?.registered), detail: 'Домейн, марка, вертикал' },
         { id: 'analyze', label: 'Пълен AI анализ', done: runs > 0, detail: 'Одит → въпроси → измерване (~2 мин)' },
         { id: 'sov', label: 'Вижте AI-SOV и изместване', done: runs > 0, detail: 'Метриките „Как AI ви вижда“ по-горе' },
-        { id: 'fix', label: 'Поправете задачите от плана', done: false, detail: 'Ръчни + автоматични стъпки по-долу' },
-        { id: 'remeasure', label: 'Повторете измерване', done: false, detail: 'След CMS/DNS промени — главният бутон' },
+        {
+          id: 'fix',
+          label: 'Поправете задачите от плана',
+          done: runs > 0 && pendingTasks === 0 && !waitingManualRoadmap,
+          detail: 'Ръчни + автоматични стъпки в единния план',
+        },
+        {
+          id: 'remeasure',
+          label: 'Повторете измерване',
+          done: runs >= 2,
+          detail: 'След CMS/DNS промени — главният бутон',
+        },
       ];
-      if (runs > 0 && (strategyData?.manual_tasks?.length ?? 0) === 0) {
-        steps[3].done = true;
-      }
       panel.classList.remove('hidden');
       $('wizard-steps').innerHTML = steps.map((s, i) =>
         '<li class="wizard-step ' + (s.done ? 'done' : '') + '">' +
@@ -561,7 +600,7 @@ function script(origin) {
       if (before.sov !== after.sov) rows.push({ label: 'AI-SOV', value: before.sov + ' → ' + after.sov });
       if (before.disp !== after.disp) rows.push({ label: 'Изместване', value: before.disp + ' → ' + after.disp });
       if (result?.pipeline_runs != null) rows.push({ label: 'Нови runs', value: String(result.pipeline_runs) });
-      if (result?.observations != null) rows.push({ label: 'Observations', value: String(result.observations) });
+      if (result?.observations != null) rows.push({ label: 'Цитати (obs.)', value: String(result.observations) });
       if (result?.executed?.length) rows.push({ label: 'Изпълнено', value: result.executed.join(', ') });
       return rows;
     }
@@ -689,6 +728,11 @@ function script(origin) {
         URL.revokeObjectURL(url);
         log('Изтеглен файл: ' + filename);
         setStatus('Файлът е изтеглен: ' + filename, { done: true });
+        return { filename };
+      }, null, {
+        retry: () => exportManualRecommendations(),
+        successDetail: (data) => 'Изтеглен файл: ' + (data?.filename || 'aiv-rachni-preporuki.txt'),
+        trackMetrics: false,
       });
     }
 
@@ -855,14 +899,14 @@ function script(origin) {
     };
 
     const ACTION_HINT_LABELS = {
-      run_analysis: '→ „🚀 1. Анализ“',
-      run_auto_optimizer: '→ „🤖 Auto-оптимизация“',
-      activate_edge: '→ „⚡ 2. Приложи Edge“',
-      reprocess: '→ „↻ Reprocess“',
-      generate_questions: '→ „✨ Авто-генерирай“ въпроси',
+      run_analysis: '→ главният бутон „Пълен анализ“',
+      run_auto_optimizer: '→ „Авто-оптимизация“',
+      activate_edge: '→ „Edge прокси“',
+      reprocess: '→ „Провери цитатите“',
+      generate_questions: '→ „Авто-генерирай“ въпроси',
       add_site: '→ „+ Сайт“',
-      cname_dns: '→ DNS панел + „↻ Обнови“',
-      publish_cms: '→ „Content drafts“ + CMS',
+      cname_dns: '→ DNS панел + „Обнови данни“',
+      publish_cms: '→ единния план + CMS',
     };
 
     function htmlRoadmapStep(s, compact) {
@@ -975,7 +1019,6 @@ function script(origin) {
       const roadmapSteps = roadmap?.steps ?? [];
       const activeRoadmap = roadmapSteps.filter(s => s.status !== 'done');
       const doneRoadmap = roadmapSteps.filter(s => s.status === 'done');
-      const totalActive = activeRoadmap.length + manualTasks.length + autoFindings.length;
 
       if (!strategyData.registered && !strategyData.probe) {
         panel.classList.add('hidden');
@@ -1010,20 +1053,46 @@ function script(origin) {
       badge.textContent = pending ? pending + ' активни' : '✓ готов';
       badge.className = 'advisor-badge ' + (critical > 0 ? 'err' : warning > 0 ? 'warn' : 'ok');
 
-      const sortManual = [...manualTasks].sort((a, b) => {
-        const w = { critical: 0, warning: 1, info: 2 };
-        return (w[a.severity] ?? 9) - (w[b.severity] ?? 9);
-      });
-      const sortAuto = [...autoFindings].sort((a, b) => {
-        const w = { critical: 0, warning: 1, info: 2 };
-        return (w[a.severity] ?? 9) - (w[b.severity] ?? 9);
-      });
+      const seenTitles = new Set(
+        activeRoadmap.map(s => normPlanTitle(s.title)).filter(Boolean)
+      );
+      const seenIds = new Set();
 
-      const activeHtml = [
-        ...activeRoadmap.map(s => htmlRoadmapStep(s, false)),
-        ...sortManual.map(t => htmlManualTaskCard(t)),
-        ...sortAuto.map(f => htmlAutoFindingCard(f)),
-      ].join('');
+      const planEntries = [];
+
+      for (const s of activeRoadmap) {
+        planEntries.push({
+          sort: planRoadmapRank(s.status),
+          html: htmlRoadmapStep(s, false),
+        });
+      }
+
+      for (const t of manualTasks) {
+        const titleKey = normPlanTitle(t.title);
+        if (titleKey && seenTitles.has(titleKey)) continue;
+        if (t.id && seenIds.has(t.id)) continue;
+        if (titleKey) seenTitles.add(titleKey);
+        if (t.id) seenIds.add(t.id);
+        planEntries.push({
+          sort: 10 + planSeverityRank(t.severity),
+          html: htmlManualTaskCard(t),
+        });
+      }
+
+      for (const f of autoFindings) {
+        const titleKey = normPlanTitle(f.title);
+        if (titleKey && seenTitles.has(titleKey)) continue;
+        if (f.id && seenIds.has(f.id)) continue;
+        if (titleKey) seenTitles.add(titleKey);
+        if (f.id) seenIds.add(f.id);
+        planEntries.push({
+          sort: 20 + planSeverityRank(f.severity),
+          html: htmlAutoFindingCard(f),
+        });
+      }
+
+      planEntries.sort((a, b) => a.sort - b.sort);
+      const activeHtml = planEntries.map(e => e.html).join('');
 
       $('unified-plan-list').innerHTML = activeHtml ||
         (doneRoadmap.length ? doneRoadmap.map(s => htmlRoadmapStep(s, false)).join('') : '<li class="sub">Няма активни задачи — продължете с главния бутон.</li>');
@@ -1106,7 +1175,7 @@ function script(origin) {
       const runs = statsExtra?.runs;
       $('insight-sov-note').textContent = sov != null
         ? (runs != null ? runs + ' AI отговора · дял в вертикала' : 'дял в AI отговори')
-        : (runs != null && runs > 0 ? runs + ' отговора — SOV след observations' : 'Пуснете пълен анализ');
+        : (runs != null && runs > 0 ? runs + ' отговора — SOV след цитати' : 'Пуснете пълен анализ');
 
       const disp = strategyData?.displacement;
       const dispFinding = (strategyData?.findings ?? []).find(f => f.id === 'high_displacement');
@@ -1282,12 +1351,17 @@ function script(origin) {
         setStatus('Обновяване на плана…');
         await loadStrategy();
         log('Ръчна задача записана: ' + findingId);
+        return data;
+      }, null, {
+        retry: () => saveManualTask(findingId, card),
+        successDetail: () => 'Задачата е маркирана като готова — планът е обновен.',
+        trackMetrics: false,
       });
     }
 
     async function applyFindingFix(findingId, intent) {
       if (!selectedDomain || busy) return;
-      return withOperation('Автоматична поправка', 'Прилагане: ' + findingId + '…', async (setStatus) => {
+      return withOperation('Автоматична поправка', 'Прилагане…', async (setStatus) => {
         const manualInput = collectManualInput(findingId);
         setStatus('Изпращане към сървъра…');
         const res = await apiFetch('/api/findings/' + encodeURIComponent(selectedDomain) + '/apply', {
@@ -1299,7 +1373,11 @@ function script(origin) {
         setStatus('Обновяване на стратегия…');
         await loadStrategy();
         await loadOptimizer();
-        log('Fix OK: ' + findingId + ' — ' + (data.result?.message || data.action || 'готово'));
+        log('Поправка OK: ' + findingId);
+        return data;
+      }, null, {
+        retry: () => applyFindingFix(findingId, intent),
+        successDetail: (data) => data?.result?.message || data?.action || 'Поправката е приложена.',
       });
     }
 
@@ -1595,7 +1673,7 @@ function script(origin) {
         $('cache-p75').textContent = '—';
         badge.textContent = 'нето данни';
         badge.className = 'advisor-badge';
-        note.textContent = cache?.note || 'Нужни observations + bot hits (tenant) или dateModified (external).';
+        note.textContent = cache?.note || 'Нужни цитати + bot hits (tenant) или dateModified (external).';
         setMetricContext('cache_coverage', { value: null });
         setMetricContext('cache_median', { value: null });
       } else {
@@ -1607,7 +1685,7 @@ function script(origin) {
         badge.textContent = cov + '% покритие';
         badge.className = 'advisor-badge ' + (cov >= 50 ? 'ok' : 'warn');
         note.textContent = (cache.observations_with_age ?? 0) + ' / ' + (cache.observations_total ?? 0) +
-          ' observations с cache age (72h прозорец).';
+          ' цитати с cache age (72h прозорец).';
         setMetricContext('cache_coverage', { value: cov });
         setMetricContext('cache_median', { value: h.median });
         setMetricContext('cache_p25', { value: h.p25 });
@@ -1627,7 +1705,7 @@ function script(origin) {
     async function loadOnboarding() {
       if (!selectedDomain) return;
       const panel = $('onboarding-panel');
-      if (!edgeIsNeeded(lastEdgeDecision)) {
+      if (!edgeIsNeeded(lastEdgeDecision, strategy)) {
         panel.classList.add('hidden');
         return;
       }
@@ -1658,7 +1736,6 @@ function script(origin) {
         renderVerdict(strategy.verdict, strategy.score);
         renderBlockers(strategy);
         renderJourneyBar(strategy);
-        renderWelcomeWizard(strategy);
         renderCommandCenter(strategy);
         lastApplyPlan = await loadApplyPlan();
         renderPillars(strategy.pillars);
@@ -1672,6 +1749,7 @@ function script(origin) {
         await loadOnboarding();
         await loadOptimizer();
         renderUnifiedPlan(strategy, lastApplyPlan, optimizerRoadmap);
+        renderWelcomeWizard(strategy);
         renderOperationHistory();
       } catch (e) {
         log('Грешка: ' + e.message);
@@ -1680,19 +1758,19 @@ function script(origin) {
 
     async function runReprocess() {
       if (busy) return;
-      return withOperation('Проверка на цитатите', 'Verify + classify…', async (setStatus) => {
-        setStatus('Обработка на observations…');
+      return withOperation('Проверка на цитатите', 'Верификация и класификация…', async (setStatus) => {
+        setStatus('Обработка на цитатите…');
         const res = await apiFetch('/api/citations/reprocess', { method: 'POST' });
         const data = await res.json();
         if (!res.ok) throw new Error(authErrorHint(res, data));
-        setStatus('Презареждане на метрики…');
-        log('Reprocess: ' + (data.observations ?? 0) + ' observations');
+        setStatus('Презареждане на метриките…');
+        log('Проверка на цитати: ' + (data.observations ?? 0) + ' записа');
         await loadSiteStats();
         await loadStrategy();
         return data;
       }, null, {
         retry: () => runReprocess(),
-        successDetail: (data) => 'Обработени ' + (data?.observations ?? 0) + ' observations — цитатите и SOV са преизчислени.',
+        successDetail: (data) => 'Обработени ' + (data?.observations ?? 0) + ' цитата — SOV и качеството са преизчислени.',
       });
     }
 
@@ -1797,8 +1875,8 @@ function script(origin) {
           const runs = data?.pipeline_runs ?? data?.runs;
           const obs = data?.observations;
           const parts = [];
-          if (runs != null) parts.push(runs + ' AI runs');
-          if (obs != null) parts.push(obs + ' observations');
+          if (runs != null) parts.push(runs + ' AI измервания');
+          if (obs != null) parts.push(obs + ' цитата');
           return parts.length
             ? 'Пълен анализ приключи — ' + parts.join(', ') + '. Вижте AI-SOV и плана по-горе.'
             : 'Пълен анализ приключи — вердиктът и метриките са обновени.';

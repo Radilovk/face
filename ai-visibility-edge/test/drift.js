@@ -57,8 +57,24 @@ export async function testRunStalenessNoRuns() {
 export async function testRunStalenessRecent() {
   const db = createTestDb();
   seedSovFixture(db);
-  const alerts = await checkRunStaleness(db, { maxDays: 8 });
+  // Fixture run_at is 2026-08-28 — pin `now` so test does not drift with calendar date in CI.
+  const alerts = await checkRunStaleness(db, {
+    maxDays: 8,
+    now: new Date('2026-08-30T12:00:00.000Z'),
+  });
   assert.equal(alerts.length, 0);
+}
+
+export async function testRunStalenessOld() {
+  const db = createTestDb();
+  seedSovFixture(db);
+  const alerts = await checkRunStaleness(db, {
+    maxDays: 8,
+    now: new Date('2026-09-10T12:00:00.000Z'),
+  });
+  assert.equal(alerts.length, 1);
+  assert.equal(alerts[0].kind, 'runs');
+  assert.equal(alerts[0].severity, 'warning');
 }
 
 export async function testBotDriftHighUnverified() {

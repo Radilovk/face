@@ -101,6 +101,7 @@ import {
   testConfigDriftExpired,
   testRunStalenessNoRuns,
   testRunStalenessRecent,
+  testRunStalenessOld,
   testBotDriftHighUnverified,
   testFetchDriftStatusAggregate,
   testAdapterSchemaRegistry,
@@ -352,6 +353,7 @@ async function run() {
   await testConfigDriftExpired();
   await testRunStalenessNoRuns();
   await testRunStalenessRecent();
+  await testRunStalenessOld();
   await testBotDriftHighUnverified();
   await testFetchDriftStatusAggregate();
   testBaselineRunIds();

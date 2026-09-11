@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'ai-visibility-edge/src/**'
+      - 'ai-visibility-edge/test/**'
       - 'ai-visibility-edge/wrangler.toml'
       - 'ai-visibility-edge/migrations/**'
       - '.github/workflows/aiv-deploy.yml'

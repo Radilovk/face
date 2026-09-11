@@ -98,8 +98,8 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
       summary: hasAudit
         ? `Одит ${ctx.strategy?.score ?? '—'}/100. ${extras.findings_summary ?? formatTopFindings(extras.findings)}`
         : 'Проверяваме robots.txt, структурирани данни, текст и пренасочвания.',
-      why_waiting: hasAudit ? null : 'Още не е пуснат одит — натиснете „1. Анализ“ или „Auto-оптимизация“.',
-      instructions: hasAudit ? [] : ['Натиснете „🚀 1. Анализ“ или „🤖 Auto-оптимизация“.'],
+      why_waiting: hasAudit ? null : 'Още няма одит — натиснете „🚀 Стартирай“ или „Авто-оптимизация“.',
+      instructions: hasAudit ? [] : ['Натиснете „🚀 Стартирай“ (главният бутон) или „Авто-оптимизация“ в „Още“.'],
       action_hint: hasAudit ? null : 'run_analysis',
     }),
   );
@@ -117,8 +117,8 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
         ? null
         : 'Системата генерира въпроси по вашата ниша; може да добавите и ръчно.',
       instructions: hasQuestions
-        ? ['При нужда: „❓ Въпроси за AI“ → „Авто-генерирай“ или „+ Ръчно“.']
-        : ['Натиснете Auto-оптимизация или „✨ Авто-генерирай“ в секцията с въпроси.'],
+        ? ['Въпросите са готови — системата ги генерира автоматично при анализ.']
+        : ['Натиснете „Авто-оптимизация“ — системата генерира въпросите вместо вас.'],
       action_hint: hasQuestions ? null : 'generate_questions',
     }),
   );
@@ -133,7 +133,7 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
         ? `${stats.runCount} записани AI отговора.`
         : 'Питаме моделите с вашите въпроси и записваме отговорите.',
       why_waiting: hasRuns ? null : 'Нужни са въпроси и старт на pipeline (Анализ или Auto).',
-      instructions: hasRuns ? [] : ['Натиснете „🚀 1. Анализ“ или „🤖 Auto-оптимизация“.'],
+      instructions: hasRuns ? [] : ['Натиснете „🚀 Стартирай“ или „Авто-оптимизация“ — системата пита моделите.'],
       action_hint: hasRuns ? null : 'run_analysis',
     }),
   );
@@ -161,10 +161,10 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
           ? null
           : 'След измерване системата verify-ва URL-ите в отговорите.',
       instructions: pendingReprocess
-        ? ['Натиснете „↻ Reprocess“ или Auto-оптимизация.']
+        ? ['Натиснете „Провери цитатите“ (в „Още“) или „Авто-оптимизация“.']
         : hasObs
           ? []
-          : ['Изчакайте края на анализа или натиснете Reprocess.'],
+          : ['Изчакайте края на анализа или натиснете „Провери цитатите“.'],
       action_hint: pendingReprocess ? 'reprocess' : null,
     }),
   );
@@ -191,11 +191,11 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
       why_waiting:
         edgeLive || edgeFixes.length === 0
           ? null
-          : 'Конфигурацията се записва в Cloudflare KV — натиснете „2. Приложи Edge“ или Auto.',
+          : 'Системата записва настройките — натиснете „Приложи Edge“ или „Авто-оптимизация“.',
       instructions:
         edgeLive || edgeFixes.length === 0
           ? []
-          : ['Натиснете „⚡ 2. Приложи Edge“ или „🤖 Auto-оптимизация“.'],
+          : ['Натиснете „Приложи Edge“ (секция Edge & DNS) или „Авто-оптимизация“.'],
       action_hint: edgeLive || edgeFixes.length === 0 ? null : 'activate_edge',
     }),
   );
@@ -231,7 +231,7 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
             `1. Отворете DNS панела при registrar или Cloudflare.`,
             `2. Създайте CNAME: име = ${domain}, стойност = ${workerHost}`,
             `3. Изчакайте SSL (обикновено 5–30 мин).`,
-            `4. Натиснете „↻ Обнови“ тук — статусът трябва да стане активен.`,
+            `4. Презаредете страницата — статусът трябва да стане активен.`,
           ],
       action_hint: edgeLive ? null : 'cname_dns',
     }),
@@ -263,10 +263,10 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
       instructions: !contentNeeded
         ? []
         : [
-            '1. Отворете „Content drafts“ в секцията Auto-оптимизация.',
-            '2. Копирайте HTML текста.',
-            '3. Поставете го в CMS (начална страница или FAQ) — проверете факти и цени.',
-            '4. Публикувайте и пуснете „🚀 1. Анализ“ отново.',
+            '1. Вижте „📥 Експорт .txt“ — там са инструкциите и текстовите предложения.',
+            '2. Копирайте текста в CMS (начална страница или FAQ) — проверете факти и цени.',
+            '3. Публикувайте в сайта си (единственото, което не можем вместо вас).',
+            '4. Натиснете „🚀 Стартирай“ отново за ново измерване.',
           ],
       action_hint: contentNeeded ? 'publish_cms' : null,
     }),
@@ -293,7 +293,7 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
           ? 'Нужно е remeasure за да видите ефект от оптимизацията.'
           : null,
       instructions:
-        edgeLive && hasObs ? ['Натиснете Auto-оптимизация или изчакайте седмичния cron.'] : [],
+        edgeLive && hasObs ? ['Нищо не правите — „Авто-оптимизация“ или седмичният cron ще remeasure.'] : [],
       action_hint: edgeLive && hasObs ? 'run_auto_optimizer' : null,
     }),
   );
@@ -309,7 +309,7 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
           ? 'Имате достатъчно данни за SOV тренд и baseline сравнение.'
           : 'След 10+ отговора се вижда дали AI ви препоръчва стабилно.',
       why_waiting: null,
-      instructions: ['Преглеждайте dashboard седмично — cron допълва данните автоматично.'],
+      instructions: ['Нищо не правите — системата събира нови данни автоматично всеки понеделник.'],
     }),
   );
 
@@ -319,8 +319,8 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
 
   const honesty_note =
     manualPending.length === 0
-      ? 'Системата може да свърши всички текущи стъпки автоматично — натиснете „Auto-оптимизация“.'
-      : `${manualPending.length} стъпки изискват ваше действие (${manualPending.map((s) => s.title.split('(')[0].trim()).join(', ')}). Останалото е автоматично.`;
+      ? '🤖 Всичко текущо може да стане автоматично — натиснете „🚀 Стартирай“ или „Авто-оптимизация“.'
+      : `👤 ${manualPending.length} неща са само за вас (${manualPending.map((s) => s.title.split('(')[0].trim()).join(', ')}). 🤖 Останалото прави системата — натиснете главния бутон.`;
 
   return {
     domain,
@@ -359,9 +359,9 @@ export function humanGateInstructions(gateId, ctx = {}) {
       title: gate.title,
       why: gate.why,
       instructions: [
-        'Копирайте draft от „Content drafts“.',
+        'Вижте „📥 Експорт .txt“ за текстови предложения.',
         'Публикувайте в CMS след проверка на факти.',
-        'Пуснете повторен анализ.',
+        'Натиснете „🚀 Стартирай“ за повторен анализ.',
       ],
     };
   }

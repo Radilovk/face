@@ -15,6 +15,8 @@ export function testDashboardV2Page() {
   assert(html.includes('journey-bar'));
   assert(html.includes('renderJourneyBar'));
   assert(html.includes('plan-legend'));
+  assert(html.includes('how-it-works'));
+  assert(html.includes('plan-honesty'));
   assert(html.includes('unified-plan'));
   assert(html.includes('renderUnifiedPlan'));
   assert(html.includes('recordActivity'));

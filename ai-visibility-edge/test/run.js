@@ -206,8 +206,8 @@ async function testFailOpenSlowHandlerPassthrough() {
     request,
     {},
     { waitUntil: () => {} },
-    () => new Promise((resolve) => setTimeout(() => resolve(new Response('late')), 200)),
     30,
+    () => new Promise((resolve) => setTimeout(() => resolve(new Response('late')), 200)),
   );
 
   assert.equal(await response.text(), 'passthrough');

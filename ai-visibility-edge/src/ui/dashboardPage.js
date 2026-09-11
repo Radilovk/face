@@ -19,13 +19,22 @@ export function renderDashboardPage(origin) {
     <header class="topbar">
       <div class="topbar-brand">
         <h1>AI Visibility</h1>
-        <p class="sub">Един екран — вердикт, план, поправки</p>
+        <p class="sub">Питаме AI дали ви препоръчва → показваме какво да оправите → повечето прави системата</p>
       </div>
       <div class="topbar-meta">
         <select id="site-select" aria-label="Избери сайт"></select>
         <button type="button" class="btn btn-ghost btn-sm" id="btn-add-toggle">+ Сайт</button>
       </div>
     </header>
+
+    <section id="how-it-works" class="how-it-works" aria-label="Как работи">
+      <p class="how-it-works-lead"><strong>Как работи (3 стъпки):</strong></p>
+      <ol class="how-it-works-steps">
+        <li><strong>🤖 Системата</strong> пита ChatGPT/Gemini с въпроси за вашата ниша и мери дали ви цитират.</li>
+        <li><strong>📋 Планът</strong> казва какво не е наред — ясно кой прави какво: <span class="plan-legend-you">👤 Вие</span> (DNS, CMS) или <span class="plan-legend-ai">🤖 Системата</span> (анализ, Edge).</li>
+        <li><strong>🚀 Стартирай</strong> или <strong>Авто-оптимизация</strong> — натиснете главния бутон; системата прави останалото, освен DNS и публикуване в сайта ви.</li>
+      </ol>
+    </section>
 
     <section id="add-panel" class="add-panel">
       <p class="lead" id="add-lead">Добавете сайт тук — всички домейни влизат през този интерфейс.</p>
@@ -133,6 +142,7 @@ export function renderDashboardPage(origin) {
           </div>
         </div>
         <p id="plan-summary" class="findings-summary sub hidden">…</p>
+        <p id="plan-honesty" class="plan-honesty sub hidden" aria-live="polite">…</p>
         <div class="plan-legend" aria-hidden="false">
           <span class="plan-legend-you">👤 Вие</span> CMS, DNS, публикуване
           <span class="plan-legend-sep">·</span>
@@ -334,10 +344,10 @@ function script(origin) {
     let lastApplyPlan = null;
 
     const PRODUCT_PHASES = [
-      { id: 'technical', label: 'Техника', hint: 'Crawl, schema, robots' },
-      { id: 'measurement', label: 'Измерване', hint: 'SOV и цитати' },
-      { id: 'positioning', label: 'Позиция', hint: 'Конкуренция в AI' },
-      { id: 'dominance', label: 'Лидерство', hint: 'Monitor & remeasure' },
+      { id: 'technical', label: 'Техника', hint: 'Може ли AI да прочете сайта' },
+      { id: 'measurement', label: 'Измерване', hint: 'Питаме моделите и броим цитати' },
+      { id: 'positioning', label: 'Позиция', hint: 'Препоръчват ли ви или конкурент' },
+      { id: 'dominance', label: 'Лидерство', hint: 'Следим и подобряваме автоматично' },
     ];
     const PHASE_ORDER = PRODUCT_PHASES.map(p => p.id);
     const OP_HISTORY_KEY = 'aiv_op_history';
@@ -895,6 +905,15 @@ function script(origin) {
         summaryEl.classList.remove('hidden');
       } else {
         summaryEl.classList.add('hidden');
+      }
+
+      const honestyEl = $('plan-honesty');
+      const honestyText = roadmap?.honesty_note || '';
+      if (honestyText) {
+        honestyEl.textContent = honestyText;
+        honestyEl.classList.remove('hidden');
+      } else {
+        honestyEl.classList.add('hidden');
       }
 
       const critical = manualTasks.filter(t => t.severity === 'critical').length +
@@ -1788,6 +1807,12 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .activity-metrics li{font-size:.78rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.25rem .5rem}
 .activity-metric-label{color:var(--muted);margin-right:.35rem}
 .activity-next{margin:.55rem 0 0;padding-top:.5rem;border-top:1px solid var(--border);font-size:.82rem;color:var(--accent)}
+.how-it-works{background:#1e3a5f18;border:1px solid #3b82f633;border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem;font-size:.88rem;line-height:1.45}
+.how-it-works-lead{margin:0 0 .35rem}
+.how-it-works-steps{margin:.25rem 0 0;padding-left:1.25rem;color:var(--text)}
+.how-it-works-steps li{margin:.25rem 0}
+.plan-honesty{margin:.35rem 0 .5rem;padding:.5rem .65rem;border-radius:8px;background:#14532d18;border:1px solid #14532d44;color:var(--text)}
+.plan-honesty.hidden{display:none}
 .journey-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem}
 .journey-bar.hidden{display:none}
 .journey-phases{display:grid;grid-template-columns:repeat(4,1fr);gap:.35rem;margin-bottom:.55rem}

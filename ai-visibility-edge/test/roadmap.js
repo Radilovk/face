@@ -32,7 +32,7 @@ export function testRoadmapHasOrderedSteps() {
   assert(roadmap.steps.length >= 8);
   assert.equal(roadmap.steps[0].id, 'register');
   assert.equal(roadmap.steps[0].status, 'done');
-  assert(roadmap.honesty_note.includes('ръчн') || roadmap.honesty_note.includes('ваше'));
+  assert(roadmap.honesty_note.includes('вас') || roadmap.honesty_note.includes('автоматич'));
 }
 
 export function testRoadmapCnameManualStep() {

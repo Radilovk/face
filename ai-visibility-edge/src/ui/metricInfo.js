@@ -189,7 +189,7 @@ export function interpretMetricNow(id, ctx = {}) {
   switch (id) {
     case 'diagnostic_score': {
       const s = n(ctx.value);
-      if (s == null) return 'Още няма одит — натиснете „1. Анализ“.';
+      if (s == null) return 'Още няма одит — натиснете „🚀 Стартирай“.';
       if (s >= 75) return `${s}/100 — добре технически; фокус върху измерване и текст.`;
       if (s >= 50) return `${s}/100 — има какво да се оправи (robots, описание, текст).`;
       return `${s}/100 — сериозни блокери; AI вероятно не може да прочете сайта.`;
@@ -204,7 +204,7 @@ export function interpretMetricNow(id, ctx = {}) {
     case 'observations': {
       const v = n(ctx.value);
       const runs = n(ctx.runs);
-      if (!v) return runs ? 'Има отговори, но още не са проверени — натиснете Reprocess.' : 'Няма проверени цитати.';
+      if (!v) return runs ? 'Има отговори, но още не са проверени — натиснете „Провери цитатите“.' : 'Няма проверени цитати.';
       return `${v} проверени цитати (${runs ? Math.round((v / runs) * 100) : '—'}% от отговорите).`;
     }
     case 'sov': {
@@ -218,7 +218,7 @@ export function interpretMetricNow(id, ctx = {}) {
     case 'pending_reprocess': {
       const v = n(ctx.value);
       if (!v) return 'Всички отговори са проверени.';
-      return `${v} чакат проверка — процентите са непълни до Reprocess.`;
+      return `${v} чакат проверка — процентите са непълни до „Провери цитатите“.`;
     }
     case 'cache_median': {
       const v = n(ctx.value);

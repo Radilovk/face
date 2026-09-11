@@ -28,7 +28,7 @@ export async function fetchOnboardingStatus(env, domain) {
       done: (edge.strategy?.stats?.runCount ?? 0) > 0,
       detail: edge.strategy?.stats?.runCount
         ? `${edge.strategy.stats.runCount} runs`
-        : 'Стартирайте „1. Анализ“',
+        : 'Стартирайте „🚀 Стартирай“',
     },
     {
       id: 'edge_config',

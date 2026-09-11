@@ -6,10 +6,10 @@ export async function withFailOpen(request, env, ctx, handler, budgetMs = 50) {
       handler(request, env, ctx),
       new Promise((resolve) => setTimeout(() => resolve(null), budgetMs)),
     ]);
-    return result ?? passthrough();
+    return result ?? await passthrough();
   } catch (err) {
     ctx.waitUntil(logError(env, err));
-    return passthrough();
+    return await passthrough();
   }
 }
 

@@ -99,6 +99,9 @@ const askers = {
   perplexity: askPerplexity,
 };
 
+let successCount = 0;
+let failCount = 0;
+
 for (const model of models) {
   const outDir = join(BASELINE_DIR, model);
   mkdirSync(outDir, { recursive: true });
@@ -127,12 +130,21 @@ for (const model of models) {
           2,
         ),
       );
+      successCount++;
       await sleep(1500);
     } catch (err) {
+      failCount++;
       console.error(`fail ${model}/${q.id}:`, err.message);
-      process.exitCode = 1;
     }
   }
+}
+
+if (successCount === 0) {
+  console.error(`baseline collect failed: 0/${successCount + failCount} succeeded`);
+  process.exit(1);
+}
+if (failCount > 0) {
+  console.warn(`baseline collect partial: ${successCount} ok, ${failCount} failed — continuing with available data`);
 }
 
 updateManifest(models);

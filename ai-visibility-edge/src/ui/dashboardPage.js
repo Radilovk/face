@@ -41,17 +41,6 @@ export function renderDashboardPage(origin) {
       <div id="add-result" class="msg hidden"></div>
     </section>
 
-    <div id="alerts-wrap" class="alerts-wrap">
-      <section id="baseline-banner" class="baseline-banner hidden">
-        <strong>Baseline ${infoBtn('baseline_gate')}</strong>
-        <p id="baseline-msg" class="sub">…</p>
-      </section>
-      <section id="drift-panel" class="drift-panel hidden" aria-label="Drift alerts">
-        <span id="drift-badge" class="advisor-badge">—</span>
-        <ul id="drift-alerts" class="drift-list"></ul>
-      </section>
-    </div>
-
     <section id="verdict" class="verdict verdict-unknown">
       <div class="verdict-top">
         <span id="score" class="score">${infoBtn('diagnostic_score')}<span id="score-val">—</span></span>
@@ -70,14 +59,6 @@ export function renderDashboardPage(origin) {
         <p id="blocker-detail" class="sub">…</p>
       </div>
       <button type="button" class="btn btn-sm" id="btn-blocker-fix">Поправи</button>
-    </section>
-
-    <section id="welcome-wizard" class="welcome-wizard hidden" aria-label="Първи стъпки">
-      <div class="wizard-head">
-        <strong id="wizard-title">Как работи AI Visibility</strong>
-        <button type="button" class="btn btn-sm btn-ghost" id="btn-wizard-dismiss">Разбрах</button>
-      </div>
-      <ol id="wizard-steps" class="wizard-steps"></ol>
     </section>
 
     <section id="journey-bar" class="journey-bar hidden" aria-label="Път на оптимизация">
@@ -99,13 +80,7 @@ export function renderDashboardPage(origin) {
       </div>
       <ul id="activity-metrics" class="activity-metrics hidden"></ul>
       <p id="activity-next" class="activity-next sub hidden"></p>
-    </section>
-
-    <section id="operation-history" class="operation-history hidden" aria-label="История на операции">
-      <details id="op-history-details" open>
-        <summary>Последни операции (<span id="op-history-count">0</span>)</summary>
-        <ul id="op-history-list" class="op-history-list"></ul>
-      </details>
+      <ul id="activity-history" class="activity-history hidden" aria-label="Последни операции"></ul>
     </section>
 
     <section id="insights-panel" class="insights-panel hidden" aria-label="AI позициониране">
@@ -140,14 +115,11 @@ export function renderDashboardPage(origin) {
           <p id="command-hint" class="command-hint sub">Изберете сайт за препоръка какво да направите.</p>
         </div>
         <details class="command-more" id="command-more">
-          <summary>Още действия</summary>
+          <summary>Още</summary>
           <div class="command-more-grid">
             <button type="button" class="btn btn-ghost btn-sm" id="btn-auto-optimize">Авто-оптимизация</button>
             <button type="button" class="btn btn-ghost btn-sm" id="btn-reprocess">Провери цитатите</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="btn-edge-activate">Edge прокси</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="btn-refresh">↻ Обнови данни</button>
-            <button type="button" class="btn btn-ghost btn-sm" id="btn-export-manual-bar">📥 Ръчен checklist</button>
-            <a class="btn btn-ghost btn-sm" id="btn-report" href="#" target="_blank" rel="noopener">📄 PDF отчет</a>
+            <a class="btn btn-ghost btn-sm" id="btn-report" href="#" target="_blank" rel="noopener">PDF отчет</a>
           </div>
         </details>
       </div>
@@ -160,9 +132,12 @@ export function renderDashboardPage(origin) {
             <span id="plan-count-badge" class="advisor-badge">—</span>
           </div>
         </div>
-        <p id="plan-honesty" class="roadmap-honesty sub hidden">…</p>
         <p id="plan-summary" class="findings-summary sub hidden">…</p>
-        <p class="sub manual-hint">Един хронологичен списък — системни стъпки, ръчни задачи и автоматични поправки.</p>
+        <div class="plan-legend" aria-hidden="false">
+          <span class="plan-legend-you">👤 Вие</span> CMS, DNS, публикуване
+          <span class="plan-legend-sep">·</span>
+          <span class="plan-legend-ai">🤖 Системата</span> анализ, drafts, Edge
+        </div>
         <ol id="unified-plan-list" class="unified-plan-list"></ol>
         <details id="plan-done-wrap" class="roadmap-done-wrap hidden">
           <summary id="plan-done-summary">Готови стъпки</summary>
@@ -175,12 +150,7 @@ export function renderDashboardPage(origin) {
       <ol id="roadmap-steps" class="hidden" aria-hidden="true"></ol>
     </section>
 
-    <section id="metrics-panel" class="metrics-panel hidden" aria-label="Обзор">
-      <div class="pillars-wrap">
-        <h3 class="metrics-subhead">4 стълба ${infoBtn('pillar_visibility')}</h3>
-        <div id="pillars" class="pillars pillars-compact"></div>
-      </div>
-    </section>
+    <div id="pillars" class="hidden" aria-hidden="true"></div>
 
     <div id="site-stats" class="hidden" aria-hidden="true">
       <strong id="stat-runs">—</strong>
@@ -191,98 +161,60 @@ export function renderDashboardPage(origin) {
 
     <p id="status-line" class="status-line hidden" aria-hidden="true">…</p>
 
-    <nav id="pipeline-bar" class="pipeline-bar hidden" aria-hidden="true"></nav>
     <ol id="plan-week" class="hidden" aria-hidden="true"></ol>
-    <ol id="plan-month" class="hidden" aria-hidden="true"></ol>
 
-    <details class="extra extra-tech" id="extra-tech-wrap">
-      <summary id="extra-tech-summary">⚙️ Технически детайли</summary>
-      <p id="extra-tech-note" class="sub extra-tech-note hidden"></p>
+    <details class="extra edge-dns-wrap hidden" id="edge-dns-wrap">
+      <summary>Edge &amp; DNS (само ако е нужен)</summary>
       <div class="extra-body extra-tech-body">
         <section class="tech-block edge-panel" id="edge-panel">
           <div class="tech-block-head">
-            <h4>Edge ${infoBtn('edge_status')}</h4>
+            <h4>Edge прокси</h4>
             <span id="edge-status-badge" class="advisor-badge">…</span>
           </div>
-          <div id="edge-verdict" class="edge-verdict sub">Стартирайте анализ за решение.</div>
+          <div id="edge-verdict" class="edge-verdict sub">—</div>
           <ul id="edge-fixes" class="edge-fix-list"></ul>
           <ul id="edge-prereq" class="edge-prereq-list"></ul>
+          <button type="button" class="btn btn-sm" id="btn-edge-activate">Приложи Edge</button>
         </section>
         <section id="onboarding-panel" class="tech-block onboarding hidden">
           <h4>CNAME / DNS</h4>
           <ol id="onboarding-steps" class="onboarding-list"></ol>
           <p id="onboarding-dns" class="sub mono">…</p>
         </section>
-        <section class="tech-block optimizer-panel" id="optimizer-panel">
-          <div class="tech-block-head">
-            <h4>Optimizer ${infoBtn('optimizer')}</h4>
-            <span id="optimizer-badge" class="advisor-badge">…</span>
-          </div>
-          <p id="optimizer-headline" class="optimizer-headline sub">—</p>
-          <ul id="optimizer-auto" class="edge-fix-list hidden"></ul>
-          <ul id="optimizer-human" class="edge-prereq-list hidden"></ul>
-          <details id="optimizer-drafts-wrap" class="hidden">
-            <summary>Content draft</summary>
-            <pre id="optimizer-draft-preview" class="draft-preview"></pre>
-          </details>
+      </div>
+    </details>
+
+    <details class="extra operator-panel">
+      <summary>За оператори</summary>
+      <div class="extra-body">
+        <section id="baseline-banner" class="baseline-banner hidden">
+          <strong>Baseline</strong>
+          <p id="baseline-msg" class="sub">…</p>
         </section>
-        <section id="cache-index-panel" class="tech-block cache-index hidden">
-          <div class="tech-block-head">
-            <h4>Кеш ${infoBtn('cache_coverage')}</h4>
-            <span id="cache-coverage-badge" class="advisor-badge">—</span>
-          </div>
-          <div class="stat-grid stat-grid-5">
-            <div class="stat">${infoBtn('cache_median')}<strong id="cache-median">—</strong><small>Median</small></div>
-            <div class="stat">${infoBtn('cache_p25')}<strong id="cache-p25">—</strong><small>P25</small></div>
-            <div class="stat">${infoBtn('cache_p75')}<strong id="cache-p75">—</strong><small>P75</small></div>
-            <div class="stat">${infoBtn('bot_verified')}<strong id="stat-bot-v">—</strong><small>Bot ✓</small></div>
-            <div class="stat">${infoBtn('bot_fake')}<strong id="stat-bot-u">—</strong><small>Bot fake</small></div>
-          </div>
-          <p id="cache-note" class="sub">…</p>
+        <section id="drift-panel" class="drift-panel hidden">
+          <span id="drift-badge" class="advisor-badge">—</span>
+          <ul id="drift-alerts" class="drift-list"></ul>
         </section>
-      </div>
-    </details>
-
-    <!-- Collapsible extras -->
-    <details class="extra">
-      <summary>💬 Gemini съветник (опционално)</summary>
-      <div class="extra-body">
-        <span id="advisor-badge" class="advisor-badge">…</span>
-        <div id="chat-messages" class="chat-messages"></div>
-        <div id="chat-actions" class="chat-actions"></div>
-        <form id="chat-form" class="chat-form">
-          <textarea id="chat-input" rows="2" placeholder="Въпрос към Gemini…"></textarea>
-          <button type="submit" class="btn btn-sm" id="btn-chat-send">Изпрати</button>
-        </form>
-      </div>
-    </details>
-
-    <details class="extra">
-      <summary>❓ Въпроси за AI (редакция)</summary>
-      <div class="extra-body">
-        <div class="toolbar">
-          <button type="button" class="btn btn-sm" id="btn-gen-q">✨ Авто-генерирай</button>
-          <button type="button" class="btn btn-sm btn-ghost" id="btn-add-q">+ Ръчно</button>
-        </div>
-        <div id="questions-list" class="q-list"></div>
-      </div>
-    </details>
-
-    <details class="extra">
-      <summary>🔐 Admin достъп (production)</summary>
-      <div class="extra-body">
         <p class="sub" id="auth-hint">…</p>
         <label class="admin-token-label">ADMIN_TOKEN
-          <input type="password" id="admin-token" placeholder="Bearer token от Worker secrets" autocomplete="off">
+          <input type="password" id="admin-token" placeholder="Bearer token" autocomplete="off">
         </label>
-        <button type="button" class="btn btn-sm" id="btn-save-token">Запази в сесията</button>
+        <button type="button" class="btn btn-sm" id="btn-save-token">Запази token</button>
+        <span id="advisor-badge" class="advisor-badge hidden" aria-hidden="true">—</span>
+        <div id="cache-index-panel" class="hidden" aria-hidden="true">
+          <strong id="cache-median">—</strong>
+          <strong id="cache-p25">—</strong>
+          <strong id="cache-p75">—</strong>
+          <strong id="cache-coverage-badge">—</strong>
+          <strong id="stat-bot-v">—</strong>
+          <strong id="stat-bot-u">—</strong>
+          <p id="cache-note">—</p>
+        </div>
+        <pre id="tech-detail" class="tech-detail-pre">—</pre>
       </div>
     </details>
-
-    <details class="extra">
-      <summary>🔧 Технически детайли</summary>
-      <div class="extra-body"><pre id="tech-detail">—</pre></div>
-    </details>
+    <div id="questions-list" class="hidden" aria-hidden="true"></div>
+    <button type="button" id="btn-gen-q" class="hidden" aria-hidden="true"></button>
 
     <footer class="foot">AI Visibility Edge · <code>${esc(origin)}</code></footer>
   </div>
@@ -328,8 +260,6 @@ function script(origin) {
     let busy = false;
     let adminRequired = false;
 
-    let chatHistory = [];
-    let advisorReady = false;
     const metricContext = {};
 
     const $ = (id) => document.getElementById(id);
@@ -411,12 +341,7 @@ function script(origin) {
     ];
     const PHASE_ORDER = PRODUCT_PHASES.map(p => p.id);
     const OP_HISTORY_KEY = 'aiv_op_history';
-    const WIZARD_KEY = 'aiv_wizard_seen';
-    const MAX_OP_HISTORY = 5;
-
-    function wizardStorageKey() {
-      return WIZARD_KEY + ':' + (selectedDomain || '_global');
-    }
+    const MAX_OP_HISTORY = 3;
 
     function normPlanTitle(t) {
       return String(t || '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -451,20 +376,15 @@ function script(origin) {
 
     function applyContextualVisibility() {
       const needed = edgeIsNeeded(lastEdgeDecision, strategy);
-      $('edge-panel')?.classList.toggle('context-hidden', !needed);
-      $('btn-edge-activate')?.classList.toggle('hidden', !needed);
-      const note = $('extra-tech-note');
-      if (note) {
-        if (needed) {
-          note.classList.add('hidden');
-        } else {
-          note.textContent = 'Edge/CNAME не са нужни за този сайт — техническата основа е достатъчна за измерване.';
-          note.classList.remove('hidden');
-        }
-      }
-      $('extra-tech-summary').textContent = needed
-        ? '⚙️ Edge, DNS, кеш и drafts'
-        : '⚙️ Кеш и drafts (Edge не е нужен)';
+      $('edge-dns-wrap')?.classList.toggle('hidden', !needed);
+    }
+
+    function roadmapActorLabel(step) {
+      if (step.status === 'done') return '✓ Готово';
+      if (step.status === 'waiting_manual' || step.status === 'manual') return '👤 Вие правите';
+      if (step.status === 'waiting_auto') return '🤖 Системата';
+      if (step.status === 'current') return '▶ Сега';
+      return '📋 Ред';
     }
 
     function renderJourneyBar(strategyData) {
@@ -498,47 +418,6 @@ function script(origin) {
       $('journey-focus').textContent = strategyData.phase_focus || strategyData.verdict?.summary || '—';
     }
 
-    function renderWelcomeWizard(strategyData) {
-      const panel = $('welcome-wizard');
-      if (!selectedDomain) {
-        panel.classList.add('hidden');
-        return;
-      }
-      if (sessionStorage.getItem(wizardStorageKey()) === '1') {
-        panel.classList.add('hidden');
-        return;
-      }
-      const runs = strategyData?.stats?.runCount ?? 0;
-      const pending = computePlanPending(strategyData, lastApplyPlan, optimizerRoadmap);
-      const pendingTasks = pending.manualTasks.length +
-        pending.autoFindings.filter(f => f.severity === 'critical' || f.severity === 'warning').length;
-      const waitingManualRoadmap = pending.activeRoadmap.some(s => s.status === 'waiting_manual');
-      const steps = [
-        { id: 'add', label: 'Добавете сайт', done: Boolean(strategyData?.registered), detail: 'Домейн, марка, вертикал' },
-        { id: 'analyze', label: 'Пълен AI анализ', done: runs > 0, detail: 'Одит → въпроси → измерване (~2 мин)' },
-        { id: 'sov', label: 'Вижте AI-SOV и изместване', done: runs > 0, detail: 'Метриките „Как AI ви вижда“ по-горе' },
-        {
-          id: 'fix',
-          label: 'Поправете задачите от плана',
-          done: runs > 0 && pendingTasks === 0 && !waitingManualRoadmap,
-          detail: 'Ръчни + автоматични стъпки в единния план',
-        },
-        {
-          id: 'remeasure',
-          label: 'Повторете измерване',
-          done: runs >= 2,
-          detail: 'След CMS/DNS промени — главният бутон',
-        },
-      ];
-      panel.classList.remove('hidden');
-      $('wizard-steps').innerHTML = steps.map((s, i) =>
-        '<li class="wizard-step ' + (s.done ? 'done' : '') + '">' +
-        '<span class="wizard-num">' + (s.done ? '✓' : (i + 1)) + '</span>' +
-        '<div><strong>' + escHtml(s.label) + '</strong>' +
-        '<p class="sub">' + escHtml(s.detail) + '</p></div></li>'
-      ).join('');
-    }
-
     function pushOpHistory(entry) {
       if (!selectedDomain) return;
       const all = JSON.parse(sessionStorage.getItem(OP_HISTORY_KEY) || '[]');
@@ -556,25 +435,21 @@ function script(origin) {
     }
 
     function renderOperationHistory() {
-      const panel = $('operation-history');
+      const el = $('activity-history');
       const list = JSON.parse(sessionStorage.getItem(OP_HISTORY_KEY) || '[]')
         .filter(r => r.domain === selectedDomain)
         .slice(0, MAX_OP_HISTORY);
-      if (!selectedDomain || !list.length) {
-        panel.classList.add('hidden');
+      if (!el || !selectedDomain || !list.length) {
+        el?.classList.add('hidden');
         return;
       }
-      panel.classList.remove('hidden');
-      $('op-history-count').textContent = String(list.length);
-      $('op-history-list').innerHTML = list.map(r => {
+      el.classList.remove('hidden');
+      el.innerHTML = list.map(r => {
         const icon = r.status === 'ok' ? '✓' : r.status === 'error' ? '✕' : '⏳';
         const when = new Date(r.at).toLocaleString('bg-BG', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
-        return '<li class="op-history-item op-history-' + r.status + '">' +
-          '<span class="op-history-icon">' + icon + '</span>' +
-          '<div class="op-history-body"><strong>' + escHtml(r.title) + '</strong>' +
-          '<span class="op-history-when">' + escHtml(when) + '</span>' +
-          (r.detail ? '<p class="sub">' + escHtml(r.detail.slice(0, 160)) + '</p>' : '') +
-          '</div></li>';
+        return '<li class="activity-history-item activity-history-' + r.status + '">' +
+          icon + ' <strong>' + escHtml(r.title) + '</strong> · ' + escHtml(when) +
+          '</li>';
       }).join('');
     }
 
@@ -875,21 +750,9 @@ function script(origin) {
       sel.value = selectedDomain;
       sel.onchange = () => {
         selectedDomain = sel.value;
-        chatHistory = [];
-        $('chat-messages').innerHTML = '';
-        $('chat-actions').innerHTML = '';
         renderOperationHistory();
         loadStrategy();
       };
-    }
-
-    function renderPipeline(pipeline) {
-      const bar = $('pipeline-bar');
-      if (!pipeline?.steps) { bar.innerHTML = ''; return; }
-      bar.innerHTML = pipeline.steps.map(s =>
-        '<span class="pipe-step ' + (s.done ? 'done' : (s.id === pipeline.current ? 'current' : '')) + '">' +
-        escHtml(s.label) + '</span>'
-      ).join('<span class="pipe-arrow">→</span>');
     }
 
     const GATE_LABELS = {
@@ -918,7 +781,7 @@ function script(origin) {
         : '';
       return '<li class="unified-plan-item roadmap-step ' + escHtml(s.status_css) + (compact ? ' unified-plan-compact' : '') + '" data-kind="roadmap">' +
         '<div class="unified-plan-head">' +
-        '<span class="unified-kind-badge">📋 План</span>' +
+        '<span class="unified-kind-badge">' + escHtml(roadmapActorLabel(s)) + '</span>' +
         '<span class="roadmap-icon">' + s.status_icon + '</span>' +
         '<div class="unified-plan-body">' +
         '<strong>' + escHtml(s.title) + '</strong>' +
@@ -945,7 +808,7 @@ function script(origin) {
         : '';
       return '<li class="unified-plan-item manual-task-card ' + sev + (t.severity === 'critical' ? ' manual-task-open' : '') + '" data-kind="manual" data-task-id="' + escHtml(t.id) + '">' +
         '<div class="unified-plan-head">' +
-        '<span class="unified-kind-badge">👤 Ръчно</span>' +
+        '<span class="unified-kind-badge plan-legend-you">👤 Вие правите</span>' +
         '<div class="unified-plan-body">' +
         '<strong>' + escHtml(t.title) + '</strong>' +
         (t.instructions ? '<p class="sub">' + escHtml(t.instructions) + '</p>' : '') +
@@ -960,7 +823,6 @@ function script(origin) {
     function htmlAutoFindingCard(f) {
       const sevClass = 'finding-' + f.severity;
       const auto = f.automation || {};
-      const modeShort = { auto: '🤖', semi_auto: '🤖+👤', manual: '👤' };
       const ev = f.evidence || {};
       const evLines = [];
       if (ev.url) evLines.push('URL: ' + ev.url);
@@ -972,16 +834,15 @@ function script(origin) {
         (auto.note ? '<p class="finding-note sub">' + escHtml(auto.note) + '</p>' : '');
       const applyBtn = auto.can_apply_now && auto.action
         ? '<button type="button" class="btn btn-sm finding-apply" data-finding-id="' + escHtml(f.id) + '" data-intent="' + escHtml(auto.intent || '') + '">' +
-          escHtml(auto.label || 'Приложи') + '</button>'
+          escHtml(auto.label || 'Приложи автоматично') + '</button>'
         : '';
       return '<li class="unified-plan-item finding-card ' + sevClass + '" data-kind="auto" data-finding-id="' + escHtml(f.id) + '">' +
         '<div class="unified-plan-head">' +
-        '<span class="unified-kind-badge">🤖 Авто</span>' +
-        '<span class="finding-mode">' + (modeShort[auto.mode] || '') + '</span>' +
+        '<span class="unified-kind-badge plan-legend-ai">🤖 Системата прави</span>' +
         '<div class="unified-plan-body">' +
         '<div class="finding-row"><strong class="finding-title">' + escHtml(f.title) + '</strong>' +
         '<div class="finding-actions">' + applyBtn + '</div></div>' +
-        '<details class="finding-details"><summary>Детайли</summary>' + detailsInner + '</details>' +
+        (evLines.length ? '<details class="finding-details"><summary>Защо</summary>' + detailsInner + '</details>' : detailsInner) +
         '</div></div></li>';
     }
 
@@ -1027,14 +888,6 @@ function script(origin) {
       panel.classList.remove('hidden');
       $('plan-domain').textContent = selectedDomain || strategyData.domain || '—';
 
-      const honesty = roadmap?.honesty_note || '';
-      const honestyEl = $('plan-honesty');
-      if (honesty) {
-        honestyEl.textContent = honesty;
-        honestyEl.classList.remove('hidden');
-      } else {
-        honestyEl.classList.add('hidden');
-      }
       const summaryText = strategyData.findings_summary || roadmap?.summary || '';
       const summaryEl = $('plan-summary');
       if (summaryText) {
@@ -1256,9 +1109,6 @@ function script(origin) {
       btn.textContent = step.label;
       btn.onclick = () => executeNextStep(step);
       hint.textContent = step.desc;
-      if (strategyData?.product_phase) {
-        hint.textContent = (strategyData.phase_focus || step.desc) + ' · Фаза: ' + strategyData.product_phase;
-      }
     }
 
     function executeNextStep(step) {
@@ -1442,108 +1292,12 @@ function script(origin) {
       }
     }
 
-    function renderPlan(plan) {
-      const renderItems = (items) => (items || []).map(a =>
-        '<li class="plan-item pri-' + a.priority + '">' +
-        '<span class="plan-num">' + a.step + '</span>' +
-        '<div><strong>' + escHtml(a.title) + '</strong>' +
-        '<p>' + escHtml(a.detail) + '</p></div></li>'
-      ).join('') || '<li class="sub">—</li>';
-
-      $('plan-week').innerHTML = renderItems(plan?.this_week);
-      $('plan-month').innerHTML = renderItems(plan?.this_month);
-    }
-
-    function renderChatMessage(role, text) {
-      const el = $('chat-messages');
-      const div = document.createElement('div');
-      div.className = 'chat-msg chat-' + role;
-      div.innerHTML = '<span class="chat-role">' + (role === 'user' ? 'Вие' : 'Gemini') + '</span>' +
-        '<div class="chat-text">' + escHtml(text).replace(/\\n/g, '<br>') + '</div>';
-      el.appendChild(div);
-      el.scrollTop = el.scrollHeight;
-    }
-
-    function renderChatActions(actions) {
-      const el = $('chat-actions');
-      if (!actions?.length) { el.innerHTML = ''; return; }
-      el.innerHTML = actions.map(a =>
-        '<button type="button" class="btn btn-sm chat-action" data-action="' + escHtml(a.action) + '" title="' + escHtml(a.reason || '') + '">' +
-        escHtml(a.label) + '</button>'
-      ).join('');
-      el.querySelectorAll('.chat-action').forEach(btn => {
-        btn.onclick = () => executeAdvisorAction(btn.dataset.action);
-      });
-    }
-
-    async function executeAdvisorAction(action) {
-      if (action === 'run_analysis') return runFullAnalysis();
-      if (action === 'run_auto_optimizer') return runAutoOptimize();
-      if (action === 'generate_apply') return runAutoOptimize();
-      if (action === 'refresh_strategy') { await loadStrategy(); await loadEdgeDecision(); return; }
-      if (action === 'open_report') { window.open(API('/report/' + encodeURIComponent(selectedDomain)), '_blank'); return; }
-      if (action === 'generate_questions') { $('btn-gen-q').click(); return; }
-    }
-
     async function loadModelsStatus() {
       try {
         const res = await fetch(API('/api/models/status'));
         const data = await res.json();
         window.__aivModels = data;
-        if (data.gemini?.deprecated_warning) {
-          log('⚠ ' + data.gemini.deprecated_warning);
-        }
-        if (advisorReady && data.gemini?.model) {
-          $('advisor-badge').textContent = 'Gemini · ' + data.gemini.model;
-        }
       } catch { /* optional */ }
-    }
-
-    async function loadAdvisorStatus() {
-      try {
-        const res = await fetch(API('/api/advisor/status'));
-        const data = await res.json();
-        advisorReady = data.configured;
-        const badge = $('advisor-badge');
-        badge.textContent = data.configured ? ('Gemini · ' + (data.model || 'ok')) : 'няма API key';
-        badge.className = 'advisor-badge ' + (data.configured ? 'ok' : 'err');
-        if (!data.configured) {
-          renderChatMessage('model', data.hint || 'GEMINI_API_KEY не е конфигуриран в Worker.');
-        }
-      } catch {
-        $('advisor-badge').textContent = 'offline';
-      }
-    }
-
-    async function sendChatMessage(text) {
-      if (!selectedDomain) { log('Изберете сайт'); return; }
-      if (!advisorReady) { log('Gemini не е конфигуриран'); return; }
-      const msg = text.trim();
-      if (!msg) return;
-
-      renderChatMessage('user', msg);
-      chatHistory.push({ role: 'user', content: msg });
-      $('btn-chat-send').disabled = true;
-      log('Gemini мисли…');
-
-      try {
-        const res = await apiFetch('/api/advisor/chat', {
-          method: 'POST',
-          body: JSON.stringify({ domain: selectedDomain, message: msg, history: chatHistory.slice(0, -1) })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(authErrorHint(res, data));
-        renderChatMessage('model', data.reply);
-        chatHistory.push({ role: 'model', content: data.reply });
-        renderChatActions(data.actions);
-        log('Gemini · score ' + (data.context_summary?.score ?? '—'));
-      } catch (e) {
-        renderChatMessage('model', 'Грешка: ' + e.message);
-        log('Gemini: ' + e.message);
-      } finally {
-        $('btn-chat-send').disabled = false;
-        $('chat-input').value = '';
-      }
     }
 
     function renderTech(probe, stats) {
@@ -1739,7 +1493,6 @@ function script(origin) {
         renderCommandCenter(strategy);
         lastApplyPlan = await loadApplyPlan();
         renderPillars(strategy.pillars);
-        $('metrics-panel')?.classList.toggle('hidden', !(strategy.pillars?.length));
         renderInsights(strategy, null);
         renderTech(strategy.probe, strategy.stats);
         log('Обновено ' + new Date().toLocaleTimeString('bg-BG'));
@@ -1749,7 +1502,6 @@ function script(origin) {
         await loadOnboarding();
         await loadOptimizer();
         renderUnifiedPlan(strategy, lastApplyPlan, optimizerRoadmap);
-        renderWelcomeWizard(strategy);
         renderOperationHistory();
       } catch (e) {
         log('Грешка: ' + e.message);
@@ -1782,17 +1534,6 @@ function script(origin) {
         if (!res.ok) return;
         const plan = data.current_plan;
         renderRoadmap(data.roadmap);
-        $('optimizer-badge').textContent = data.enabled ? (plan?.automation_level || 'ready') : '—';
-        $('optimizer-headline').textContent = plan?.headline || data.roadmap?.summary || '—';
-        $('optimizer-auto').innerHTML = '';
-        $('optimizer-human').innerHTML = '';
-        const draft = (data.content_drafts || [])[0];
-        if (draft?.artifact) {
-          $('optimizer-drafts-wrap').classList.remove('hidden');
-          $('optimizer-draft-preview').textContent = draft.artifact.slice(0, 2000);
-        } else {
-          $('optimizer-drafts-wrap').classList.add('hidden');
-        }
         setMetricContext('optimizer', {
           message: (plan?.headline || data.roadmap?.summary || ''),
         });
@@ -1957,18 +1698,12 @@ function script(origin) {
     $('btn-activity-dismiss').onclick = () => {
       $('activity-panel').classList.add('hidden');
     };
-    $('btn-wizard-dismiss').onclick = () => {
-      sessionStorage.setItem(wizardStorageKey(), '1');
-      $('welcome-wizard').classList.add('hidden');
-    };
     $('btn-activity-retry').onclick = () => {
       if (lastActivityRetry) lastActivityRetry();
     };
     $('btn-edge-activate').onclick = activateEdge;
-    $('btn-refresh').onclick = () => { loadStrategy(); loadEdgeDecision(); loadSiteStats(); loadOnboarding(); loadDriftStatus(); loadOptimizer(); };
     $('btn-reprocess').onclick = runReprocess;
     $('btn-export-manual').onclick = exportManualRecommendations;
-    $('btn-export-manual-bar').onclick = exportManualRecommendations;
     $('btn-gen-q').onclick = async () => {
       if (!selectedDomain || busy) return;
       return withOperation('Генериране на въпроси', 'Gemini + site brief…', async (setStatus) => {
@@ -1994,24 +1729,6 @@ function script(origin) {
         trackMetrics: false,
       });
     };
-    $('btn-add-q').onclick = async () => {
-      const text = prompt('Нов въпрос:');
-      if (!text?.trim()) return;
-      await apiFetch('/api/questions', {
-        method: 'POST',
-        body: JSON.stringify({ domain: selectedDomain, text: text.trim(), source: 'manual' })
-      });
-      loadQuestionsQuiet();
-    };
-
-    $('chat-form').onsubmit = (e) => {
-      e.preventDefault();
-      sendChatMessage($('chat-input').value);
-    };
-    document.querySelectorAll('.chat-quick-btn').forEach(btn => {
-      btn.onclick = () => sendChatMessage(btn.dataset.q);
-    });
-
     $('btn-save-token').onclick = () => {
       setAdminToken($('admin-token').value);
       log('Admin token запазен за сесията');
@@ -2021,7 +1738,6 @@ function script(origin) {
     loadBaselineStatus();
     loadDriftStatus();
     loadModelsStatus();
-    loadAdvisorStatus();
     loadSites().then(() => { if (selectedDomain) { loadStrategy(); loadEdgeDecision(); loadSiteStats(); loadOnboarding(); } });
   `;
 }
@@ -2072,14 +1788,6 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .activity-metrics li{font-size:.78rem;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.25rem .5rem}
 .activity-metric-label{color:var(--muted);margin-right:.35rem}
 .activity-next{margin:.55rem 0 0;padding-top:.5rem;border-top:1px solid var(--border);font-size:.82rem;color:var(--accent)}
-.welcome-wizard{background:linear-gradient(135deg,#1e3a5f33,#121820);border:1px solid var(--accent);border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem}
-.welcome-wizard.hidden{display:none}
-.wizard-head{display:flex;justify-content:space-between;align-items:center;gap:.75rem;margin-bottom:.65rem}
-.wizard-steps{list-style:none;padding:0;margin:0;display:grid;gap:.45rem}
-.wizard-step{display:flex;gap:.65rem;align-items:flex-start;padding:.45rem .55rem;border-radius:8px;background:var(--surface2);border:1px solid var(--border)}
-.wizard-step.done{opacity:.75;border-color:#14532d}
-.wizard-num{flex-shrink:0;width:1.35rem;height:1.35rem;border-radius:50%;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:600}
-.wizard-step.done .wizard-num{background:#14532d22;color:var(--ok)}
 .journey-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem}
 .journey-bar.hidden{display:none}
 .journey-phases{display:grid;grid-template-columns:repeat(4,1fr);gap:.35rem;margin-bottom:.55rem}
@@ -2092,17 +1800,6 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .journey-label{display:block;font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.02em}
 .journey-hint{display:block;font-size:.62rem;color:var(--muted);margin-top:.1rem;line-height:1.2}
 .journey-focus{margin:0;font-size:.82rem;color:var(--accent)}
-.operation-history{margin-bottom:.75rem}
-.operation-history.hidden{display:none}
-.operation-history details{font-size:.82rem;color:var(--muted)}
-.operation-history summary{cursor:pointer;padding:.25rem 0;color:var(--text);font-weight:500}
-.op-history-list{list-style:none;padding:.35rem 0 0;margin:0;display:grid;gap:.35rem}
-.op-history-item{display:flex;gap:.5rem;align-items:flex-start;padding:.45rem .55rem;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:.78rem}
-.op-history-ok{border-left:3px solid var(--ok)}
-.op-history-error{border-left:3px solid var(--err)}
-.op-history-running{border-left:3px solid var(--accent)}
-.op-history-icon{flex-shrink:0;font-weight:700}
-.op-history-when{display:block;font-size:.68rem;color:var(--muted);margin-top:.1rem}
 .unified-plan{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
 .unified-plan.hidden{display:none}
 .unified-plan-list{list-style:none;padding:0;margin:.65rem 0 0;display:grid;gap:.55rem}
@@ -2111,8 +1808,18 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .unified-plan-head{display:flex;flex-wrap:wrap;gap:.45rem;align-items:flex-start}
 .unified-kind-badge{font-size:.65rem;text-transform:uppercase;letter-spacing:.03em;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:.12rem .4rem;flex-shrink:0}
 .unified-plan-body{flex:1;min-width:0}
-.context-hidden{display:none!important}
-.extra-tech-note{margin:0 0 .65rem;padding:.45rem .65rem;background:#102a1818;border-radius:6px;border-left:3px solid var(--ok)}
+.plan-legend{font-size:.78rem;color:var(--muted);margin:.5rem 0 .65rem;padding:.45rem .6rem;background:var(--surface2);border-radius:6px;border:1px solid var(--border)}
+.plan-legend-you{color:var(--warn);font-weight:600}
+.plan-legend-ai{color:var(--accent);font-weight:600}
+.plan-legend-sep{margin:0 .35rem;opacity:.5}
+.activity-history{list-style:none;padding:.5rem 0 0;margin:.45rem 0 0;border-top:1px solid var(--border);font-size:.72rem;color:var(--muted)}
+.activity-history.hidden{display:none}
+.activity-history-item{padding:.2rem 0}
+.activity-history-ok{color:var(--ok)}
+.activity-history-error{color:var(--err)}
+.edge-dns-wrap.hidden{display:none!important}
+.operator-panel{margin-top:1rem}
+.tech-detail-pre{font-size:.68rem;max-height:200px;overflow:auto;background:var(--bg);padding:.5rem;border-radius:6px;margin-top:.65rem}
 .command-center{margin-bottom:1rem;padding-bottom:.85rem;border-bottom:1px solid var(--border)}
 .command-primary{display:flex;flex-direction:column;align-items:flex-start;gap:.45rem;margin-bottom:.65rem}
 .command-hint{margin:0;max-width:36rem;line-height:1.4}
@@ -2378,15 +2085,5 @@ pre{margin:0;font-size:.75rem;color:var(--muted);overflow:auto;max-height:200px}
 .edge-fix{margin-bottom:.45rem}
 .edge-fix-layer{font-size:.65rem;text-transform:uppercase;color:var(--accent);background:var(--surface2);padding:.1rem .35rem;border-radius:4px}
 .edge-prereq-list{color:var(--muted)}
-.chat-messages{max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:.65rem;margin:.75rem 0;padding:.5rem;background:var(--bg);border-radius:8px;min-height:80px}
-.chat-msg{padding:.55rem .65rem;border-radius:8px;font-size:.875rem}
-.chat-user{background:#1e3a5f;align-self:flex-end;max-width:92%}
-.chat-model{background:var(--surface2);align-self:flex-start;max-width:96%}
-.chat-role{font-size:.65rem;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:.2rem}
-.chat-text{line-height:1.45}
-.chat-actions{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:.5rem}
-.chat-quick{display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.5rem}
-.chat-form{display:flex;gap:.5rem;align-items:flex-end}
-.chat-form textarea{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:.5rem;font-family:inherit;font-size:.875rem;resize:vertical;min-height:2.5rem}
 .foot{margin-top:2rem;padding-top:1rem;border-top:1px solid var(--border);color:var(--muted);font-size:.75rem}
 `;

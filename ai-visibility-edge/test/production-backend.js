@@ -87,3 +87,9 @@ export function testCloudflareConfigured() {
   assert(!cloudflareConfigured({}));
   assert(cloudflareConfigured({ CF_API_TOKEN: 'x', SAAS_ZONE_ID: 'zone' }));
 }
+
+export async function testResolveTenantOriginFallback() {
+  const { resolveTenantOrigin } = await import('../src/enhance/tenantOrigin.js');
+  const origin = await resolveTenantOrigin({}, 'shop.example.com', { apexHost: 'shop.example.com' });
+  assert.equal(origin, 'https://shop.example.com');
+}

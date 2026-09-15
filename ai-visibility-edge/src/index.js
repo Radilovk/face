@@ -37,6 +37,7 @@ import { fetchManualExport, manualExportResponse } from './api/manualExport.js';
 import { isPlatformHost } from './config/platform.js';
 import { loadEdgeConfig } from './config/tenantEdge.js';
 import { handleTenantRequest } from './enhance/handleTenant.js';
+import { fetchTenantOrigin } from './enhance/tenantOrigin.js';
 import { scheduleBotLog } from './observe/botLog.js';
 import {
   listQuestions,
@@ -492,8 +493,9 @@ async function handleRequest(request, env, ctx) {
     if (edgeConfig?.edge?.enabled) {
       return handleTenantRequest(request, env, edgeConfig);
     }
+    // Registered tenant on shared Worker — fetch THAT domain's HTML origin (never loop to self)
     if (config) {
-      return fetch(request);
+      return fetchTenantOrigin(request, env, config);
     }
     return fetch(request);
   }

@@ -74,6 +74,7 @@ import {
   testSiteUpdateAndQuestionTenantScope,
   testPlatformHostsEnv,
   testCloudflareConfigured,
+  testResolveTenantOriginFallback,
 } from './production-backend.js';
 import {
   testBuildRecommendationsRobots,
@@ -339,6 +340,7 @@ async function run() {
   await testSiteUpdateAndQuestionTenantScope();
   testPlatformHostsEnv();
   testCloudflareConfigured();
+  await testResolveTenantOriginFallback();
   testBuildRecommendationsRobots();
   testBuildRecommendationsCanaryEdge();
   testInfoModulesAndChecklist();

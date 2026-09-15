@@ -45,8 +45,9 @@ export async function provisionTenantHostname(env, domain) {
       ? { type: 'CNAME', name: tenant.apex_host, target: workerHost }
       : null,
     message: cf.created
-      ? 'Custom Hostname създаден в Cloudflare — добавете CNAME при DNS.'
+      ? 'Custom Hostname създаден — един Worker обслужва всички домейни; всеки връща своя HTML origin.'
       : 'Custom Hostname вече съществува — проверете SSL статуса.',
+    architecture: 'one_worker_many_domains',
   };
 }
 

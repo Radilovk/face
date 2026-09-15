@@ -88,6 +88,24 @@ import {
   testRenderRobotsTxt,
   testIsPlatformHost,
 } from './edge.js';
+import {
+  testBuildRobotsTxtIncludesSearchCrawlers,
+  testFindMissingSearchCrawlers,
+  testBuildLlmsTxt,
+  testRenderLlmsTxtFromEdgeConfig,
+  testLlmsResponseHeaders,
+  testPickSchemaFaqVertical,
+  testPickSchemaArticleVertical,
+  testPickSchemaHowToVertical,
+  testSchemaToJsonLdScript,
+  testSubmitIndexNowValidation,
+  testIndexNowKeyFile,
+  testEdgeDecisionServesLlmsTxt,
+  testEdgeDecisionMissingSearchCrawlers,
+  testApplyPlanLlmsAndRobots,
+  testMatchKnownBotSearchCrawlers,
+  testBuildRobotsAllowUsesDomain,
+} from './ai-search.js';
 import { testParseAdvisorActions, testParseAdvisorIgnoresInvalidActions } from './advisor.js';
 import {
   testFetchSiteStats,
@@ -318,6 +336,22 @@ async function run() {
   testBuildEdgeDecisionThinContentBlocker();
   testRenderRobotsTxt();
   testIsPlatformHost();
+  testBuildRobotsTxtIncludesSearchCrawlers();
+  testFindMissingSearchCrawlers();
+  testBuildLlmsTxt();
+  testRenderLlmsTxtFromEdgeConfig();
+  testLlmsResponseHeaders();
+  testPickSchemaFaqVertical();
+  testPickSchemaArticleVertical();
+  testPickSchemaHowToVertical();
+  testSchemaToJsonLdScript();
+  await testSubmitIndexNowValidation();
+  testIndexNowKeyFile();
+  testEdgeDecisionServesLlmsTxt();
+  testEdgeDecisionMissingSearchCrawlers();
+  testApplyPlanLlmsAndRobots();
+  testMatchKnownBotSearchCrawlers();
+  testBuildRobotsAllowUsesDomain();
   testStrategyThinContent();
   testStrategyRobotsBlocked();
   testStrategyWithMeasurement();

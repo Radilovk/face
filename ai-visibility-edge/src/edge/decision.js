@@ -1,3 +1,7 @@
+import { buildRobotsTxt } from '../config/aiCrawlers.js';
+import { buildLlmsTxt } from '../enhance/llms.js';
+import { pickSchemaType } from '../schema/pickType.js';
+
 /**
  * After analysis → clear edge optimization decision (Block 4).
  * Optimization = Cloudflare Worker proxy, NOT CMS edits.
@@ -26,12 +30,25 @@ export function buildEdgeDecision(input = {}) {
       title: 'robots.txt — Allow AI bots',
       detail: 'Edge Worker обслужва robots.txt без CMS промяна.',
     });
-  } else if (probe?.robots_ai_policy === 'none' || probe?.robots_ai_policy === 'fetch_error') {
+  } else if (
+    probe?.robots_ai_policy === 'none' ||
+    probe?.robots_ai_policy === 'fetch_error' ||
+    (probe?.signals?.missing_search_crawlers?.length ?? 0) > 0
+  ) {
     fixes.push({
       id: 'robots_serve',
       layer: 'edge',
       title: 'robots.txt от Edge',
-      detail: 'GPTBot, Google-Extended, PerplexityBot — Allow.',
+      detail: 'OAI-SearchBot, PerplexityBot, Claude-SearchBot, Googlebot + training bots — Allow.',
+    });
+  }
+
+  if (!probe?.signals?.llms_txt_ok) {
+    fixes.push({
+      id: 'serve_llms_txt',
+      layer: 'edge',
+      title: 'llms.txt от Edge',
+      detail: 'Курирана карта на ключовите страници за AI агенти.',
     });
   }
 
@@ -112,42 +129,6 @@ export function buildEdgeDecision(input = {}) {
   };
 }
 
-function pickSchemaType(verticalName, brand, domain) {
-  const v = (verticalName ?? '').toLowerCase();
-  if (/shop|e-?commerce|store|retail|продукт|магазин/.test(v)) {
-    return {
-      '@type': 'Product',
-      name: brand,
-      url: `https://${domain}/`,
-      description: `${brand} — продукти и оферти на https://${domain}/`,
-      offers: { '@type': 'Offer', priceCurrency: 'BGN', availability: 'https://schema.org/InStock' },
-    };
-  }
-  if (/clinic|medical|health|лечение|клиника|фарма/.test(v)) {
-    return {
-      '@type': 'LocalBusiness',
-      name: brand,
-      url: `https://${domain}/`,
-      description: `${brand} — https://${domain}/`,
-    };
-  }
-  if (/saas|software|app|platform/.test(v)) {
-    return {
-      '@type': 'SoftwareApplication',
-      name: brand,
-      url: `https://${domain}/`,
-      applicationCategory: verticalName ?? 'BusinessApplication',
-      description: `${brand} — https://${domain}/`,
-    };
-  }
-  return {
-    '@type': 'Organization',
-    name: brand,
-    url: `https://${domain}/`,
-    description: `${brand} — https://${domain}/`,
-  };
-}
-
 function buildEdgeConfigPayload({ domain, brand, probe, tenant, fixes }) {
   const fixIds = new Set(fixes.map((f) => f.id));
 
@@ -156,39 +137,24 @@ function buildEdgeConfigPayload({ domain, brand, probe, tenant, fixes }) {
     edge: {
       enabled: true,
       robots_mode: fixIds.has('robots_allow') || fixIds.has('robots_serve') ? 'serve' : 'passthrough',
+      llms_mode: fixIds.has('serve_llms_txt') ? 'serve' : 'passthrough',
       inject_jsonld: fixIds.has('inject_jsonld'),
       inject_canonical: fixIds.has('canonical_root'),
       origin_url: probe?.raw_json?.final_url
         ? new URL(probe.raw_json.final_url).origin
         : `https://${domain}`,
     },
+    brand,
+    vertical: tenant?.vertical_name ?? null,
     robots_txt: buildRobotsTxt(domain),
+    llms_txt: fixIds.has('serve_llms_txt')
+      ? buildLlmsTxt({ domain, brand, vertical: tenant?.vertical_name })
+      : null,
     jsonld: fixIds.has('inject_jsonld')
       ? {
           '@context': 'https://schema.org',
-          ...pickSchemaType(tenant?.vertical_name, brand, domain),
+          ...pickSchemaType(tenant?.vertical_name, brand, domain, { probe }),
         }
       : null,
   };
-}
-
-function buildRobotsTxt(domain) {
-  return `# Managed by AI Visibility Edge — no CMS edits
-User-agent: *
-Allow: /
-
-User-agent: GPTBot
-Allow: /
-
-User-agent: Google-Extended
-Allow: /
-
-User-agent: anthropic-ai
-Allow: /
-
-User-agent: PerplexityBot
-Allow: /
-
-Sitemap: https://${domain}/sitemap.xml
-`;
 }

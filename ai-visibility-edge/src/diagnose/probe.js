@@ -9,10 +9,11 @@ import {
   extractFirstH1,
   extractJsonLdTypes,
 } from './siteBrief.js';
+import { AI_BOT_TOKENS, findMissingSearchCrawlers } from '../config/aiCrawlers.js';
 
 const PROBE_UA = 'AIVisibilityBot/1.0 (+https://ai-visibility-edge/probe)';
 
-const AI_BOTS = ['gptbot', 'google-extended', 'anthropic-ai', 'perplexitybot', 'claudebot', 'ccbot'];
+const AI_BOTS = AI_BOT_TOKENS;
 
 /**
  * HTTP probe for a single domain — extraction layer diagnostics.
@@ -28,20 +29,27 @@ export async function probeDomain(domain, options = {}) {
 
   let robotsPolicy = 'unknown';
   let blockedBots = [];
+  let robotsText = '';
+  let missingSearchCrawlers = [];
   try {
     const robotsRes = await fetchImpl(`https://${host}/robots.txt`, {
       headers: { 'User-Agent': PROBE_UA },
     });
     if (robotsRes.ok) {
-      const robotsText = await robotsRes.text();
+      robotsText = await robotsRes.text();
       robotsPolicy = summarizeRobots(robotsText);
       blockedBots = extractBlockedBots(robotsText);
+      missingSearchCrawlers = findMissingSearchCrawlers(robotsText);
     } else if (robotsRes.status === 404) {
       robotsPolicy = 'none';
+      missingSearchCrawlers = findMissingSearchCrawlers('');
     }
   } catch {
     robotsPolicy = 'fetch_error';
+    missingSearchCrawlers = findMissingSearchCrawlers('');
   }
+
+  const llmsTxtOk = await checkLlmsTxt(fetchImpl, host);
 
   const html = page.html ?? '';
   const text = page.text ?? '';
@@ -66,6 +74,8 @@ export async function probeDomain(domain, options = {}) {
     meta_description_len: meta?.length ?? 0,
     title_len: title?.length ?? 0,
     sitemap_ok: sitemapOk,
+    llms_txt_ok: llmsTxtOk,
+    missing_search_crawlers: missingSearchCrawlers,
     jsonld_types: jsonldTypes,
     js_shell_suspect: html.length > 8000 && text.length < 300,
     html_bytes: html.length,
@@ -200,6 +210,20 @@ async function checkSitemap(fetchImpl, host) {
     if (!res.ok) return false;
     const body = (await res.text()).slice(0, 500);
     return body.includes('<urlset') || body.includes('<sitemapindex');
+  } catch {
+    return false;
+  }
+}
+
+async function checkLlmsTxt(fetchImpl, host) {
+  try {
+    const res = await fetchImpl(`https://${host}/llms.txt`, {
+      headers: { 'User-Agent': PROBE_UA },
+      method: 'GET',
+    });
+    if (!res.ok) return false;
+    const body = (await res.text()).slice(0, 500);
+    return body.includes('#') || body.toLowerCase().includes('http');
   } catch {
     return false;
   }

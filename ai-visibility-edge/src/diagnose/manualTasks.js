@@ -1,6 +1,7 @@
 /**
  * Collect UI manual optimization tasks from findings + apply plan.
  */
+import { buildManualGuide } from './manualGuides.js';
 
 /**
  * @param {object} finding
@@ -79,11 +80,14 @@ function severityRank(sev) {
   return { critical: 0, warning: 1, info: 2, ok: 3 }[sev] ?? 9;
 }
 
-function manualFormForApplyFix(fixId) {
+function manualFormForApplyFix(fixId, ctx = {}) {
   if (fixId === 'homepage_content' || fixId === 'root_redirect') {
+    const guide = buildManualGuide('cms_publish', { ...ctx, artifactType: 'homepage' });
     return {
       id: 'cms_publish',
       title: 'Публикуване в CMS',
+      hint: guide.where,
+      guide,
       fields: [
         { id: 'published_url', type: 'text', label: 'URL след publish', placeholder: 'https://…' },
         { id: 'notes', type: 'textarea', label: 'Бележки', placeholder: '' },
@@ -91,18 +95,25 @@ function manualFormForApplyFix(fixId) {
     };
   }
   if (fixId === 'jsonld' || fixId === 'robots') {
+    const gate = fixId === 'jsonld' ? 'cms_meta' : 'site_deploy';
+    const guide = buildManualGuide(gate, { ...ctx, artifactType: fixId });
     return {
-      id: 'cms_meta',
+      id: gate,
       title: 'Копиране в сайта',
+      hint: guide.where,
+      guide,
       fields: [
         { id: 'applied', type: 'checkbox', label: 'Копирах snippet в сайта / head' },
         { id: 'notes', type: 'textarea', label: 'Бележки', placeholder: '' },
       ],
     };
   }
+  const guide = buildManualGuide('done', ctx);
   return {
     id: 'done',
     title: 'Ръчна стъпка',
+    hint: guide.where,
+    guide,
     fields: [{ id: 'done', type: 'checkbox', label: 'Маркирай като направено' }],
   };
 }

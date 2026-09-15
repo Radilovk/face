@@ -189,7 +189,7 @@ export function renderDashboardPage(origin) {
         <section id="onboarding-panel" class="tech-block onboarding hidden">
           <h4>CNAME / DNS</h4>
           <ol id="onboarding-steps" class="onboarding-list"></ol>
-          <p id="onboarding-dns" class="sub mono">…</p>
+          <div id="onboarding-dns" class="onboarding-dns-guide">…</div>
         </section>
       </div>
     </details>
@@ -801,8 +801,31 @@ function script(origin) {
         '</div></div></li>';
     }
 
+    function htmlManualGuideBlock(guide) {
+      if (!guide) return '';
+      const fields = (guide.fields || []).length
+        ? '<table class="manual-guide-fields"><thead><tr><th>Поле</th><th>Стойност</th></tr></thead><tbody>' +
+          guide.fields.map(f =>
+            '<tr><td>' + escHtml(f.label) + '</td><td><code class="manual-guide-val">' + escHtml(f.value) + '</code>' +
+            (f.note ? ' <span class="sub">' + escHtml(f.note) + '</span>' : '') + '</td></tr>'
+          ).join('') + '</tbody></table>'
+        : '';
+      const steps = (guide.steps || []).length
+        ? '<ol class="manual-guide-steps">' + guide.steps.map(s => '<li>' + escHtml(s) + '</li>').join('') + '</ol>'
+        : '';
+      const after = (guide.after || []).length
+        ? '<p class="manual-guide-after"><strong>След това:</strong> ' + escHtml(guide.after.join(' · ')) + '</p>'
+        : '';
+      return '<details class="manual-guide" open>' +
+        '<summary>📍 Къде и как (' + escHtml(guide.title || 'ръчна стъпка') + ')</summary>' +
+        '<p class="manual-guide-where"><strong>Къде:</strong> ' + escHtml(guide.where || '') + '</p>' +
+        steps + fields + after +
+        '</details>';
+    }
+
     function htmlManualTaskCard(t) {
       const sev = t.severity === 'critical' ? 'finding-critical' : (t.severity === 'warning' ? 'finding-warning' : '');
+      const guideBlock = t.manual_form?.guide ? htmlManualGuideBlock(t.manual_form.guide) : '';
       const artifactBlock = t.artifact?.content
         ? '<div class="manual-artifact-wrap">' +
           '<div class="manual-artifact-head">' +
@@ -823,6 +846,7 @@ function script(origin) {
         '<strong>' + escHtml(t.title) + '</strong>' +
         (t.instructions ? '<p class="sub">' + escHtml(t.instructions) + '</p>' : '') +
         (t.impact ? '<p class="finding-impact">' + escHtml(t.impact) + '</p>' : '') +
+        guideBlock +
         artifactBlock +
         renderManualFormFields(t.manual_form, t.id) +
         '<div class="manual-task-actions">' + genBtn +
@@ -1177,9 +1201,10 @@ function script(origin) {
 
     function renderManualFormFields(form, taskId) {
       if (!form?.fields?.length) return '';
+      const guideAlready = form.guide ? '' : (form.hint ? '<p class="sub">' + escHtml(form.hint) + '</p>' : '');
       return '<div class="finding-manual manual-task-form" data-finding-id="' + escHtml(taskId) + '">' +
         '<p class="finding-manual-title">' + escHtml(form.title) + '</p>' +
-        (form.hint ? '<p class="sub mono">' + escHtml(form.hint) + '</p>' : '') +
+        guideAlready +
         form.fields.map(field => {
           if (field.type === 'checkbox') {
             return '<label class="finding-field"><input type="checkbox" data-field="' + escHtml(field.id) + '"> ' + escHtml(field.label) + '</label>';
@@ -1493,7 +1518,13 @@ function script(origin) {
           '<strong>' + escHtml(s.title) + '</strong> — ' + escHtml(s.detail) + '</li>'
         ).join('');
         const dns = data.dns || {};
-        $('onboarding-dns').textContent = dns.type + ' ' + dns.name + ' → ' + dns.target;
+        const dnsEl = $('onboarding-dns');
+        if (dns.guide) {
+          dnsEl.innerHTML = htmlManualGuideBlock(dns.guide) +
+            '<p class="sub mono">' + escHtml((dns.type || 'CNAME') + ' ' + (dns.name || '') + ' → ' + (dns.target || '')) + '</p>';
+        } else {
+          dnsEl.textContent = (dns.type || 'CNAME') + ' ' + (dns.name || '') + ' → ' + (dns.target || '');
+        }
       } catch {
         panel.classList.add('hidden');
       }
@@ -1899,6 +1930,17 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .manual-artifact-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.25rem}
 .manual-artifact{width:100%;font-family:ui-monospace,monospace;font-size:.72rem;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.5rem;resize:vertical}
 .manual-task-actions{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+.manual-guide{margin:.65rem 0;padding:.65rem .75rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:.82rem}
+.manual-guide summary{cursor:pointer;font-weight:600;color:var(--accent);margin-bottom:.35rem}
+.manual-guide-where{margin:.35rem 0;line-height:1.45}
+.manual-guide-steps{margin:.4rem 0 .4rem 1.1rem;padding:0;color:var(--text)}
+.manual-guide-steps li{margin:.25rem 0;line-height:1.4}
+.manual-guide-fields{width:100%;border-collapse:collapse;margin:.5rem 0;font-size:.78rem}
+.manual-guide-fields th,.manual-guide-fields td{border:1px solid var(--border);padding:.35rem .5rem;text-align:left;vertical-align:top}
+.manual-guide-fields th{background:var(--bg);color:var(--muted);font-weight:600}
+.manual-guide-val{font-family:ui-monospace,monospace;font-size:.75rem;word-break:break-all}
+.manual-guide-after{margin:.45rem 0 0;font-size:.78rem;color:var(--muted)}
+.onboarding-dns-guide{margin-top:.5rem}
 .findings-panel.hidden{display:none}
 .findings-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.65rem}
 .findings-subhead{font-size:.9rem;margin:0;font-weight:600}

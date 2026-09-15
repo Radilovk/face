@@ -66,6 +66,10 @@ import {
   testManualExportResponseHeaders,
   testManualExportResponse404,
 } from './manualExport.js';
+import {
+  testManualGuideCnameHasWhereHowWhat,
+  testManualGuideCmsPublish,
+} from './manualGuides.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
 import {
@@ -336,6 +340,8 @@ async function run() {
   testManualExportFilenameSafe();
   testManualExportResponseHeaders();
   testManualExportResponse404();
+  testManualGuideCnameHasWhereHowWhat();
+  testManualGuideCmsPublish();
   testGenerateQuestions();
   testStepStatus();
   testNormalizeApexHost();

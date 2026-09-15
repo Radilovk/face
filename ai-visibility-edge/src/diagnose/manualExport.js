@@ -3,6 +3,7 @@
  * Everything the platform recommends but cannot apply automatically.
  */
 import { buildManualTaskList } from './manualTasks.js';
+import { formatGuideForExport } from './manualGuides.js';
 
 /**
  * @param {object} input
@@ -79,12 +80,16 @@ export function buildManualExportText(input = {}) {
 
   if (onboarding?.dns) {
     lines.push('─'.repeat(72));
-    lines.push('DNS / CNAME');
+    lines.push('DNS / CNAME — КЪДЕ, КАК, КАКВО ДА ВЪВЕДЕТЕ');
     lines.push('─'.repeat(72));
     const dns = onboarding.dns;
     lines.push(`Тип: ${dns.type ?? 'CNAME'}`);
     lines.push(`Име: ${dns.name ?? domain}`);
     lines.push(`Стойност: ${dns.target ?? '—'}`);
+    if (dns.guide) {
+      lines.push('');
+      lines.push(formatGuideForExport(dns.guide, ''));
+    }
     for (const step of onboarding.steps ?? []) {
       if (!step.done) {
         lines.push(`○ ${step.title} — ${step.detail}`);
@@ -120,9 +125,14 @@ export function buildManualExportText(input = {}) {
     }
     if (task.manual_form) {
       lines.push(`   ${task.manual_form.title}:`);
-      if (task.manual_form.hint) lines.push(`   ${task.manual_form.hint}`);
+      if (task.manual_form.guide) {
+        lines.push(formatGuideForExport(task.manual_form.guide));
+      } else if (task.manual_form.hint) {
+        lines.push(`   ${task.manual_form.hint}`);
+      }
       for (const field of task.manual_form.fields ?? []) {
-        lines.push(`   [ ] ${field.label}`);
+        const ph = field.placeholder ? ` (пример: ${field.placeholder})` : '';
+        lines.push(`   [ ] ${field.label}${ph}`);
       }
     }
     if (task.artifact?.content) {

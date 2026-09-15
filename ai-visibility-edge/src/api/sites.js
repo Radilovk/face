@@ -48,7 +48,8 @@ export async function registerSite(db, body) {
     verticalId = slugId('vertical', verticalName);
   }
   if (!verticalId) {
-    return { error: 'vertical_required', hint: 'vertical_id or vertical_name' };
+    verticalId = 'general';
+    verticalName = verticalName || 'General';
   }
 
   if (!verticalName) {
@@ -60,12 +61,26 @@ export async function registerSite(db, body) {
 
   const tenantId = body.tenant_id?.trim() || slugId('tenant', apex.replace(/\./g, '-'));
 
+  const locale = String(body.locale ?? body.language ?? 'en').trim().slice(0, 8) || 'en';
+  const marketCountry = String(body.market_country ?? body.market ?? 'US').trim().slice(0, 8) || 'US';
+  const consentExplicit = body.data_consent !== undefined && body.data_consent !== null;
+  const dataConsent =
+    body.data_consent === false || body.data_consent === 0 || body.data_consent === '0'
+      ? 0
+      : consentExplicit || body.data_consent === true || body.data_consent === 1 || body.data_consent === '1'
+        ? 1
+        : 1;
+  const activateNow =
+    body.activate === false || body.status === 'staging'
+      ? false
+      : body.activate === true || body.status === 'active' || body.status === undefined;
+
   await db
     .prepare(
-      `INSERT INTO tenants (id, name, apex_host, plan, status, is_canary)
-       VALUES (?, ?, ?, 'trial', 'staging', 0)`,
+      `INSERT INTO tenants (id, name, apex_host, plan, status, is_canary, data_consent, locale, market_country)
+       VALUES (?, ?, ?, 'trial', ?, 0, ?, ?, ?)`,
     )
-    .bind(tenantId, name, apex)
+    .bind(tenantId, name, apex, activateNow ? 'active' : 'staging', dataConsent, locale, marketCountry)
     .run();
 
   await db
@@ -91,9 +106,9 @@ export async function registerSite(db, body) {
     await db
       .prepare(
         `INSERT OR IGNORE INTO watched_domains (domain, vertical_id, role, tenant_id)
-         VALUES (?, ?, 'competitor', NULL)`,
+         VALUES (?, ?, 'competitor', ?)`,
       )
-      .bind(comp, verticalId)
+      .bind(comp, verticalId, tenantId)
       .run();
   }
 
@@ -104,9 +119,113 @@ export async function registerSite(db, body) {
     name,
     vertical_id: verticalId,
     vertical_name: verticalName,
+    locale,
+    market_country: marketCountry,
+    data_consent: Boolean(dataConsent),
+    status: activateNow ? 'active' : 'staging',
+    is_pilot: false,
     competitors_added: competitors.length,
     www: `www.${apex}`,
+    next_steps: [
+      'POST /api/pipeline/' + apex + '/run — пълен AI анализ',
+      'POST /api/hostnames/' + apex + '/provision — optional Custom Hostname',
+    ],
   };
+}
+
+export async function listSites(db, { excludePilot = true, status = null, limit = 500, offset = 0 } = {}) {
+  let query = `
+    SELECT t.id, t.apex_host as domain, t.name, t.status, t.plan, t.locale, t.market_country,
+           t.data_consent, t.is_pilot, t.created_at, wd.vertical_id, v.name as vertical
+    FROM tenants t
+    LEFT JOIN watched_domains wd ON wd.tenant_id = t.id AND wd.role = 'tenant'
+    LEFT JOIN verticals v ON v.id = wd.vertical_id
+    WHERE 1=1`;
+  const binds = [];
+
+  if (excludePilot) {
+    query += ` AND t.is_pilot = 0`;
+  }
+  if (status) {
+    query += ` AND t.status = ?`;
+    binds.push(status);
+  }
+  query += ` ORDER BY t.created_at DESC LIMIT ? OFFSET ?`;
+  binds.push(limit, offset);
+
+  const { results } = await db.prepare(query).bind(...binds).all();
+  return results ?? [];
+}
+
+/** Update tenant metadata (name, vertical, locale, automation flags, consent). */
+export async function updateSite(db, domain, body) {
+  const tenant = await db
+    .prepare(`SELECT id, apex_host FROM tenants WHERE apex_host = ?`)
+    .bind(normalizeApexHost(domain))
+    .first();
+  if (!tenant) return { error: 'unknown_domain', domain };
+
+  const fields = [];
+  const binds = [];
+
+  if (body.name?.trim()) {
+    fields.push('name = ?');
+    binds.push(body.name.trim());
+  }
+  if (body.status && ['staging', 'active', 'suspended', 'archived'].includes(body.status)) {
+    fields.push('status = ?');
+    binds.push(body.status);
+  }
+  if (body.data_consent !== undefined) {
+    fields.push('data_consent = ?');
+    binds.push(body.data_consent ? 1 : 0);
+  }
+  if (body.locale) {
+    fields.push('locale = ?');
+    binds.push(String(body.locale).slice(0, 8));
+  }
+  if (body.market_country ?? body.market) {
+    fields.push('market_country = ?');
+    binds.push(String(body.market_country ?? body.market).slice(0, 8));
+  }
+  if (body.auto_optimizer !== undefined) {
+    fields.push('auto_optimizer = ?');
+    binds.push(body.auto_optimizer ? 1 : 0);
+  }
+  if (body.auto_edge_activate !== undefined) {
+    fields.push('auto_edge_activate = ?');
+    binds.push(body.auto_edge_activate ? 1 : 0);
+  }
+  if (body.cron_enabled !== undefined) {
+    fields.push('cron_enabled = ?');
+    binds.push(body.cron_enabled ? 1 : 0);
+  }
+
+  if (!fields.length) return { error: 'no_fields', domain: tenant.apex_host };
+
+  binds.push(tenant.id);
+  await db.prepare(`UPDATE tenants SET ${fields.join(', ')} WHERE id = ?`).bind(...binds).run();
+
+  return { ok: true, domain: tenant.apex_host, tenant_id: tenant.id, updated: fields.length };
+}
+
+export async function fetchSite(db, domain) {
+  const apex = normalizeApexHost(domain);
+  const row = await db
+    .prepare(
+      `SELECT t.id, t.name, t.apex_host, t.plan, t.status, t.data_consent, t.locale, t.market_country,
+              t.auto_optimizer, t.auto_edge_activate, t.economy_mode, t.cron_enabled,
+              t.edge_enabled, t.edge_status, t.cf_hostname_id, t.created_at,
+              wd.vertical_id, v.name AS vertical_name
+       FROM tenants t
+       LEFT JOIN watched_domains wd ON wd.tenant_id = t.id AND wd.role = 'tenant'
+       LEFT JOIN verticals v ON v.id = wd.vertical_id
+       WHERE t.apex_host = ?`,
+    )
+    .bind(apex)
+    .first();
+  if (!row) return { error: 'unknown_domain', domain: apex };
+  return { site: row };
 }
 
 function parseCompetitors(raw) {

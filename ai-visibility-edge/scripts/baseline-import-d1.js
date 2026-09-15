@@ -24,21 +24,16 @@ const flag = local ? '--local' : '--remote';
 
 ensureWranglerConfig(ROOT);
 
-const TENANT_BY_DOMAIN = {
-  'daotslabna.com': 'tenant-daotslabna',
-  'biocode-bg.com': 'tenant-biocode',
-  'life-protocols.com': 'tenant-life-protocols',
-  'biocode-peptides.com': 'tenant-biocode-peptides',
-};
-
 const questions = JSON.parse(readFileSync(join(BASE, 'questions.json'), 'utf8')).questions;
 const stmts = [];
 
 for (const q of questions) {
-  const tid = TENANT_BY_DOMAIN[q.tenant_domain] ?? null;
+  const tenantSubquery = q.tenant_domain
+    ? `(SELECT id FROM tenants WHERE apex_host = ${sql(q.tenant_domain.replace(/^www\./, ''))} LIMIT 1)`
+    : 'NULL';
   stmts.push(
     `INSERT OR IGNORE INTO questions (id, vertical_id, tenant_id, text, qtype, source, intent)
-     VALUES (${sql(q.id)}, ${sql(q.vertical_id)}, ${tid ? sql(tid) : 'NULL'}, ${sql(q.text)}, ${sql(q.qtype)}, ${sql(q.source)}, ${sql(q.intent ?? q.qtype)});`,
+     VALUES (${sql(q.id)}, ${sql(q.vertical_id)}, ${tenantSubquery}, ${sql(q.text)}, ${sql(q.qtype)}, ${sql(q.source)}, ${sql(q.intent ?? q.qtype)});`,
   );
 }
 

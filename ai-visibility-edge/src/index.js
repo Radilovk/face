@@ -1,5 +1,8 @@
 import { withFailOpen } from './middleware/failOpen.js';
-import { requireAdmin } from './middleware/requireAdmin.js';
+import { requireAdmin, requireAdminIfProduction } from './middleware/requireAdmin.js';
+import { productionConfigIssues } from './config/production.js';
+import { resolveWorkerPublicHost } from './config/workerHost.js';
+import { cloudflareConfigured } from './cloudflare/api.js';
 import { getAuthStatus } from './api/auth.js';
 import { fetchSiteStats } from './api/siteStats.js';
 import { fetchCacheIndex } from './api/cacheIndex.js';
@@ -21,7 +24,9 @@ import { fetchDomainStrategy } from './diagnose/strategy.js';
 import { fetchDashboardSummary, fetchDashboardRecommendations, renderDashboardPage } from './ui/dashboard.js';
 import { getSitePipeline, listSitesFromDb } from './api/pipeline.js';
 import { runSitePipeline } from './api/pipelineRun.js';
-import { registerSite, listVerticals } from './api/sites.js';
+import { registerSite, listVerticals, updateSite, fetchSite, listSites } from './api/sites.js';
+import { fetchPlatformInfo } from './api/platform.js';
+import { provisionTenantHostname, fetchTenantHostnameStatus } from './api/customHostnames.js';
 import { runCitationBatchForTenant } from './citations/runner.js';
 import { getApplyPlan, runApplyPrep } from './api/apply.js';
 import { getEdgeDecision, activateEdgeOptimization, getEdgeStatus } from './api/edge.js';
@@ -33,6 +38,7 @@ import { fetchManualExport, manualExportResponse } from './api/manualExport.js';
 import { isPlatformHost } from './config/platform.js';
 import { loadEdgeConfig } from './config/tenantEdge.js';
 import { handleTenantRequest } from './enhance/handleTenant.js';
+import { fetchTenantOrigin } from './enhance/tenantOrigin.js';
 import { scheduleBotLog } from './observe/botLog.js';
 import {
   listQuestions,
@@ -46,11 +52,11 @@ export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     // Platform API/report routes — no fail-open race
-    if (isPlatformRoute(url.pathname, url.hostname)) {
+    if (isPlatformRoute(url.pathname, url.hostname, env)) {
       return handleRequest(request, env, ctx);
     }
     // Tenant CNAME traffic — origin fetch must not hit 50ms budget
-    if (!isPlatformHost(url.hostname)) {
+    if (!isPlatformHost(url.hostname, env)) {
       return handleRequest(request, env, ctx);
     }
     return withFailOpen(request, env, ctx, (req, environment) =>
@@ -78,7 +84,19 @@ async function handleRequest(request, env, ctx) {
   const url = new URL(request.url);
 
   if (url.pathname === '/health') {
-    return json({ ok: true, service: 'ai-visibility-edge', db: Boolean(env.DB), kv: Boolean(env.CACHE) }, 200);
+    const issues = productionConfigIssues(env);
+    return json(
+      {
+        ok: issues.length === 0,
+        service: 'ai-visibility-edge',
+        db: Boolean(env.DB),
+        kv: Boolean(env.CACHE),
+        cloudflare_hostname_api: cloudflareConfigured(env),
+        worker_host: resolveWorkerPublicHost(env),
+        production_issues: issues.length ? issues : undefined,
+      },
+      issues.length ? 503 : 200,
+    );
   }
 
   if (url.pathname === '/api/auth/status') {
@@ -142,6 +160,10 @@ async function handleRequest(request, env, ctx) {
     return json(status, status.error ? 404 : 200);
   }
 
+  if (url.pathname === '/api/platform/info') {
+    return json(await fetchPlatformInfo(env));
+  }
+
   if (url.pathname === '/api/sites') {
     const missing = requireDb(env);
     if (missing) return missing;
@@ -150,8 +172,59 @@ async function handleRequest(request, env, ctx) {
       if (denied) return denied;
       return sitesCreateEndpoint(request, env);
     }
-    const sites = await listSitesFromDb(env);
-    return json({ sites });
+    const excludePilot = url.searchParams.get('include_pilot') !== '1';
+    const status = url.searchParams.get('status') || null;
+    const sites = await listSites(env.DB, {
+      excludePilot,
+      status,
+      limit: Number(url.searchParams.get('limit') ?? 500),
+      offset: Number(url.searchParams.get('offset') ?? 0),
+    });
+    let countSql = 'SELECT COUNT(*) as n FROM tenants WHERE 1=1';
+    const countBinds = [];
+    if (excludePilot) countSql += ' AND is_pilot = 0';
+    if (status) {
+      countSql += ' AND status = ?';
+      countBinds.push(status);
+    }
+    const total = await env.DB.prepare(countSql).bind(...countBinds).first();
+    return json({ sites, total: total?.n ?? sites.length, exclude_pilot: excludePilot });
+  }
+
+  const siteMatch = url.pathname.match(/^\/api\/sites\/([^/]+)$/);
+  if (siteMatch) {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const domain = decodeURIComponent(siteMatch[1]);
+    if (request.method === 'GET') {
+      const result = await fetchSite(env.DB, domain);
+      return json(result, result.error ? 404 : 200);
+    }
+    if (request.method === 'PATCH') {
+      const denied = requireAdmin(request, env);
+      if (denied) return denied;
+      const body = await request.json().catch(() => ({}));
+      const result = await updateSite(env.DB, domain, body);
+      return json(result, result.error ? 400 : 200);
+    }
+  }
+
+  const hostnameProvisionMatch = url.pathname.match(/^\/api\/hostnames\/([^/]+)\/provision$/);
+  if (hostnameProvisionMatch && request.method === 'POST') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
+    const result = await provisionTenantHostname(env, decodeURIComponent(hostnameProvisionMatch[1]));
+    return json(result, result.error ? 400 : 200);
+  }
+
+  const hostnameStatusMatch = url.pathname.match(/^\/api\/hostnames\/([^/]+)$/);
+  if (hostnameStatusMatch && request.method === 'GET') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const result = await fetchTenantHostnameStatus(env, decodeURIComponent(hostnameStatusMatch[1]));
+    return json(result, result.error ? 404 : 200);
   }
 
   if (url.pathname === '/api/verticals') {
@@ -280,6 +353,8 @@ async function handleRequest(request, env, ctx) {
     const body = await request.json().catch(() => ({}));
     if (!body.finding_id) return json({ error: 'finding_id_required' }, 400);
     if (body.manual_only) {
+      const deniedManual = requireAdminIfProduction(request, env);
+      if (deniedManual) return deniedManual;
       const result = await saveFindingManualOnly(env, domain, body.finding_id, body.manual_input ?? {}, {
         edited_artifact: body.edited_artifact,
         artifact_title: body.artifact_title,
@@ -351,15 +426,24 @@ async function handleRequest(request, env, ctx) {
 
   if (url.pathname === '/api/baseline-info') {
     const baselineId = await resolveBaselineId(env);
+    let tenants = [];
+    if (env.DB) {
+      const { results } = await env.DB.prepare(
+        `SELECT apex_host, status, plan FROM tenants ORDER BY created_at DESC LIMIT 50`,
+      ).all();
+      tenants = (results ?? []).map((t) => ({
+        domain: t.apex_host,
+        status: t.status,
+        plan: t.plan,
+      }));
+    }
+    const qCount = env.DB
+      ? await env.DB.prepare(`SELECT COUNT(*) as n FROM questions`).first()
+      : null;
     return json({
       baseline: baselineId,
-      questions: 20,
-      tenants: [
-        'daotslabna.com',
-        'biocode-bg.com',
-        'life-protocols.com',
-        'biocode-peptides.com',
-      ],
+      questions: qCount?.n ?? 0,
+      tenants,
     });
   }
 
@@ -401,6 +485,8 @@ async function handleRequest(request, env, ctx) {
   if (url.pathname === '/api/diagnose/probe') {
     const missing = requireDb(env);
     if (missing) return missing;
+    const denied = requireAdminIfProduction(request, env);
+    if (denied) return denied;
     return probeEndpoint(env, url);
   }
 
@@ -420,15 +506,16 @@ async function handleRequest(request, env, ctx) {
   const config = await loadTenantConfig(request, env);
   const hostname = url.hostname;
 
-  if (!isPlatformHost(hostname)) {
+  if (!isPlatformHost(hostname, env)) {
     scheduleBotLog(request, env, ctx, config);
 
     const edgeConfig = await loadEdgeConfig(env, hostname);
     if (edgeConfig?.edge?.enabled) {
       return handleTenantRequest(request, env, edgeConfig);
     }
+    // Registered tenant on shared Worker — fetch THAT domain's HTML origin (never loop to self)
     if (config) {
-      return fetch(request);
+      return fetchTenantOrigin(request, env, config);
     }
     return fetch(request);
   }
@@ -551,7 +638,14 @@ async function questionsCreateEndpoint(request, env) {
 async function sitesCreateEndpoint(request, env) {
   const body = await request.json().catch(() => ({}));
   const result = await registerSite(env.DB, body);
-  return json(result, result.error ? 400 : 201);
+  if (result.error) return json(result, 400);
+
+  if (body.run_analysis === true || body.run_pipeline === true) {
+    const pipeline = await runSitePipeline(env, result.domain, { skip_edge: !body.activate_edge });
+    return json({ ...result, pipeline }, pipeline.error ? 207 : 201);
+  }
+
+  return json(result, 201);
 }
 
 async function measureRunEndpoint(request, env) {
@@ -650,8 +744,8 @@ function html(body, status = 200) {
   });
 }
 
-function isPlatformRoute(pathname, hostname) {
-  if (!isPlatformHost(hostname)) return false;
+function isPlatformRoute(pathname, hostname, env) {
+  if (!isPlatformHost(hostname, env)) return false;
   return (
     pathname === '/' ||
     pathname === '/dashboard' ||

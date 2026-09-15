@@ -10,6 +10,7 @@ import {
   pickRotatingQuestions,
   resolveMeasureModels,
 } from '../config/economy.js';
+import { tenantEligibleForCron } from '../config/tenantSettings.js';
 
 const LEGACY_REPETITIONS = 3;
 
@@ -40,11 +41,17 @@ async function runCitationBatchEconomy(env) {
   const week = isoWeekIndex();
 
   const { results: tenants } = await env.DB.prepare(
-    `SELECT DISTINCT tenant_id FROM questions WHERE tenant_id IS NOT NULL ORDER BY tenant_id`,
+    `SELECT DISTINCT q.tenant_id, t.status, t.data_consent, t.cron_enabled
+     FROM questions q
+     JOIN tenants t ON t.id = q.tenant_id
+     WHERE q.tenant_id IS NOT NULL
+     ORDER BY q.tenant_id`,
   ).all();
 
   const questions = [];
   for (const row of tenants ?? []) {
+    if (!tenantEligibleForCron(row)) continue;
+
     const { results: tenantQs } = await env.DB.prepare(
       `SELECT id, text FROM questions WHERE tenant_id = ? ORDER BY id`,
     )

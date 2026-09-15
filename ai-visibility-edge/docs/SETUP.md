@@ -11,7 +11,10 @@
 | `GEMINI_API_KEY` | **GitHub + Worker** | baseline-collect, citations cron |
 | `GEMINI_MODEL` | optional | default `gemini-3.7-flash` (GA 2026-08). **Не** `gemini-2.0-*` — shutdown |
 | `ADMIN_TOKEN` | **Worker + GitHub** | POST endpoints, dashboard mutations |
-| `AIV_WORKER_URL` | optional GitHub | baseline reprocess fallback |
+| `AIV_WORKER_URL` | **GitHub** | deploy → `WORKER_PUBLIC_HOST` var |
+| `SAAS_ZONE_ID` | **Worker + GitHub** | Custom Hostname API (Cloudflare for SaaS) |
+| `ENVIRONMENT` | Worker var | `production` = fail-closed auth |
+| `PLATFORM_HOSTS` | Worker var | custom dashboard domain(s), comma-separated |
 | `D1_DATABASE_ID` | **GitHub** | `b5d03061-7656-4c76-b7c6-699d711d07e4` (в wrangler.toml) |
 
 ### D1 база `aiv`
@@ -58,6 +61,10 @@ curl -X POST https://<worker>/api/citations/reprocess \
 | `GEMINI_MODEL` | Override (default `gemini-3.7-flash`) |
 | `OPENAI_MODEL` | Override (default `gpt-4.1-mini`) |
 | `ADMIN_TOKEN` | POST /api/* mutations |
+| `CF_API_TOKEN` | Custom Hostname provision (`POST /api/hostnames/{domain}/provision`) |
+| `CF_ACCOUNT_ID` | Cloudflare account (optional, for future APIs) |
+| `SAAS_ZONE_ID` | Zone ID for Custom Hostnames (Cloudflare for SaaS) |
+| `WORKER_PUBLIC_HOST` | CNAME target hostname |
 | `FACE_ADVICE_KV` | Binding name в face worker |
 
 ### AI model IDs (2026-08-28)
@@ -73,6 +80,25 @@ curl -X POST https://<worker>/api/citations/reprocess \
 `gemini-2.0-flash` и family — **shutdown** (Google changelog 2026-06). Registry: `src/config/models.js`, API: `GET /api/models/status`.
 
 AIV използва **същия KV namespace** чрез `KV_NAMESPACE_ID` в GitHub — binding `CACHE` в `wrangler.toml`.
+
+## Един Worker, хиляди клиентски домейни (SaaS)
+
+```
+Operator dashboard (*.workers.dev)
+        │
+        ├── client-a.com  → their HTML origin
+        ├── client-b.de   → their HTML origin
+        └── client-n.com  → their HTML origin
+```
+
+| Host | Роля |
+|------|------|
+| `*.workers.dev` | Platform API + dashboard |
+| `client-domain.com` | Tenant traffic → fetch **their** origin → optional Edge |
+
+Onboarding: `POST /api/sites` + `run_analysis: true`. Виж `docs/SAAS-PLATFORM.md`.
+
+Pilot seed tenants (`is_pilot=1`) — скрити от `GET /api/sites`; добави `?include_pilot=1` за debug.
 
 ## Baseline collect (GitHub Action)
 

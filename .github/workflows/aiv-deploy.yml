@@ -31,7 +31,7 @@ jobs:
       - run: npm ci
       - run: npm test
 
-      - name: Patch wrangler.toml (KV + account)
+      - name: Patch wrangler.toml (KV + account + production vars)
         run: |
           ACCOUNT_ID="${{ secrets.CF_ACCOUNT_ID }}"
           sed -i 's/local-kv-placeholder/${{ secrets.KV_NAMESPACE_ID }}/' wrangler.toml
@@ -40,6 +40,16 @@ jobs:
             sed -i "0,/^name = /s//account_id = \"${ACCOUNT_ID}\"\n&/" wrangler.toml
           elif [ -n "$ACCOUNT_ID" ]; then
             sed -i "s/^account_id = .*/account_id = \"${ACCOUNT_ID}\"/" wrangler.toml
+          fi
+          if ! grep -q '^ENVIRONMENT' wrangler.toml; then
+            sed -i '/^\[vars\]/a ENVIRONMENT = "production"' wrangler.toml
+          fi
+          WORKER_HOST="${{ secrets.AIV_WORKER_URL }}"
+          WORKER_HOST="${WORKER_HOST#https://}"
+          WORKER_HOST="${WORKER_HOST#http://}"
+          WORKER_HOST="${WORKER_HOST%%/*}"
+          if [ -n "$WORKER_HOST" ] && ! grep -q '^WORKER_PUBLIC_HOST' wrangler.toml; then
+            sed -i "/^ENVIRONMENT/a WORKER_PUBLIC_HOST = \"${WORKER_HOST}\"" wrangler.toml
           fi
 
       - name: D1 migrations (remote)
@@ -54,6 +64,15 @@ jobs:
           fi
           if [ -n "${{ secrets.ADMIN_TOKEN }}" ]; then
             echo "${{ secrets.ADMIN_TOKEN }}" | npx wrangler secret put ADMIN_TOKEN
+          fi
+          if [ -n "${{ secrets.CF_API_TOKEN }}" ]; then
+            echo "${{ secrets.CF_API_TOKEN }}" | npx wrangler secret put CF_API_TOKEN
+          fi
+          if [ -n "${{ secrets.CF_ACCOUNT_ID }}" ]; then
+            echo "${{ secrets.CF_ACCOUNT_ID }}" | npx wrangler secret put CF_ACCOUNT_ID
+          fi
+          if [ -n "${{ secrets.SAAS_ZONE_ID }}" ]; then
+            echo "${{ secrets.SAAS_ZONE_ID }}" | npx wrangler secret put SAAS_ZONE_ID
           fi
 
       - name: Deploy Worker

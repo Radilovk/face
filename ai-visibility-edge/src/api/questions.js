@@ -167,9 +167,15 @@ export async function createQuestion(db, body) {
   return { id, domain: tenant.apex_host, text: text.trim(), qtype, source };
 }
 
-export async function updateQuestion(db, questionId, body) {
-  const row = await db.prepare(`SELECT id FROM questions WHERE id = ?`).bind(questionId).first();
+export async function updateQuestion(db, questionId, body, { tenantId } = {}) {
+  const row = await db
+    .prepare(`SELECT id, tenant_id FROM questions WHERE id = ?`)
+    .bind(questionId)
+    .first();
   if (!row) return { error: 'not_found', id: questionId };
+  if (tenantId && row.tenant_id && row.tenant_id !== tenantId) {
+    return { error: 'forbidden', id: questionId };
+  }
 
   const text = body.text?.trim();
   const qtype = body.qtype;
@@ -183,7 +189,15 @@ export async function updateQuestion(db, questionId, body) {
   return { id: questionId, updated: true };
 }
 
-export async function deleteQuestion(db, questionId) {
+export async function deleteQuestion(db, questionId, { tenantId } = {}) {
+  const row = await db
+    .prepare(`SELECT id, tenant_id FROM questions WHERE id = ?`)
+    .bind(questionId)
+    .first();
+  if (!row) return { error: 'not_found', id: questionId, deleted: false };
+  if (tenantId && row.tenant_id && row.tenant_id !== tenantId) {
+    return { error: 'forbidden', id: questionId, deleted: false };
+  }
   const r = await db.prepare(`DELETE FROM questions WHERE id = ?`).bind(questionId).run();
   return { id: questionId, deleted: r.meta.changes > 0 };
 }

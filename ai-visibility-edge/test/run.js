@@ -66,8 +66,25 @@ import {
   testManualExportResponseHeaders,
   testManualExportResponse404,
 } from './manualExport.js';
+import {
+  testManualGuideCnameHasWhereHowWhat,
+  testManualGuideCmsPublish,
+} from './manualGuides.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
+import {
+  testProductionAuthFailClosed,
+  testTenantSettingsAndCronEligibility,
+  testSiteUpdateAndQuestionTenantScope,
+  testPlatformHostsEnv,
+  testCloudflareConfigured,
+  testResolveTenantOriginFallback,
+} from './production-backend.js';
+import {
+  testRegisterSiteWithoutVertical,
+  testListSitesExcludesPilot,
+  testPlatformInfo,
+} from './saas-platform.js';
 import {
   testBuildRecommendationsRobots,
   testBuildRecommendationsCanaryEdge,
@@ -323,10 +340,21 @@ async function run() {
   testManualExportFilenameSafe();
   testManualExportResponseHeaders();
   testManualExportResponse404();
+  testManualGuideCnameHasWhereHowWhat();
+  testManualGuideCmsPublish();
   testGenerateQuestions();
   testStepStatus();
   testNormalizeApexHost();
   testSlugId();
+  testProductionAuthFailClosed();
+  await testTenantSettingsAndCronEligibility();
+  await testSiteUpdateAndQuestionTenantScope();
+  testPlatformHostsEnv();
+  testCloudflareConfigured();
+  await testResolveTenantOriginFallback();
+  await testRegisterSiteWithoutVertical();
+  await testListSitesExcludesPilot();
+  await testPlatformInfo();
   testBuildRecommendationsRobots();
   testBuildRecommendationsCanaryEdge();
   testInfoModulesAndChecklist();

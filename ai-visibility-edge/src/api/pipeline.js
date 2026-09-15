@@ -89,14 +89,13 @@ export async function getSitePipeline(env, domain) {
   };
 }
 
-export async function listSitesFromDb(env) {
+export async function listSitesFromDb(env, options = {}) {
   if (!env.DB) return [];
-  const { results } = await env.DB.prepare(
-    `SELECT t.apex_host as domain, t.name, t.status, t.is_canary, wd.vertical_id, v.name as vertical
-     FROM tenants t
-     LEFT JOIN watched_domains wd ON wd.tenant_id = t.id AND wd.role = 'tenant'
-     LEFT JOIN verticals v ON v.id = wd.vertical_id
-     ORDER BY t.apex_host`,
-  ).all();
-  return results ?? [];
+  const { listSites } = await import('./sites.js');
+  return listSites(env.DB, {
+    excludePilot: options.exclude_pilot !== false,
+    status: options.status ?? null,
+    limit: options.limit ?? 500,
+    offset: options.offset ?? 0,
+  });
 }

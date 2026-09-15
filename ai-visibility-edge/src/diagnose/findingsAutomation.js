@@ -16,6 +16,7 @@ import {
   resolveManualGate,
   shouldSuggestContentDraft,
 } from './siteProfile.js';
+import { buildManualGuide } from './manualGuides.js';
 
 /** @typedef {'auto'|'semi_auto'|'manual'} AutomationMode */
 
@@ -268,10 +269,11 @@ function buildAutomationBlock(finding, spec, ctx) {
 
   const gateId = resolveManualGate(effectiveSpec.manual_gate, probe);
   let manual_form = null;
+  const artifactType = effectiveSpec.artifact_type ?? null;
   if (gateId === 'cname' && !edgeActive) {
-    manual_form = buildManualForm('cname', { domain, workerHost, brand });
+    manual_form = buildManualForm('cname', { domain, workerHost, brand, artifactType });
   } else if (gateId && gateId !== 'cname') {
-    manual_form = buildManualForm(gateId, { domain, workerHost, brand });
+    manual_form = buildManualForm(gateId, { domain, workerHost, brand, artifactType });
   }
 
   const mode = effectiveSpec.mode === 'auto' && gateId === 'cname' && !edgeActive ? 'semi_auto' : effectiveSpec.mode;
@@ -344,20 +346,29 @@ function buildArtifact(type, ctx) {
 }
 
 function buildManualForm(gateId, ctx) {
-  const { domain, workerHost, brand } = ctx;
+  const { domain, workerHost, brand, artifactType } = ctx;
+  const guide = buildManualGuide(gateId === 'cname' ? 'cname' : gateId, {
+    domain,
+    workerHost,
+    brand,
+    artifactType,
+  });
+  const base = { guide };
   switch (gateId) {
     case 'cname':
       return {
+        ...base,
         id: 'cname',
         title: 'DNS (опционално — само ако ползвате Edge мониторинг)',
         fields: [
           { id: 'cname_confirmed', type: 'checkbox', label: `CNAME ${domain} → ${workerHost} е направен` },
           { id: 'ssl_ready', type: 'checkbox', label: 'SSL validation е готов (Custom Hostname active)' },
         ],
-        hint: `Не е SEO задължително. Само ако искате Worker да обслужва домейна.`,
+        hint: guide.where,
       };
     case 'site_deploy':
       return {
+        ...base,
         id: 'site_deploy',
         title: 'Публикуване в repo / static hosting',
         fields: [
@@ -365,10 +376,11 @@ function buildManualForm(gateId, ctx) {
           { id: 'deploy_target', type: 'text', label: 'Къде deploy-нахте', placeholder: 'GitHub Pages, Cloudflare Pages, FTP…' },
           { id: 'notes', type: 'textarea', label: 'Бележки (commit/PR)', placeholder: 'PR #143 merged…' },
         ],
-        hint: 'Промяната е в HTML файлове — не е нужен CMS.',
+        hint: guide.where,
       };
     case 'cms_publish':
       return {
+        ...base,
         id: 'cms_publish',
         title: 'Публикуване в CMS (след auto draft)',
         fields: [
@@ -376,44 +388,54 @@ function buildManualForm(gateId, ctx) {
           { id: 'published_at', type: 'text', label: 'Дата на publish (опционално)', placeholder: '2026-08-30' },
           { id: 'notes', type: 'textarea', label: 'Бележки (опционално)', placeholder: 'Промених homepage секцията…' },
         ],
+        hint: guide.where,
       };
     case 'cms_meta':
       return {
+        ...base,
         id: 'cms_meta',
         title: 'Meta/title в CMS',
         fields: [
           { id: 'applied', type: 'checkbox', label: 'Копирах draft в CMS SEO полетата' },
           { id: 'notes', type: 'textarea', label: 'Бележки', placeholder: '' },
         ],
+        hint: guide.where,
       };
     case 'cms_noindex':
       return {
+        ...base,
         id: 'cms_noindex',
         title: 'Премахване на noindex',
         fields: [
           { id: 'noindex_removed', type: 'checkbox', label: 'Премахнах meta robots noindex / X-Robots-Tag' },
           { id: 'where', type: 'text', label: 'Къде (CMS plugin / theme / Cloudflare)', placeholder: 'Yoast SEO / theme header' },
         ],
+        hint: guide.where,
       };
     case 'cms_ssr':
       return {
+        ...base,
         id: 'cms_ssr',
         title: 'SSR / static HTML fallback',
         fields: [
           { id: 'ssr_enabled', type: 'checkbox', label: 'SSR или static HTML fallback е активен' },
           { id: 'published_url', type: 'text', label: 'URL за проверка', placeholder: `https://${domain}/` },
         ],
+        hint: guide.where,
       };
     case 'cms_upload':
       return {
+        ...base,
         id: 'cms_upload',
         title: 'Качване на sitemap',
         fields: [
           { id: 'sitemap_live', type: 'checkbox', label: 'sitemap.xml е достъпен на /sitemap.xml' },
         ],
+        hint: guide.where,
       };
     case 'hosting':
       return {
+        ...base,
         id: 'hosting',
         title: 'Hosting / SSL (не може да се автоматизира от системата)',
         fields: [
@@ -421,12 +443,15 @@ function buildManualForm(gateId, ctx) {
           { id: 'hosting_provider', type: 'text', label: 'Hosting / CDN', placeholder: 'Cloudflare, SiteGround…' },
           { id: 'notes', type: 'textarea', label: 'Какво оправихте', placeholder: '' },
         ],
+        hint: guide.where,
       };
     default:
       return {
+        ...base,
         id: gateId,
         title: 'Ръчна стъпка',
         fields: [{ id: 'done', type: 'checkbox', label: 'Маркирай като направено' }],
+        hint: guide.where,
       };
   }
 }

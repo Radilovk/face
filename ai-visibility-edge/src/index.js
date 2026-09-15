@@ -24,7 +24,8 @@ import { fetchDomainStrategy } from './diagnose/strategy.js';
 import { fetchDashboardSummary, fetchDashboardRecommendations, renderDashboardPage } from './ui/dashboard.js';
 import { getSitePipeline, listSitesFromDb } from './api/pipeline.js';
 import { runSitePipeline } from './api/pipelineRun.js';
-import { registerSite, listVerticals, updateSite, fetchSite } from './api/sites.js';
+import { registerSite, listVerticals, updateSite, fetchSite, listSites } from './api/sites.js';
+import { fetchPlatformInfo } from './api/platform.js';
 import { provisionTenantHostname, fetchTenantHostnameStatus } from './api/customHostnames.js';
 import { runCitationBatchForTenant } from './citations/runner.js';
 import { getApplyPlan, runApplyPrep } from './api/apply.js';
@@ -159,6 +160,10 @@ async function handleRequest(request, env, ctx) {
     return json(status, status.error ? 404 : 200);
   }
 
+  if (url.pathname === '/api/platform/info') {
+    return json(await fetchPlatformInfo(env));
+  }
+
   if (url.pathname === '/api/sites') {
     const missing = requireDb(env);
     if (missing) return missing;
@@ -167,8 +172,23 @@ async function handleRequest(request, env, ctx) {
       if (denied) return denied;
       return sitesCreateEndpoint(request, env);
     }
-    const sites = await listSitesFromDb(env);
-    return json({ sites });
+    const excludePilot = url.searchParams.get('include_pilot') !== '1';
+    const status = url.searchParams.get('status') || null;
+    const sites = await listSites(env.DB, {
+      excludePilot,
+      status,
+      limit: Number(url.searchParams.get('limit') ?? 500),
+      offset: Number(url.searchParams.get('offset') ?? 0),
+    });
+    let countSql = 'SELECT COUNT(*) as n FROM tenants WHERE 1=1';
+    const countBinds = [];
+    if (excludePilot) countSql += ' AND is_pilot = 0';
+    if (status) {
+      countSql += ' AND status = ?';
+      countBinds.push(status);
+    }
+    const total = await env.DB.prepare(countSql).bind(...countBinds).first();
+    return json({ sites, total: total?.n ?? sites.length, exclude_pilot: excludePilot });
   }
 
   const siteMatch = url.pathname.match(/^\/api\/sites\/([^/]+)$/);
@@ -618,7 +638,14 @@ async function questionsCreateEndpoint(request, env) {
 async function sitesCreateEndpoint(request, env) {
   const body = await request.json().catch(() => ({}));
   const result = await registerSite(env.DB, body);
-  return json(result, result.error ? 400 : 201);
+  if (result.error) return json(result, 400);
+
+  if (body.run_analysis === true || body.run_pipeline === true) {
+    const pipeline = await runSitePipeline(env, result.domain, { skip_edge: !body.activate_edge });
+    return json({ ...result, pipeline }, pipeline.error ? 207 : 201);
+  }
+
+  return json(result, 201);
 }
 
 async function measureRunEndpoint(request, env) {

@@ -37,7 +37,7 @@ export function renderDashboardPage(origin) {
     </section>
 
     <section id="add-panel" class="add-panel">
-      <p class="lead" id="add-lead">Добавете сайт тук — всички домейни влизат през този интерфейс.</p>
+      <p class="lead" id="add-lead">Нов клиент: въведете домейн и марка — системата прави останалото (AI анализ, план, measure).</p>
       <form id="add-site-form" class="form-grid">
         <label>Домейн <input name="domain" type="text" placeholder="example.com" required></label>
         <label>Марка <input name="name" type="text" placeholder="Example" required></label>

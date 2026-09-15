@@ -77,6 +77,11 @@ import {
   testResolveTenantOriginFallback,
 } from './production-backend.js';
 import {
+  testRegisterSiteWithoutVertical,
+  testListSitesExcludesPilot,
+  testPlatformInfo,
+} from './saas-platform.js';
+import {
   testBuildRecommendationsRobots,
   testBuildRecommendationsCanaryEdge,
   testInfoModulesAndChecklist,
@@ -341,6 +346,9 @@ async function run() {
   testPlatformHostsEnv();
   testCloudflareConfigured();
   await testResolveTenantOriginFallback();
+  await testRegisterSiteWithoutVertical();
+  await testListSitesExcludesPilot();
+  await testPlatformInfo();
   testBuildRecommendationsRobots();
   testBuildRecommendationsCanaryEdge();
   testInfoModulesAndChecklist();

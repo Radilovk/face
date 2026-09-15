@@ -2,7 +2,15 @@
  * Automated fix proposals for each finding type.
  * mode: auto = one click | semi_auto = auto artifact + optional manual publish | manual = form only
  */
-import { buildHomepageCopy, buildJsonLd, buildRobotsAllow, buildMetaDescription, buildTitleFix, buildSitemapXml } from '../apply/generate.js';
+import {
+  buildHomepageCopy,
+  buildJsonLd,
+  buildRobotsAllow,
+  buildMetaDescription,
+  buildTitleFix,
+  buildSitemapXml,
+  buildLlmsTxt,
+} from '../apply/generate.js';
 import {
   isRichLanding,
   resolveManualGate,
@@ -69,6 +77,25 @@ const AUTOMATION_SPECS = {
     label: 'Генерирай sitemap.xml draft',
     artifact_type: 'sitemap',
     manual_gate: 'cms_upload',
+    follow_up: 'indexnow',
+  },
+  missing_sitemap_indexnow: {
+    mode: 'auto',
+    action: 'submit_indexnow',
+    label: 'IndexNow — уведоми Bing за нови URL',
+  },
+  missing_search_crawlers: {
+    mode: 'auto',
+    action: 'activate_edge',
+    label: 'Edge robots.txt с 2026 search crawlers',
+    manual_gate: 'cname',
+  },
+  missing_llms_txt: {
+    mode: 'semi_auto',
+    action: 'generate_llms_artifact',
+    label: 'Генерирай llms.txt draft',
+    artifact_type: 'llms',
+    manual_gate: 'site_deploy',
   },
   thin_content_critical: {
     mode: 'semi_auto',
@@ -303,7 +330,13 @@ function buildArtifact(type, ctx) {
       return {
         format: 'text',
         title: 'robots.txt',
-        content: buildRobotsAllow(),
+        content: buildRobotsAllow(domain),
+      };
+    case 'llms':
+      return {
+        format: 'text',
+        title: 'llms.txt',
+        content: buildLlmsTxt({ domain, brand, vertical }),
       };
     default:
       return null;

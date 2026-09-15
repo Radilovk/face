@@ -1,6 +1,9 @@
 /**
  * Generate apply-ready artifacts from probe + strategy (Block 4 manual path until edge live).
  */
+import { buildRobotsTxt } from '../config/aiCrawlers.js';
+import { buildLlmsTxt } from '../enhance/llms.js';
+import { pickSchemaType, schemaToJsonLdScript } from '../schema/pickType.js';
 
 export function buildApplyPlan(input = {}) {
   const { probe, strategy, tenant, edgeActive = false } = input;
@@ -50,14 +53,29 @@ export function buildApplyPlan(input = {}) {
     });
   }
 
-  if (probe?.robots_ai_policy === 'disallow_all') {
+  if (
+    probe?.robots_ai_policy === 'disallow_all' ||
+    (probe?.signals?.missing_search_crawlers?.length ?? 0) > 0
+  ) {
     fixes.push({
       id: 'robots',
       type: edgeActive ? 'edge' : 'manual',
       priority: 'critical',
-      title: 'robots.txt блокира ботовете',
-      instructions: 'Премахнете Disallow: / или активирайте Edge robots merge.',
-      artifact: buildRobotsAllow(),
+      title: 'robots.txt — AI search crawlers',
+      instructions: 'Allow OAI-SearchBot, PerplexityBot, Claude-SearchBot или активирайте Edge.',
+      artifact: buildRobotsAllow(domain),
+      artifact_format: 'text',
+    });
+  }
+
+  if (!probe?.signals?.llms_txt_ok) {
+    fixes.push({
+      id: 'llms_txt',
+      type: edgeActive ? 'edge' : 'manual',
+      priority: 'medium',
+      title: 'llms.txt — AI navigation map',
+      instructions: 'Публикувайте /llms.txt или активирайте Edge serve.',
+      artifact: buildLlmsTxt({ domain, brand, vertical: tenant?.vertical_name }),
       artifact_format: 'text',
     });
   }
@@ -96,17 +114,9 @@ export function buildApplyPlan(input = {}) {
   };
 }
 
-export function buildJsonLd({ domain, brand, vertical }) {
-  const schema = {
-    '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: brand,
-    url: `https://${domain}/`,
-    applicationCategory: vertical ?? 'BusinessApplication',
-    operatingSystem: 'Web',
-    description: `${brand} — официален сайт на https://${domain}/`,
-  };
-  return `<script type="application/ld+json">\n${JSON.stringify(schema, null, 2)}\n</script>`;
+export function buildJsonLd({ domain, brand, vertical, hasFaq = false }) {
+  const schema = pickSchemaType(vertical, brand, domain, { hasFaq });
+  return schemaToJsonLdScript(schema);
 }
 
 export function buildHomepageCopy({ domain, brand, vertical }) {
@@ -119,16 +129,11 @@ export function buildHomepageCopy({ domain, brand, vertical }) {
 </section>`;
 }
 
-export function buildRobotsAllow() {
-  return `User-agent: *
-Allow: /
-
-User-agent: GPTBot
-Allow: /
-
-User-agent: Google-Extended
-Allow: /`;
+export function buildRobotsAllow(domain = 'example.com') {
+  return buildRobotsTxt(domain);
 }
+
+export { buildLlmsTxt };
 
 export function buildMetaDescription({ domain, brand, vertical }) {
   const v = vertical ?? 'услуги и продукти';

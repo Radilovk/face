@@ -10,7 +10,8 @@ import { generateDisplacementQuestions } from '../optimizer/displacementQuestion
 import { saveContentDraft, saveOptimizerRun } from '../optimizer/store.js';
 import { resolveTenantByDomain } from './questions.js';
 import { resolveAutomationSpec } from '../diagnose/findingsAutomation.js';
-import { buildMetaDescription, buildSitemapXml, buildTitleFix } from '../apply/generate.js';
+import { buildMetaDescription, buildSitemapXml, buildTitleFix, buildLlmsTxt } from '../apply/generate.js';
+import { submitDomainIndexNow } from './indexNow.js';
 import { invalidateAdvisorContext } from '../advisor/context.js';
 
 export async function applyFindingFix(env, domain, findingId, options = {}) {
@@ -62,6 +63,26 @@ export async function applyFindingFix(env, domain, findingId, options = {}) {
         result = { title: 'sitemap.xml', artifact, saved: true, finding_id: findingId };
         break;
       }
+
+      case 'generate_llms_artifact': {
+        const ctx = await buildOptimizerContext(env, normalized).catch(() => ({}));
+        if (ctx.error) return ctx;
+        const brand = ctx.tenant?.name ?? normalized;
+        const vertical = ctx.tenant?.vertical_name ?? '';
+        const artifact = buildLlmsTxt({ domain: normalized, brand, vertical });
+        await saveContentDraft(env, normalized, {
+          finding_id: findingId,
+          title: 'llms.txt',
+          artifact,
+          method: 'template',
+        });
+        result = { title: 'llms.txt', artifact, saved: true, finding_id: findingId };
+        break;
+      }
+
+      case 'submit_indexnow':
+        result = await submitDomainIndexNow(env, normalized, options);
+        break;
 
       case 'generate_meta_artifact': {
         const ctx = await buildOptimizerContext(env, normalized);

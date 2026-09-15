@@ -25,6 +25,7 @@ import { registerSite, listVerticals } from './api/sites.js';
 import { runCitationBatchForTenant } from './citations/runner.js';
 import { getApplyPlan, runApplyPrep } from './api/apply.js';
 import { getEdgeDecision, activateEdgeOptimization, getEdgeStatus } from './api/edge.js';
+import { submitDomainIndexNow } from './api/indexNow.js';
 import { handleAdvisorStatus, handleAdvisorChat } from './api/advisor.js';
 import { fetchOptimizerPlan, runOptimizer, fetchOptimizerStatus } from './api/optimizer.js';
 import { applyFindingFix, saveFindingManualOnly } from './api/findingsApply.js';
@@ -228,6 +229,17 @@ async function handleRequest(request, env, ctx) {
     if (missing) return missing;
     const status = await getEdgeStatus(env, decodeURIComponent(edgeStatusMatch[1]));
     return json(status);
+  }
+
+  const indexNowMatch = url.pathname.match(/^\/api\/indexnow\/([^/]+)$/);
+  if (indexNowMatch && request.method === 'POST') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
+    const body = await request.json().catch(() => ({}));
+    const result = await submitDomainIndexNow(env, decodeURIComponent(indexNowMatch[1]), body);
+    return json(result, result.error ? 400 : 200);
   }
 
   const applyMatch = url.pathname.match(/^\/api\/apply\/([^/]+)(?:\/run)?$/);

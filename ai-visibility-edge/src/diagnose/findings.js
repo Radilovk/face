@@ -407,6 +407,46 @@ function probeFindings(probe, passage, brand, edgeActive) {
     );
   }
 
+  const missingSearch = signals.missing_search_crawlers ?? [];
+  if (missingSearch.length > 0 && probe.robots_ai_policy !== 'disallow_all') {
+    out.push(
+      finding({
+        id: 'missing_search_crawlers',
+        category: 'visibility',
+        severity: 'warning',
+        title: `robots.txt без search crawlers: ${missingSearch.slice(0, 3).join(', ')}`,
+        impact:
+          'OAI-SearchBot и Claude-SearchBot са нужни за цитиране в ChatGPT/Claude — без Allow ги няма в retrieval.',
+        evidence: { missing: missingSearch, url: `https://${probe.domain}/robots.txt` },
+        fix: {
+          owner: edgeActive ? 'edge' : 'system',
+          steps: edgeActive
+            ? ['Edge ще обслужва пълен robots.txt след CNAME']
+            : ['„2. Приложи Edge“ или добавете Allow за OAI-SearchBot, PerplexityBot, Claude-SearchBot'],
+        },
+      }),
+    );
+  }
+
+  if (signals.llms_txt_ok === false) {
+    out.push(
+      finding({
+        id: 'missing_llms_txt',
+        category: 'technical',
+        severity: 'info',
+        title: 'Липсва llms.txt',
+        impact: 'AI агенти нямат курирана карта на ключовите страници — по-бавно откриване на FAQ/продукти.',
+        evidence: { url: `https://${probe.domain}/llms.txt`, llms_txt_ok: false },
+        fix: {
+          owner: edgeActive ? 'edge' : 'you',
+          steps: edgeActive
+            ? ['Edge ще обслужва /llms.txt след CNAME']
+            : ['Публикувайте /llms.txt или активирайте Edge'],
+        },
+      }),
+    );
+  }
+
   return out;
 }
 
@@ -640,7 +680,7 @@ function titleMatchesBrand(title, brand) {
 }
 
 function hasUsefulSchema(types) {
-  const useful = /Organization|Product|LocalBusiness|Store|WebSite|FAQPage|Brand/i;
+  const useful = /Organization|Product|LocalBusiness|Store|WebSite|FAQPage|Article|HowTo|Brand|SoftwareApplication/i;
   return types.some((t) => useful.test(t));
 }
 

@@ -1,5 +1,7 @@
 import { resolveTenantByDomain } from './questions.js';
 import { getEdgeDecision } from './edge.js';
+import { resolveWorkerPublicHost } from '../config/workerHost.js';
+import { cloudflareConfigured } from '../cloudflare/api.js';
 
 /**
  * CNAME / Custom Hostname onboarding checklist (Block 6.2).
@@ -12,7 +14,7 @@ export async function fetchOnboardingStatus(env, domain) {
     return { error: 'unknown_domain', domain, hint: 'Добавете сайта през dashboard (+ Сайт).' };
   }
 
-  const workerHost = env.WORKER_PUBLIC_HOST ?? 'ai-visibility-edge.radilov-k.workers.dev';
+  const workerHost = resolveWorkerPublicHost(env);
   const edge = await getEdgeDecision(env, tenant.apex_host);
 
   const steps = [
@@ -63,12 +65,17 @@ export async function fetchOnboardingStatus(env, domain) {
     edge_status: tenant.edge_status ?? 'measurement_only',
     ready_for_clients: ready,
     steps,
-    dns: {
-      type: 'CNAME',
-      name: tenant.apex_host,
-      target: workerHost,
-      note: 'Custom Hostname в Cloudflare for SaaS — не пълен DNS transfer.',
-    },
+    dns: workerHost
+      ? {
+          type: 'CNAME',
+          name: tenant.apex_host,
+          target: workerHost,
+          note: cloudflareConfigured(env)
+            ? 'Custom Hostname API е конфигуриран — POST /api/hostnames/{domain}/provision'
+            : 'Custom Hostname в Cloudflare for SaaS — не пълен DNS transfer.',
+        }
+      : null,
+    cloudflare_auto_provision: cloudflareConfigured(env),
     generated_at: new Date().toISOString(),
   };
 }

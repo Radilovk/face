@@ -69,6 +69,13 @@ import {
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
 import {
+  testProductionAuthFailClosed,
+  testTenantSettingsAndCronEligibility,
+  testSiteUpdateAndQuestionTenantScope,
+  testPlatformHostsEnv,
+  testCloudflareConfigured,
+} from './production-backend.js';
+import {
   testBuildRecommendationsRobots,
   testBuildRecommendationsCanaryEdge,
   testInfoModulesAndChecklist,
@@ -327,6 +334,11 @@ async function run() {
   testStepStatus();
   testNormalizeApexHost();
   testSlugId();
+  testProductionAuthFailClosed();
+  await testTenantSettingsAndCronEligibility();
+  await testSiteUpdateAndQuestionTenantScope();
+  testPlatformHostsEnv();
+  testCloudflareConfigured();
   testBuildRecommendationsRobots();
   testBuildRecommendationsCanaryEdge();
   testInfoModulesAndChecklist();

@@ -16,12 +16,17 @@ binding = "CACHE"
 id = "local-kv-placeholder"
 
 [vars]
+# Set ENVIRONMENT=production in deployed Worker for fail-closed auth
+# ENVIRONMENT = "production"
 BASELINE_ID = "2026-08-27"
 GEMINI_MODEL = "gemini-3.7-flash"
 ECONOMY_MODE = "1"
-# Autonomous optimizer (Block 7) — AI plans + executes; human only at DNS/CMS gates
+# Autonomous optimizer — per-tenant override in D1 (migration 0010)
 AUTO_OPTIMIZER = "1"
 AUTO_EDGE_ACTIVATE = "1"
+# WORKER_PUBLIC_HOST = "your-worker.workers.dev"
+# PLATFORM_HOSTS = "app.yourproduct.com"
+# SAAS_ZONE_ID = "cloudflare_zone_id_for_custom_hostnames"
 
 [triggers]
 crons = ["0 3 * * 1"]

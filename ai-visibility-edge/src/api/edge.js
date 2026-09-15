@@ -3,6 +3,7 @@ import { fetchDomainStrategy } from '../diagnose/strategy.js';
 import { buildEdgeDecision } from '../edge/decision.js';
 import { loadEdgeConfig, saveEdgeConfig } from '../config/tenantEdge.js';
 import { resolveTenantByDomain } from './questions.js';
+import { resolveWorkerPublicHost } from '../config/workerHost.js';
 
 export async function getEdgeDecision(env, domain) {
   if (!env.DB) return { error: 'db_not_bound' };
@@ -33,7 +34,7 @@ export async function getEdgeDecision(env, domain) {
     tenant_id: tenant.id,
     edge_enabled_db: Boolean(tenant.edge_enabled),
     edge_status_db: tenant.edge_status ?? 'measurement_only',
-    worker_host: env.WORKER_PUBLIC_HOST ?? 'ai-visibility-edge.radilov-k.workers.dev',
+    worker_host: resolveWorkerPublicHost(env),
   };
 }
 

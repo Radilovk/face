@@ -69,6 +69,12 @@ export function llmsResponse(body, { source = 'edge' } = {}) {
   });
 }
 
+export function renderLlmsFullTxt(edgeConfig) {
+  if (edgeConfig?.llms_full_txt) return edgeConfig.llms_full_txt.trim() + '\n';
+  const short = renderLlmsTxt(edgeConfig);
+  return short ? short + '\n' : null;
+}
+
 export async function handleLlmsRequest(request, edgeConfig, fetchOrigin) {
   const mode = edgeConfig?.edge?.llms_mode ?? 'serve';
   if (mode === 'passthrough') return fetchOrigin(request);

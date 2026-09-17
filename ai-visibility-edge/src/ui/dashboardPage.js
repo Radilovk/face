@@ -27,6 +27,11 @@ export function renderDashboardPage(origin) {
       </div>
     </header>
 
+    <section id="sites-bar" class="sites-bar hidden" aria-label="Вашите сайтове">
+      <p class="sites-bar-title">Сайтове (<span id="sites-count">0</span>)</p>
+      <ul id="sites-list" class="sites-list"></ul>
+    </section>
+
     <section id="how-it-works" class="how-it-works" aria-label="Как работи">
       <p class="how-it-works-lead"><strong>Как работи (3 стъпки):</strong></p>
       <ol class="how-it-works-steps">
@@ -658,7 +663,35 @@ function script(origin) {
 
     function authErrorHint(res, data) {
       if (res.status === 401) return data?.hint || 'Нужен ADMIN_TOKEN (🔐 Admin достъп)';
+      if (data?.error === 'domain_exists' && data?.domain) {
+        return data.domain + ' вече е в системата';
+      }
       return data?.error || data?.hint || res.status;
+    }
+
+    function siteSelectLabel(s) {
+      let label = s.domain;
+      if (s.is_pilot) label += ' (pilot)';
+      if (s.status && s.status !== 'active') label += ' [' + s.status + ']';
+      return label;
+    }
+
+    function applySelectedSite(domain, reload) {
+      selectedDomain = domain;
+      const sel = $('site-select');
+      if (sel) sel.value = domain;
+      $('sites-list')?.querySelectorAll('.site-chip').forEach(el => {
+        const active = el.dataset.domain === domain;
+        el.classList.toggle('site-chip-active', active);
+        el.setAttribute('aria-current', active ? 'true' : 'false');
+      });
+      if (reload) {
+        renderOperationHistory();
+        loadStrategy();
+        loadEdgeDecision();
+        loadSiteStats();
+        loadOnboarding();
+      }
     }
 
     async function loadAuthStatus() {
@@ -733,15 +766,20 @@ function script(origin) {
     }
 
     async function loadSites() {
-      const res = await fetch(API('/api/sites'));
+      const res = await fetch(API('/api/sites?include_pilot=1'));
       const data = await res.json();
       sites = data.sites || [];
       const sel = $('site-select');
       const addPanel = $('add-panel');
       const addLead = $('add-lead');
+      const sitesBar = $('sites-bar');
+      const sitesList = $('sites-list');
+      const sitesCount = $('sites-count');
       if (!sites.length) {
         sel.innerHTML = '<option value="">— добавете сайт —</option>';
         selectedDomain = '';
+        sitesBar?.classList.add('hidden');
+        if (sitesList) sitesList.innerHTML = '';
         addPanel.classList.remove('hidden');
         addLead.textContent = 'Няма регистрирани сайтове. Добавете домейн по-долу — това е единственият вход.';
         $('btn-primary-action').disabled = true;
@@ -749,20 +787,42 @@ function script(origin) {
         $('verdict-summary').textContent = 'Домейн, марка, вертикал — след това „Добави + анализ“.';
         return;
       }
-      addPanel.classList.add('hidden');
+      sitesBar?.classList.remove('hidden');
+      if (sitesCount) sitesCount.textContent = String(data.total ?? sites.length);
+      if (sitesList) {
+        sitesList.innerHTML = sites.map(s =>
+          '<li><button type="button" class="site-chip' +
+          (s.domain === selectedDomain ? ' site-chip-active' : '') +
+          '" data-domain="' + escHtml(s.domain) + '" aria-current="' +
+          (s.domain === selectedDomain ? 'true' : 'false') + '">' +
+          escHtml(s.domain) +
+          (s.is_pilot ? ' <span class="site-badge-pilot">pilot</span>' : '') +
+          (s.status && s.status !== 'active'
+            ? ' <span class="site-badge-status">' + escHtml(s.status) + '</span>'
+            : '') +
+          '</button></li>'
+        ).join('');
+        sitesList.querySelectorAll('.site-chip').forEach(btn => {
+          btn.onclick = () => applySelectedSite(btn.dataset.domain, true);
+        });
+      }
+      if (sites.length && addPanel.classList.contains('hidden')) {
+        addLead.textContent = 'Нов клиент: въведете домейн и марка — системата прави останалото (AI анализ, план, measure).';
+      }
       $('btn-primary-action').disabled = false;
       sel.innerHTML = sites.map(s =>
-        '<option value="' + s.domain + '">' + s.domain + '</option>'
+        '<option value="' + escHtml(s.domain) + '">' + escHtml(siteSelectLabel(s)) + '</option>'
       ).join('');
       if (!selectedDomain || !sites.find(s => s.domain === selectedDomain)) {
         selectedDomain = sites[0].domain;
       }
       sel.value = selectedDomain;
-      sel.onchange = () => {
-        selectedDomain = sel.value;
-        renderOperationHistory();
-        loadStrategy();
-      };
+      sitesList?.querySelectorAll('.site-chip').forEach(el => {
+        const active = el.dataset.domain === selectedDomain;
+        el.classList.toggle('site-chip-active', active);
+        el.setAttribute('aria-current', active ? 'true' : 'false');
+      });
+      sel.onchange = () => applySelectedSite(sel.value, true);
     }
 
     const GATE_LABELS = {
@@ -1695,11 +1755,20 @@ function script(origin) {
             });
             const data = await res.json();
             if (!res.ok) {
+              if (res.status === 409 && data.error === 'domain_exists' && data.domain) {
+                box.textContent = 'ℹ️ ' + data.domain + ' вече е в системата — избран автоматично';
+                applySelectedSite(data.domain, false);
+                $('add-panel').classList.add('hidden');
+                setStatus('Зареждане на списъка…');
+                await loadSites();
+                if (!thenRun) await loadStrategy();
+                return data;
+              }
               box.textContent = 'Грешка: ' + authErrorHint(res, data);
               throw new Error(authErrorHint(res, data));
             }
             box.textContent = '✓ ' + data.domain + ' добавен';
-            selectedDomain = data.domain;
+            applySelectedSite(data.domain, false);
             $('add-panel').classList.add('hidden');
             setStatus('Зареждане на списъка…');
             await loadSites();
@@ -1811,6 +1880,15 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .topbar-brand h1{font-size:1.25rem;margin:0}
 .topbar-meta{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
 #site-select{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:.45rem .65rem;min-width:180px;max-width:100%}
+.sites-bar{margin-bottom:.75rem}
+.sites-bar.hidden{display:none}
+.sites-bar-title{font-size:.78rem;color:var(--muted);margin:0 0 .35rem;text-transform:uppercase;letter-spacing:.03em}
+.sites-list{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:.4rem}
+.site-chip{font:inherit;font-size:.82rem;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:999px;padding:.35rem .75rem;cursor:pointer;transition:border-color .15s,background .15s}
+.site-chip:hover{border-color:var(--accent)}
+.site-chip-active{border-color:var(--accent);background:#1e3a5f33;box-shadow:0 0 0 1px #3b82f666}
+.site-badge-pilot{font-size:.65rem;background:#6366f133;color:#a5b4fc;border-radius:4px;padding:.05rem .35rem;margin-left:.25rem;text-transform:uppercase;vertical-align:middle}
+.site-badge-status{font-size:.65rem;color:var(--muted);margin-left:.15rem}
 .pipeline-bar.hidden,.hidden[aria-hidden="true"]{display:none!important}
 .alerts-wrap{display:grid;gap:.5rem;margin-bottom:.75rem}
 .verdict{border-radius:12px;padding:1rem 1.15rem;margin-bottom:1rem;border-left:4px solid var(--border)}

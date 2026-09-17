@@ -93,6 +93,7 @@ import {
 import {
   testRegisterSiteWithoutVertical,
   testListSitesExcludesPilot,
+  testRegisterSiteDomainExists,
   testPlatformInfo,
 } from './saas-platform.js';
 import {
@@ -372,6 +373,7 @@ async function run() {
   await testResolveTenantOriginFallback();
   await testRegisterSiteWithoutVertical();
   await testListSitesExcludesPilot();
+  await testRegisterSiteDomainExists();
   await testPlatformInfo();
   testBuildRecommendationsRobots();
   testBuildRecommendationsCanaryEdge();

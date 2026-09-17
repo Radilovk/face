@@ -638,6 +638,17 @@ async function questionsCreateEndpoint(request, env) {
 async function sitesCreateEndpoint(request, env) {
   const body = await request.json().catch(() => ({}));
   const result = await registerSite(env.DB, body);
+  if (result.error === 'domain_exists') {
+    const existing = await fetchSite(env.DB, result.domain);
+    return json(
+      {
+        ...result,
+        already_exists: true,
+        site: existing.site ?? { apex_host: result.domain, id: result.tenant_id },
+      },
+      409,
+    );
+  }
   if (result.error) return json(result, 400);
 
   if (body.run_analysis === true || body.run_pipeline === true) {

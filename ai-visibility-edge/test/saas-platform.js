@@ -27,6 +27,16 @@ export async function testListSitesExcludesPilot() {
   assert(all.length >= clients.length);
 }
 
+export async function testRegisterSiteDomainExists() {
+  const db = createTestDb();
+  const first = await registerSite(db, { domain: 'dup.example.com', name: 'Dup' });
+  assert(first.ok);
+  const dup = await registerSite(db, { domain: 'dup.example.com', name: 'Dup Again' });
+  assert.equal(dup.error, 'domain_exists');
+  assert.equal(dup.domain, 'dup.example.com');
+  assert.equal(dup.tenant_id, first.tenant_id);
+}
+
 export async function testPlatformInfo() {
   const db = createTestDb();
   const env = { DB: db, WORKER_PUBLIC_HOST: 'ai-visibility-edge.example.workers.dev' };

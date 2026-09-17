@@ -10,6 +10,7 @@ import {
   extractJsonLdTypes,
 } from './siteBrief.js';
 import { AI_BOT_TOKENS, findMissingSearchCrawlers } from '../config/aiCrawlers.js';
+import { contentSignalOk, hasAgentmap, parseContentSignal } from '../enhance/agentNative.js';
 
 const PROBE_UA = 'AIVisibilityBot/1.0 (+https://ai-visibility-edge/probe)';
 
@@ -50,6 +51,10 @@ export async function probeDomain(domain, options = {}) {
   }
 
   const llmsTxtOk = await checkLlmsTxt(fetchImpl, host);
+  const aiCatalogOk = await checkJsonUrl(fetchImpl, host, '/.well-known/ai-catalog.json', 'displayName');
+  const authMdOk = await checkAuthMd(fetchImpl, host);
+  const apiCatalogOk = await checkJsonUrl(fetchImpl, host, '/.well-known/api-catalog', 'linkset');
+  const contentSignal = parseContentSignal(robotsText);
 
   const html = page.html ?? '';
   const text = page.text ?? '';
@@ -75,6 +80,12 @@ export async function probeDomain(domain, options = {}) {
     title_len: title?.length ?? 0,
     sitemap_ok: sitemapOk,
     llms_txt_ok: llmsTxtOk,
+    ai_catalog_ok: aiCatalogOk,
+    auth_md_ok: authMdOk,
+    api_catalog_ok: apiCatalogOk,
+    content_signal_ok: contentSignalOk(contentSignal),
+    agentmap_ok: hasAgentmap(robotsText),
+    content_signal: contentSignal,
     missing_search_crawlers: missingSearchCrawlers,
     jsonld_types: jsonldTypes,
     js_shell_suspect: html.length > 8000 && text.length < 300,
@@ -224,6 +235,39 @@ async function checkLlmsTxt(fetchImpl, host) {
     if (!res.ok) return false;
     const body = (await res.text()).slice(0, 500);
     return body.includes('#') || body.toLowerCase().includes('http');
+  } catch {
+    return false;
+  }
+}
+
+async function checkJsonUrl(fetchImpl, host, path, requiredKey) {
+  try {
+    const res = await fetchImpl(`https://${host}${path}`, {
+      headers: { 'User-Agent': PROBE_UA, Accept: 'application/json' },
+    });
+    if (!res.ok) return false;
+    const body = await res.text();
+    const json = JSON.parse(body.slice(0, 8000));
+    if (requiredKey === 'displayName') {
+      return Boolean(json.host?.displayName && Array.isArray(json.entries) && json.entries.some((e) => e.displayName));
+    }
+    if (requiredKey === 'linkset') {
+      return Array.isArray(json.linkset) && json.linkset.length > 0;
+    }
+    return Boolean(json);
+  } catch {
+    return false;
+  }
+}
+
+async function checkAuthMd(fetchImpl, host) {
+  try {
+    const res = await fetchImpl(`https://${host}/auth.md`, {
+      headers: { 'User-Agent': PROBE_UA },
+    });
+    if (!res.ok) return false;
+    const body = (await res.text()).slice(0, 2000);
+    return /^#\s+auth\.md/im.test(body) || body.toLowerCase().includes('auth.md');
   } catch {
     return false;
   }

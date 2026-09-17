@@ -32,18 +32,33 @@ export const REQUIRED_SEARCH_TOKENS = AI_SEARCH_CRAWLERS.map((c) => c.token);
 
 /**
  * @param {string} domain
- * @param {{ allowTraining?: boolean }} [options]
+ * @param {{ allowTraining?: boolean, agentNative?: boolean, aiTrain?: boolean }} [options]
  */
 export function buildRobotsTxt(domain, options = {}) {
   const allowTraining = options.allowTraining ?? true;
+  const agentNative = options.agentNative ?? true;
+  const aiTrain = options.aiTrain ?? false;
   const host = domain.replace(/^www\./, '').replace(/^https?:\/\//, '').split('/')[0];
   const lines = [
     '# Managed by AI Visibility Edge — optimized for AI search citation',
+  ];
+
+  if (agentNative) {
+    lines.push(
+      'Content-Signal: search=yes, ai-input=yes, ai-train=' + (aiTrain ? 'yes' : 'no'),
+      'Agentmap: /.well-known/ai-catalog.json',
+      '',
+    );
+  }
+
+  lines.push(
     'User-agent: *',
     'Allow: /',
+    'Disallow: /admin/',
+    'Disallow: /checkout/',
     '',
     '# Search / retrieval crawlers (required for AI citations)',
-  ];
+  );
 
   for (const bot of AI_SEARCH_CRAWLERS) {
     lines.push(`User-agent: ${bot.token}`, 'Allow: /', '');

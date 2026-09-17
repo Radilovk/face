@@ -70,6 +70,16 @@ import {
   testManualGuideCnameHasWhereHowWhat,
   testManualGuideCmsPublish,
 } from './manualGuides.js';
+import {
+  testAiCatalogHasDisplayName,
+  testAuthMdHeading,
+  testRobotsContentSignalAndAgentmap,
+  testContentSignalParser,
+  testServeAgentNativePath,
+  testMarkdownNegotiationHeader,
+  testEdgeDecisionIncludesAgentNativePack,
+  testFindingsMissingAiCatalog,
+} from './agent-native.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
 import {
@@ -342,6 +352,14 @@ async function run() {
   testManualExportResponse404();
   testManualGuideCnameHasWhereHowWhat();
   testManualGuideCmsPublish();
+  testAiCatalogHasDisplayName();
+  testAuthMdHeading();
+  testRobotsContentSignalAndAgentmap();
+  testContentSignalParser();
+  testServeAgentNativePath();
+  testMarkdownNegotiationHeader();
+  testEdgeDecisionIncludesAgentNativePack();
+  testFindingsMissingAiCatalog();
   testGenerateQuestions();
   testStepStatus();
   testNormalizeApexHost();

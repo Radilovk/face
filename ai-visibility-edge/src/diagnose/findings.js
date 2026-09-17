@@ -428,6 +428,59 @@ function probeFindings(probe, passage, brand, edgeActive) {
     );
   }
 
+  if (signals.ai_catalog_ok === false) {
+    out.push(
+      finding({
+        id: 'missing_ai_catalog',
+        category: 'technical',
+        severity: 'warning',
+        title: 'Липсва ARD (/.well-known/ai-catalog.json)',
+        impact: 'AI агенти нямат Agent Resource Descriptor — по-ниска Agent-Native оценка (isitagentready).',
+        evidence: { url: `https://${probe.domain}/.well-known/ai-catalog.json`, ai_catalog_ok: false },
+        fix: {
+          owner: edgeActive ? 'edge' : 'system',
+          steps: edgeActive
+            ? ['Edge Agent-Native pack обслужва ARD след CNAME']
+            : ['„Приложи Edge“ — ARD се генерира автоматично'],
+        },
+      }),
+    );
+  }
+
+  if (signals.auth_md_ok === false) {
+    out.push(
+      finding({
+        id: 'missing_auth_md',
+        category: 'technical',
+        severity: 'info',
+        title: 'Липсва /auth.md',
+        impact: 'Агентите нямат machine-readable auth/discovery prose.',
+        evidence: { url: `https://${probe.domain}/auth.md`, auth_md_ok: false },
+        fix: {
+          owner: edgeActive ? 'edge' : 'system',
+          steps: ['Edge Agent-Native pack — /auth.md с H1 auth.md'],
+        },
+      }),
+    );
+  }
+
+  if (signals.content_signal_ok === false && probe.robots_ai_policy !== 'none') {
+    out.push(
+      finding({
+        id: 'missing_content_signal',
+        category: 'technical',
+        severity: 'info',
+        title: 'robots.txt без Content-Signal (search / ai-input)',
+        impact: 'Cloudflare Content-Signal директива липсва — по-слаба AI input политика.',
+        evidence: { content_signal: signals.content_signal ?? null },
+        fix: {
+          owner: edgeActive ? 'edge' : 'system',
+          steps: ['Edge robots: Content-Signal: search=yes, ai-input=yes, ai-train=no'],
+        },
+      }),
+    );
+  }
+
   if (signals.llms_txt_ok === false) {
     out.push(
       finding({

@@ -1,3 +1,5 @@
+import { discoveryLinkHeaderValue } from './agentNative.js';
+
 /**
  * HTMLRewriter — JSON-LD + canonical (Block 4.1). Same HTML for all visitors.
  */
@@ -12,7 +14,7 @@ export async function injectHtmlEnhancements(response, edgeConfig, requestUrl) {
   const injectCanonical = edge.inject_canonical && requestUrl;
 
   if (!injectJsonLd && !injectCanonical) {
-    return withEdgeHeader(response);
+    return withEdgeHeader(response, edgeConfig, requestUrl);
   }
 
   const script = injectJsonLd
@@ -29,12 +31,27 @@ export async function injectHtmlEnhancements(response, edgeConfig, requestUrl) {
     },
   });
 
-  return withEdgeHeader(rewriter.transform(response));
+  const transformed = rewriter.transform(response);
+  const headers = new Headers(transformed.headers);
+  headers.set('X-AIV-Edge', '1');
+  if (edgeConfig?.edge?.agent_native && requestUrl) {
+    const origin = edgeConfig.edge?.origin_url ?? requestUrl.origin;
+    headers.set('Link', discoveryLinkHeaderValue(origin));
+  }
+  return new Response(transformed.body, {
+    status: transformed.status,
+    statusText: transformed.statusText,
+    headers,
+  });
 }
 
-function withEdgeHeader(response) {
+function withEdgeHeader(response, edgeConfig, requestUrl) {
   const headers = new Headers(response.headers);
   headers.set('X-AIV-Edge', '1');
+  if (edgeConfig?.edge?.agent_native && requestUrl) {
+    const origin = edgeConfig.edge?.origin_url ?? requestUrl.origin;
+    headers.set('Link', discoveryLinkHeaderValue(origin));
+  }
   return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,

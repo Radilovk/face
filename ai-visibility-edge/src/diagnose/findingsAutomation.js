@@ -98,6 +98,24 @@ const AUTOMATION_SPECS = {
     artifact_type: 'llms',
     manual_gate: 'site_deploy',
   },
+  missing_ai_catalog: {
+    mode: 'auto',
+    action: 'activate_edge',
+    label: 'Edge Agent-Native: ARD + discovery',
+    manual_gate: 'cname',
+  },
+  missing_auth_md: {
+    mode: 'auto',
+    action: 'activate_edge',
+    label: 'Edge Agent-Native: auth.md + OAuth metadata',
+    manual_gate: 'cname',
+  },
+  missing_content_signal: {
+    mode: 'auto',
+    action: 'activate_edge',
+    label: 'Edge robots Content-Signal + Agentmap',
+    manual_gate: 'cname',
+  },
   thin_content_critical: {
     mode: 'semi_auto',
     action: 'generate_content',

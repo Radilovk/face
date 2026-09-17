@@ -24,7 +24,7 @@ ECONOMY_MODE = "1"
 # Autonomous optimizer — per-tenant override in D1 (migration 0010)
 AUTO_OPTIMIZER = "1"
 AUTO_EDGE_ACTIVATE = "1"
-# WORKER_PUBLIC_HOST = "your-worker.workers.dev"
+# WORKER_PUBLIC_HOST set at deploy from AIV_WORKER_URL or workers subdomain
 # PLATFORM_HOSTS = "app.yourproduct.com"
 # SAAS_ZONE_ID = "cloudflare_zone_id_for_custom_hostnames"
 

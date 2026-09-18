@@ -225,6 +225,20 @@ import {
   testClassifyLowOverlapMisattributed,
   testClassifyPassageNotFound,
 } from './sov-d1.js';
+import {
+  testClassifyClaimHealth,
+  testClassifyClaimNegation,
+  testBrandTerms,
+  testScanAnswerBrandProximity,
+  testScanIgnoresUnrelatedBrands,
+  testSplitSentences,
+  testRateInsufficientPower,
+  testRateSufficientPower,
+  testHeadlineCoinFlipOnlyWithPower,
+  testScanBrandRiskPersistsAndRates,
+  testScanBrandRiskIdempotent,
+  testScanForeignBrandNeedsNothingFromIt,
+} from './risk.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -486,6 +500,18 @@ async function run() {
   await testComputeSovSessionsAndCap();
   await testComputeSovPeriodFilter();
   await testComputeSovPersistOptional();
+  testClassifyClaimHealth();
+  testClassifyClaimNegation();
+  testBrandTerms();
+  testScanAnswerBrandProximity();
+  testScanIgnoresUnrelatedBrands();
+  testSplitSentences();
+  testRateInsufficientPower();
+  testRateSufficientPower();
+  testHeadlineCoinFlipOnlyWithPower();
+  await testScanBrandRiskPersistsAndRates();
+  await testScanBrandRiskIdempotent();
+  await testScanForeignBrandNeedsNothingFromIt();
   console.log('All tests passed');
 }
 

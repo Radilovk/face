@@ -1,5 +1,6 @@
 import { parseModelResponse } from './extract.js';
 import { verifyCitation } from './verify.js';
+import { classifyClaim } from '../risk/claimRisk.js';
 import {
   classifyFromVerify,
   detectParametricRecall,
@@ -101,6 +102,8 @@ export async function reprocessRuns(env, options = {}) {
       summary.observations++;
 
       if (isMisattribution(classified.class)) {
+        const claimText = citation.supportedText || citation.snippet || '';
+        const risk = classifyClaim(claimText);
         await db
           .prepare(
             `INSERT INTO misattributions (id, observation_id, domain, claim_text, model, detected_at, severity)
@@ -110,13 +113,14 @@ export async function reprocessRuns(env, options = {}) {
             crypto.randomUUID(),
             obsId,
             classified.domain || '',
-            citation.supportedText || citation.snippet || '',
+            claimText,
             run.model,
             new Date().toISOString(),
-            'commercial',
+            risk ? `${risk.severity}:${risk.risk_class}` : 'commercial',
           )
           .run();
         summary.misattributions++;
+        if (risk) summary.risk_typed = (summary.risk_typed ?? 0) + 1;
       }
 
       await sleep(300);

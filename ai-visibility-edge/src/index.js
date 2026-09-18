@@ -1,5 +1,6 @@
 import { withFailOpen } from './middleware/failOpen.js';
 import { requireAdmin, requireAdminIfProduction } from './middleware/requireAdmin.js';
+import { buildBrandRiskReport, renderBrandRiskReport } from './risk/report.js';
 import { productionConfigIssues } from './config/production.js';
 import { resolveWorkerPublicHost } from './config/workerHost.js';
 import { cloudflareConfigured } from './cloudflare/api.js';
@@ -527,6 +528,15 @@ async function handleRequest(request, env, ctx) {
     return displacementEndpoint(env, url);
   }
 
+  const riskMatch = url.pathname.match(/^\/(?:api\/)?risk\/([^/]+)$/);
+  if (riskMatch) {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
+    return riskEndpoint(env, decodeURIComponent(riskMatch[1]), url);
+  }
+
   const reportMatch = url.pathname.match(/^\/(?:api\/)?report\/([^/]+)$/);
   if (reportMatch) {
     const missing = requireDb(env);
@@ -770,6 +780,27 @@ async function reportEndpoint(env, domain, url, request) {
       'Cache-Control': 'public, max-age=300',
     },
   });
+}
+
+async function riskEndpoint(env, domain, url) {
+  const report = await buildBrandRiskReport(env, domain, {
+    brandName: url.searchParams.get('brand') || null,
+    verticalId: url.searchParams.get('vertical_id') || null,
+    model: url.searchParams.get('model') || null,
+    days: Number(url.searchParams.get('days') ?? 30),
+    persist: url.searchParams.get('persist') !== '0',
+  });
+
+  if (report.error) return json(report, report.error === 'db_not_bound' ? 503 : 400);
+
+  if ((url.searchParams.get('format') ?? 'json') === 'html') {
+    return new Response(renderBrandRiskReport(report), {
+      status: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' },
+    });
+  }
+
+  return json(report);
 }
 
 function json(body, status = 200) {

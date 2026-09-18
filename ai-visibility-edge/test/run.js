@@ -92,6 +92,11 @@ import {
   testDetectEdgeProxyPath,
   testBuildClientPlaybook,
 } from './client-path.js';
+import {
+  testSummarizeRobotsIgnoresCcBotDisallow,
+  testHasAgentmapFullUrl,
+  testDaotslabnaLiveProbeFindings,
+} from './probe-robots-fix.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
 import {
@@ -380,6 +385,9 @@ async function run() {
   testDetectContentFirstPath();
   testDetectEdgeProxyPath();
   testBuildClientPlaybook();
+  testSummarizeRobotsIgnoresCcBotDisallow();
+  testHasAgentmapFullUrl();
+  await testDaotslabnaLiveProbeFindings();
   testFindingsMissingAiCatalog();
   testGenerateQuestions();
   testStepStatus();

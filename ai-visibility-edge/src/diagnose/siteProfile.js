@@ -8,6 +8,7 @@
  * - measurement_noise: AI model hallucinations in observations, not site bugs
  */
 import { countBrandMentions } from './probe.js';
+import { isOriginAgentNativeReady } from './originReady.js';
 
 export function effectiveBrandMentions(probe, brand) {
   if (!brand || !probe) return probe?.signals?.brand_mentions ?? 0;
@@ -47,6 +48,7 @@ export function inferPublishStack(probe) {
 /** Edge/CNAME only when probe shows a fixable technical gap — not for healthy static sites. */
 export function shouldRecommendEdge(probe) {
   if (!probe) return false;
+  if (isOriginAgentNativeReady(probe)) return false;
   if (probe.robots_ai_policy === 'disallow_all') return true;
   if ((probe.jsonld_blocks ?? 0) === 0) return true;
   if (probe.robots_ai_policy === 'none' || probe.robots_ai_policy === 'fetch_error') return true;
@@ -101,7 +103,9 @@ export function assessTechnicalBaseline(probe, brand) {
   if (probe.robots_ai_policy === 'disallow_all') gaps.push('robots');
   if ((probe.http_status ?? 0) < 200 || (probe.http_status ?? 0) >= 400) gaps.push('http');
   if (probe.signals?.js_shell_suspect) gaps.push('js_shell');
-  if ((probe.html_text_chars ?? 0) < 500) gaps.push('thin_content');
+  if ((probe.html_text_chars ?? 0) < 500 && !isRichLanding(probe, brand) && !isOriginAgentNativeReady(probe)) {
+    gaps.push('thin_content');
+  }
   if ((probe.jsonld_blocks ?? 0) === 0) gaps.push('jsonld');
   if (!probe.signals?.sitemap_ok) gaps.push('sitemap');
   if (brand && effectiveBrandMentions(probe, brand) === 0) gaps.push('brand');

@@ -7,8 +7,10 @@ import { enrichFindingsWithAutomation } from './findingsAutomation.js';
 import {
   effectiveBrandMentions,
   hasPriceSignals,
+  isRichLanding,
   shouldRecommendEdge,
 } from './siteProfile.js';
+import { isOriginAgentNativeReady, shouldSuppressAivEdgeFindings } from './originReady.js';
 
 const SEVERITY_ORDER = { critical: 0, warning: 1, info: 2, ok: 3 };
 
@@ -51,7 +53,7 @@ export function buildSiteFindings(input = {}) {
     findings.push(...cacheFindings(cacheIndex, botHits));
   }
 
-  if (tenant && !edgeActive && probe && shouldRecommendEdge(probe)) {
+  if (tenant && !edgeActive && probe && shouldRecommendEdge(probe) && !shouldSuppressAivEdgeFindings(probe, tenant)) {
     findings.push(
       finding({
         id: 'edge_activate',
@@ -110,8 +112,10 @@ function probeFindings(probe, passage, brand, edgeActive) {
   const title = probe.raw_json?.title ?? null;
   const h1 = probe.raw_json?.h1 ?? null;
   const meta = probe.raw_json?.meta_description ?? null;
+  const originReady = isOriginAgentNativeReady(probe);
+  const searchCrawlersOk = (signals.missing_search_crawlers ?? []).length === 0;
 
-  if (probe.robots_ai_policy === 'disallow_all') {
+  if (probe.robots_ai_policy === 'disallow_all' && !(originReady && searchCrawlersOk && !signals.gptbot_blocked)) {
     out.push(
       finding({
         id: 'robots_disallow_all',
@@ -231,7 +235,7 @@ function probeFindings(probe, passage, brand, edgeActive) {
         },
       }),
     );
-  } else if (chars < 500) {
+  } else if (chars < 500 && !isRichLanding(probe, brand) && !originReady) {
     out.push(
       finding({
         id: 'thin_content',
@@ -428,7 +432,7 @@ function probeFindings(probe, passage, brand, edgeActive) {
     );
   }
 
-  if (signals.ai_catalog_ok === false) {
+  if (signals.ai_catalog_ok === false && !originReady) {
     out.push(
       finding({
         id: 'missing_ai_catalog',
@@ -447,7 +451,7 @@ function probeFindings(probe, passage, brand, edgeActive) {
     );
   }
 
-  if (signals.auth_md_ok === false) {
+  if (signals.auth_md_ok === false && !originReady) {
     out.push(
       finding({
         id: 'missing_auth_md',
@@ -464,7 +468,7 @@ function probeFindings(probe, passage, brand, edgeActive) {
     );
   }
 
-  if (signals.content_signal_ok === false && probe.robots_ai_policy !== 'none') {
+  if (signals.content_signal_ok === false && probe.robots_ai_policy !== 'none' && !originReady) {
     out.push(
       finding({
         id: 'missing_content_signal',
@@ -481,7 +485,7 @@ function probeFindings(probe, passage, brand, edgeActive) {
     );
   }
 
-  if (signals.llms_txt_ok === false) {
+  if (signals.llms_txt_ok === false && !originReady) {
     out.push(
       finding({
         id: 'missing_llms_txt',

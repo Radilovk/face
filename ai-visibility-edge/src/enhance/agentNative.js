@@ -319,7 +319,7 @@ export function contentSignalOk(signal) {
 
 export function hasAgentmap(robotsText) {
   if (!robotsText) return false;
-  return /Agentmap:\s*\/?\.well-known\/ai-catalog\.json/i.test(robotsText);
+  return /Agentmap:\s*(?:https?:\/\/[^\s]+|\/?\.well-known\/ai-catalog\.json)/i.test(robotsText);
 }
 
 function normalizeHost(domain) {

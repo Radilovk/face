@@ -550,7 +550,7 @@ export async function fetchDomainStrategy(env, domain, options = {}) {
 
   if (env.DB) {
     tenant = await env.DB.prepare(
-      `SELECT t.id, t.apex_host, t.name, t.edge_enabled, t.edge_status, wd.vertical_id
+      `SELECT t.id, t.apex_host, t.name, t.is_pilot, t.edge_enabled, t.edge_status, wd.vertical_id
        FROM tenants t
        JOIN watched_domains wd ON wd.tenant_id = t.id AND wd.role = 'tenant'
        WHERE t.apex_host = ?`,

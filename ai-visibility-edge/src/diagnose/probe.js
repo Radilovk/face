@@ -166,14 +166,59 @@ export async function persistDiagnostic(db, probeResult, score = null) {
   return { id, ...probeResult, score };
 }
 
-function summarizeRobots(text) {
+/** Parse robots.txt policy for User-agent: * only (ignore per-bot blocks like CCBot). */
+export function summarizeRobots(text) {
+  const star = getRobotsUserAgentBlock(text, '*');
+  if (star && blockDisallowsEntireSite(star)) return 'disallow_all';
+
   const lower = text.toLowerCase();
-  if (lower.includes('disallow: /') && !lower.includes('user-agent: *')) return 'partial';
-  if (/user-agent:\s*\*[\s\S]*?disallow:\s*\/\s*$/m.test(lower)) return 'disallow_all';
-  if (lower.includes('gptbot') || lower.includes('google-extended') || lower.includes('anthropic')) {
+  if (
+    lower.includes('gptbot') ||
+    lower.includes('oai-searchbot') ||
+    lower.includes('google-extended') ||
+    lower.includes('anthropic')
+  ) {
     return 'ai_rules_present';
   }
-  return 'allow';
+  if (star && blockAllowsRoot(star)) return 'allow';
+  return 'partial';
+}
+
+export function getRobotsUserAgentBlock(text, userAgent) {
+  const target = String(userAgent).toLowerCase();
+  const blocks = splitRobotsBlocks(text);
+  return blocks.find((b) => b.userAgent.toLowerCase() === target) ?? null;
+}
+
+export function splitRobotsBlocks(text) {
+  const blocks = [];
+  let current = null;
+  for (const line of String(text ?? '').split('\n')) {
+    const ua = line.match(/^\s*User-agent:\s*(.+)\s*$/i);
+    if (ua) {
+      if (current) blocks.push(current);
+      current = { userAgent: ua[1].trim(), allows: [], disallows: [] };
+      continue;
+    }
+    if (!current) continue;
+    const allow = line.match(/^\s*Allow:\s*(.+)\s*$/i);
+    if (allow) {
+      current.allows.push(allow[1].trim());
+      continue;
+    }
+    const disallow = line.match(/^\s*Disallow:\s*(.+)\s*$/i);
+    if (disallow) current.disallows.push(disallow[1].trim());
+  }
+  if (current) blocks.push(current);
+  return blocks;
+}
+
+function blockDisallowsEntireSite(block) {
+  return block.disallows.some((p) => p === '/' || p === '/*');
+}
+
+function blockAllowsRoot(block) {
+  return block.allows.some((p) => p === '/' || p === '/*');
 }
 
 function extractBlockedBots(text) {

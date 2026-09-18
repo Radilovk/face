@@ -1,6 +1,7 @@
 import { buildRobotsTxt } from '../config/aiCrawlers.js';
 import { buildLlmsTxt } from '../enhance/llms.js';
 import { buildAgentNativePack } from '../enhance/agentNative.js';
+import { isOriginAgentNativeReady } from '../diagnose/originReady.js';
 import { pickSchemaType } from '../schema/pickType.js';
 
 /**
@@ -62,7 +63,8 @@ export function buildEdgeDecision(input = {}) {
     });
   }
 
-  const agentGaps = agentNativeGaps(probe);
+  const originReady = isOriginAgentNativeReady(probe) || Boolean(tenant?.is_pilot);
+  const agentGaps = originReady ? [] : agentNativeGaps(probe);
   if (agentGaps.length > 0) {
     fixes.push({
       id: 'serve_agent_native',

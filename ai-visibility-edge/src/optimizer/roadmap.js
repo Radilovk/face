@@ -2,6 +2,7 @@
  * Unified optimization roadmap — one ordered list: done / waiting / manual + why.
  */
 import { HUMAN_GATES } from './plan.js';
+import { buildManualGuide, guideToInstructionLines } from '../diagnose/manualGuides.js';
 
 const STATUS = {
   done: { label: 'Готово', icon: '✅', css: 'roadmap-done' },
@@ -200,9 +201,53 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
     }),
   );
 
+  const gptbotBlocked = Boolean(probe.signals?.gptbot_blocked ?? ctx.probe?.signals?.gptbot_blocked);
+  const smokeDone = Boolean(extras.smoke?.ok);
+  steps.push(
+    step('cf_aeo', {
+      order: 7,
+      title: 'Cloudflare AEO (Bot Fight / WAF за AI bots)',
+      status: !hasAudit
+        ? 'blocked'
+        : !gptbotBlocked && smokeDone
+          ? 'done'
+          : gptbotBlocked
+            ? 'waiting_manual'
+            : edgeFixes.length > 0
+              ? 'waiting_auto'
+              : 'done',
+      owner: gptbotBlocked ? 'both' : 'system',
+      summary: !gptbotBlocked
+        ? 'AI crawlers не са блокирани на edge (403 check OK).'
+        : 'GPTBot получава 403 — robots.txt не помага без CF настройки.',
+      why_waiting: gptbotBlocked
+        ? 'Bot Fight / WAF — API „CF AEO“ или ръчно в Cloudflare Dashboard.'
+        : null,
+      instructions: gptbotBlocked
+        ? guideToInstructionLines(buildManualGuide('cloudflare_aeo', { domain, workerHost }))
+        : [],
+      action_hint: gptbotBlocked ? 'apply_cf_aeo' : null,
+    }),
+  );
+
+  steps.push(
+    step('smoke', {
+      order: 8,
+      title: 'Agent-Native smoke (Level 4–5)',
+      status: !hasAudit ? 'blocked' : smokeDone ? 'done' : edgeLive || !gptbotBlocked ? 'waiting_auto' : 'blocked',
+      owner: 'system',
+      summary: smokeDone
+        ? extras.smoke.level_label ?? 'Smoke pass'
+        : 'Live checks: robots, ARD, llms, markdown negotiation.',
+      why_waiting: smokeDone ? null : 'След Edge/CNAME/CF AEO — натиснете „Smoke test“.',
+      instructions: smokeDone ? [] : ['Edge & DNS → „Smoke test“ или „CF AEO“ (включва smoke).'],
+      action_hint: smokeDone ? null : 'run_smoke',
+    }),
+  );
+
   steps.push(
     step('cname', {
-      order: 7,
+      order: 9,
       title: 'CNAME към Worker (опционално — само при Edge поправки)',
       status:
         edgeFixes.length === 0
@@ -227,12 +272,7 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
           : 'DNS е единственото, което системата не може да направи вместо вас — но не е задължително без Edge fixes.',
       instructions: edgeLive
         ? []
-        : [
-            `1. Отворете DNS панела при registrar или Cloudflare.`,
-            `2. Създайте CNAME: име = ${domain}, стойност = ${workerHost}`,
-            `3. Изчакайте SSL (обикновено 5–30 мин).`,
-            `4. Презаредете страницата — статусът трябва да стане активен.`,
-          ],
+        : guideToInstructionLines(buildManualGuide('cname', { domain, workerHost })),
       action_hint: edgeLive ? null : 'cname_dns',
     }),
   );
@@ -240,7 +280,7 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
   const contentNeeded = thinContent || hasDraft;
   steps.push(
     step('content', {
-      order: 8,
+      order: 10,
       title: 'Текст на сайта (ако е тънко съдържание)',
       status: !hasAudit
         ? 'blocked'
@@ -262,19 +302,16 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
         : 'Маркетинговият текст живее във вашия CMS — системата не публикува вместо вас.',
       instructions: !contentNeeded
         ? []
-        : [
-            '1. Вижте „📥 Експорт .txt“ — там са инструкциите и текстовите предложения.',
-            '2. Копирайте текста в CMS (начална страница или FAQ) — проверете факти и цени.',
-            '3. Публикувайте в сайта си (единственото, което не можем вместо вас).',
-            '4. Натиснете „🚀 Стартирай“ отново за ново измерване.',
-          ],
+        : guideToInstructionLines(
+            buildManualGuide('cms_publish', { domain, workerHost, brand: ctx.tenant?.name ?? domain, artifactType: 'homepage' }),
+          ),
       action_hint: contentNeeded ? 'publish_cms' : null,
     }),
   );
 
   steps.push(
     step('remeasure', {
-      order: 9,
+      order: 11,
       title: 'Повторно измерване след промени',
       status: !edgeLive && !hasObs
         ? 'blocked'
@@ -300,7 +337,7 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
 
   steps.push(
     step('monitor', {
-      order: 10,
+      order: 12,
       title: 'Мониторинг и тренд',
       status: stats.runCount >= 10 && hasObs ? 'done' : hasObs ? 'current' : 'blocked',
       owner: 'system',
@@ -341,29 +378,20 @@ function formatTopFindings(findings) {
 
 export function humanGateInstructions(gateId, ctx = {}) {
   const gate = HUMAN_GATES[gateId];
-  if (!gate) return { title: gateId, why: '', instructions: [] };
-
-  if (gateId === 'dns_cname') {
-    return {
-      title: gate.title,
-      why: gate.why,
-      instructions: [
-        `CNAME ${ctx.domain ?? 'вашият-домейн.com'} → ${ctx.worker_host ?? 'worker-host'}`,
-        'Изчакайте SSL validation.',
-        'Обновете dashboard.',
-      ],
-    };
+  const guideId = gateId === 'dns_cname' ? 'cname' : gateId;
+  const guide = buildManualGuide(guideId, {
+    domain: ctx.domain,
+    workerHost: ctx.worker_host,
+    brand: ctx.brand,
+    artifactType: ctx.artifact_type,
+  });
+  if (!gate) {
+    return { title: guide.title, why: guide.where, instructions: guideToInstructionLines(guide), guide };
   }
-  if (gateId === 'cms_publish') {
-    return {
-      title: gate.title,
-      why: gate.why,
-      instructions: [
-        'Вижте „📥 Експорт .txt“ за текстови предложения.',
-        'Публикувайте в CMS след проверка на факти.',
-        'Натиснете „🚀 Стартирай“ за повторен анализ.',
-      ],
-    };
-  }
-  return { title: gate.title, why: gate.why, instructions: [gate.why] };
+  return {
+    title: gate.title,
+    why: gate.why,
+    instructions: guideToInstructionLines(guide),
+    guide,
+  };
 }

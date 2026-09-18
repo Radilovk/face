@@ -81,27 +81,24 @@ curl -X POST https://<worker>/api/citations/reprocess \
 
 AIV използва **същия KV namespace** чрез `KV_NAMESPACE_ID` в GitHub — binding `CACHE` в `wrangler.toml`.
 
-## Един Worker, много домейни
-
-Типична схема (3+ сайта, един бекенд):
+## Един Worker, хиляди клиентски домейни (SaaS)
 
 ```
-                    ┌─ daotslabna.com      → HTML от GitHub/Pages A
-                    │
-Worker (1 host) ────┼─ biocode-bg.com      → HTML от GitHub/Pages B
-  dashboard/API     │
-  на *.workers.dev  └─ life-protocols.com  → HTML от GitHub/Pages C
+Operator dashboard (*.workers.dev)
+        │
+        ├── client-a.com  → their HTML origin
+        ├── client-b.de   → their HTML origin
+        └── client-n.com  → their HTML origin
 ```
 
-| Host header | Какво прави Worker-ът |
-|-------------|------------------------|
-| `*.workers.dev` | Dashboard + `/api/*` (platform) |
-| `daotslabna.com` | Lookup в `tenant_hosts` → fetch **origin A** → optional Edge inject |
-| `biocode-bg.com` | Lookup → fetch **origin B** → optional Edge inject |
+| Host | Роля |
+|------|------|
+| `*.workers.dev` | Platform API + dashboard |
+| `client-domain.com` | Tenant traffic → fetch **their** origin → optional Edge |
 
-- **Измерване без CNAME:** probe директно към публичния URL — всеки домейн си HTML.
-- **С CNAME към Worker:** Custom Hostname per domain (Cloudflare for SaaS), **един** Worker script; `origin_url` per tenant в KV след „Приложи Edge“.
-- **Custom Hostnames:** `POST /api/hostnames/{domain}/provision` — повторете за всеки от 3-те домейна; сочат към **същия** Worker.
+Onboarding: `POST /api/sites` + `run_analysis: true`. Виж `docs/SAAS-PLATFORM.md`.
+
+Pilot seed tenants (`is_pilot=1`) — скрити от `GET /api/sites`; добави `?include_pilot=1` за debug.
 
 ## Baseline collect (GitHub Action)
 

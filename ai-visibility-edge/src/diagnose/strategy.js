@@ -13,6 +13,8 @@ import { computeSov, currentPeriod } from '../index/sov.js';
 import { buildManualTaskList } from './manualTasks.js';
 import { loadEdgeConfig } from '../config/tenantEdge.js';
 import { resolveProductPhase, shouldRecommendEdge } from './siteProfile.js';
+import { buildDeepResearchReport, loadLatestDeepAudit } from './deepResearch.js';
+import { isOriginAgentNativeReady } from './originReady.js';
 
 export const PILLARS = [
   { id: 'visibility', label: 'Видимост', icon: '👁' },
@@ -48,6 +50,7 @@ export function buildStrategy(input = {}) {
     edgeStatus = 'measurement_only',
     observationQuality = null,
     worker_host,
+    deep_audit = null,
   } = input;
 
   const brand = tenant?.name ?? null;
@@ -66,7 +69,21 @@ export function buildStrategy(input = {}) {
   const recommendations = findingsToRecommendations(findingsPack.findings);
   const scoreBreakdown = buildScoreBreakdown(probe, passage, findingsPack.findings);
 
-  const verdict = buildVerdict(probe, passage, diagnostic_score, displacement, sov, runCount, findingsPack, brand);
+  const research_report = deep_audit
+    ? buildDeepResearchReport(deep_audit, probe, { brand, strategy: { displacement, stats: { runCount } } })
+    : null;
+
+  const verdict = buildVerdict(
+    probe,
+    passage,
+    diagnostic_score,
+    displacement,
+    sov,
+    runCount,
+    findingsPack,
+    brand,
+    deep_audit,
+  );
   const pillars = buildPillars(probe, passage, displacement, sov, runCount);
   const plan = buildActionPlan(probe, recommendations, displacement, sov, {
     registered,
@@ -120,11 +137,34 @@ export function buildStrategy(input = {}) {
     score_breakdown: scoreBreakdown,
     top_issues: findingsPack.findings.filter((f) => f.severity !== 'ok').slice(0, 8),
     recommendations,
+    research_report,
+    deep_research: research_report
+      ? {
+          executive_summary: research_report.executive_summary,
+          site_maturity: research_report.site_maturity,
+          maturity_label: research_report.maturity_label,
+          confidence: research_report.confidence,
+          strengths: research_report.strengths,
+          gaps: research_report.gaps,
+          strategy: research_report.strategy,
+          page_inventory: research_report.page_inventory,
+        }
+      : null,
     generated_at: new Date().toISOString(),
   };
 }
 
-function buildVerdict(probe, passage, score, displacement, sov, runCount, findingsPack = null, brand = null) {
+function buildVerdict(
+  probe,
+  passage,
+  score,
+  displacement,
+  sov,
+  runCount,
+  findingsPack = null,
+  brand = null,
+  deepAudit = null,
+) {
   if (!probe) {
     return {
       level: 'unknown',
@@ -151,7 +191,7 @@ function buildVerdict(probe, passage, score, displacement, sov, runCount, findin
     };
   }
 
-  if (probe.robots_ai_policy === 'disallow_all') {
+  if (probe.robots_ai_policy === 'disallow_all' && !isOriginAgentNativeReady(probe)) {
     return {
       level: 'critical',
       headline: 'AI ботовете не могат да четат сайта',
@@ -168,7 +208,8 @@ function buildVerdict(probe, passage, score, displacement, sov, runCount, findin
   }
 
   const chars = probe.html_text_chars ?? 0;
-  if (chars < 200) {
+  const richFromDeep = deepAudit?.aggregate?.rich_site ?? false;
+  if (chars < 200 && !isOriginAgentNativeReady(probe) && !richFromDeep) {
     return {
       level: 'critical',
       headline: 'Landing страницата е почти празна за AI',
@@ -550,7 +591,7 @@ export async function fetchDomainStrategy(env, domain, options = {}) {
 
   if (env.DB) {
     tenant = await env.DB.prepare(
-      `SELECT t.id, t.apex_host, t.name, t.edge_enabled, t.edge_status, wd.vertical_id
+      `SELECT t.id, t.apex_host, t.name, t.is_pilot, t.edge_enabled, t.edge_status, wd.vertical_id
        FROM tenants t
        JOIN watched_domains wd ON wd.tenant_id = t.id AND wd.role = 'tenant'
        WHERE t.apex_host = ?`,
@@ -626,6 +667,11 @@ export async function fetchDomainStrategy(env, domain, options = {}) {
     }
   }
 
+  let deepAudit = null;
+  if (env.DB && options.deep_research !== false) {
+    deepAudit = await loadLatestDeepAudit(env.DB, normalized);
+  }
+
   const strategy = buildStrategy({
     probe: probeResult,
     passage,
@@ -640,6 +686,7 @@ export async function fetchDomainStrategy(env, domain, options = {}) {
     edgeStatus,
     observationQuality,
     worker_host: options.worker_host ?? env?.WORKER_PUBLIC_HOST,
+    deep_audit: deepAudit,
   });
 
   return {

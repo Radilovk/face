@@ -1,6 +1,6 @@
 /** Minimal Cloudflare API v4 client for Custom Hostnames (Cloudflare for SaaS). */
 
-function cfCredentials(env) {
+export function cfCredentials(env) {
   const token = env.CF_API_TOKEN ?? env.CLOUDFLARE_API_TOKEN;
   const accountId = env.CF_ACCOUNT_ID ?? env.CLOUDFLARE_ACCOUNT_ID;
   const zoneId = env.SAAS_ZONE_ID ?? env.CF_SAAS_ZONE_ID;
@@ -12,7 +12,12 @@ export function cloudflareConfigured(env) {
   return Boolean(token && zoneId);
 }
 
-async function cfRequest(env, path, { method = 'GET', body } = {}) {
+/** Token present — enough for zone lookup + AEO apply on client zones. */
+export function cloudflareTokenConfigured(env) {
+  return Boolean(cfCredentials(env).token);
+}
+
+export async function cfRequest(env, path, { method = 'GET', body } = {}) {
   const { token } = cfCredentials(env);
   if (!token) return { error: 'cf_token_missing' };
 
@@ -88,4 +93,20 @@ export async function getCustomHostnameStatus(env, cfHostnameId) {
     validation_records: ssl.validation_records ?? [],
     active: ssl.status === 'active' || res.result.status === 'active',
   };
+}
+
+/** Find active zone by apex hostname (client-owned zone for AEO apply). */
+export async function findZoneByHostname(env, hostname) {
+  const host = String(hostname).toLowerCase().replace(/^www\./, '');
+  const res = await cfRequest(env, `/zones?name=${encodeURIComponent(host)}&status=active&per_page=5`);
+  if (res.error) return res;
+
+  const zones = res.result ?? [];
+  const exact = zones.find((z) => z.name === host);
+  if (exact) return { ok: true, zone: exact };
+
+  const partial = zones.find((z) => host.endsWith(`.${z.name}`) || z.name === host);
+  if (partial) return { ok: true, zone: partial };
+
+  return { error: 'zone_not_found', hostname: host, hint: 'Домейнът трябва да е active zone в същия CF акаунт като токена.' };
 }

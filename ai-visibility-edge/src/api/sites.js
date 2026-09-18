@@ -48,7 +48,8 @@ export async function registerSite(db, body) {
     verticalId = slugId('vertical', verticalName);
   }
   if (!verticalId) {
-    return { error: 'vertical_required', hint: 'vertical_id or vertical_name' };
+    verticalId = 'general';
+    verticalName = verticalName || 'General';
   }
 
   if (!verticalName) {
@@ -60,10 +61,19 @@ export async function registerSite(db, body) {
 
   const tenantId = body.tenant_id?.trim() || slugId('tenant', apex.replace(/\./g, '-'));
 
-  const locale = String(body.locale ?? 'bg').trim().slice(0, 8) || 'bg';
-  const marketCountry = String(body.market_country ?? body.market ?? 'BG').trim().slice(0, 8) || 'BG';
-  const dataConsent = body.data_consent === true || body.data_consent === 1 || body.data_consent === '1' ? 1 : 0;
-  const activateNow = body.activate === true || body.status === 'active';
+  const locale = String(body.locale ?? body.language ?? 'en').trim().slice(0, 8) || 'en';
+  const marketCountry = String(body.market_country ?? body.market ?? 'US').trim().slice(0, 8) || 'US';
+  const consentExplicit = body.data_consent !== undefined && body.data_consent !== null;
+  const dataConsent =
+    body.data_consent === false || body.data_consent === 0 || body.data_consent === '0'
+      ? 0
+      : consentExplicit || body.data_consent === true || body.data_consent === 1 || body.data_consent === '1'
+        ? 1
+        : 1;
+  const activateNow =
+    body.activate === false || body.status === 'staging'
+      ? false
+      : body.activate === true || body.status === 'active' || body.status === undefined;
 
   await db
     .prepare(
@@ -113,9 +123,38 @@ export async function registerSite(db, body) {
     market_country: marketCountry,
     data_consent: Boolean(dataConsent),
     status: activateNow ? 'active' : 'staging',
+    is_pilot: false,
     competitors_added: competitors.length,
     www: `www.${apex}`,
+    next_steps: [
+      'POST /api/pipeline/' + apex + '/run — пълен AI анализ',
+      'POST /api/hostnames/' + apex + '/provision — optional Custom Hostname',
+    ],
   };
+}
+
+export async function listSites(db, { excludePilot = true, status = null, limit = 500, offset = 0 } = {}) {
+  let query = `
+    SELECT t.id, t.apex_host as domain, t.name, t.status, t.plan, t.locale, t.market_country,
+           t.data_consent, t.is_pilot, t.created_at, wd.vertical_id, v.name as vertical
+    FROM tenants t
+    LEFT JOIN watched_domains wd ON wd.tenant_id = t.id AND wd.role = 'tenant'
+    LEFT JOIN verticals v ON v.id = wd.vertical_id
+    WHERE 1=1`;
+  const binds = [];
+
+  if (excludePilot) {
+    query += ` AND t.is_pilot = 0`;
+  }
+  if (status) {
+    query += ` AND t.status = ?`;
+    binds.push(status);
+  }
+  query += ` ORDER BY t.created_at DESC LIMIT ? OFFSET ?`;
+  binds.push(limit, offset);
+
+  const { results } = await db.prepare(query).bind(...binds).all();
+  return results ?? [];
 }
 
 /** Update tenant metadata (name, vertical, locale, automation flags, consent). */

@@ -27,6 +27,11 @@ export function renderDashboardPage(origin) {
       </div>
     </header>
 
+    <section id="sites-bar" class="sites-bar hidden" aria-label="Вашите сайтове">
+      <p class="sites-bar-title">Сайтове (<span id="sites-count">0</span>)</p>
+      <ul id="sites-list" class="sites-list"></ul>
+    </section>
+
     <section id="how-it-works" class="how-it-works" aria-label="Как работи">
       <p class="how-it-works-lead"><strong>Как работи (3 стъпки):</strong></p>
       <ol class="how-it-works-steps">
@@ -37,7 +42,7 @@ export function renderDashboardPage(origin) {
     </section>
 
     <section id="add-panel" class="add-panel">
-      <p class="lead" id="add-lead">Добавете сайт тук — всички домейни влизат през този интерфейс.</p>
+      <p class="lead" id="add-lead">Нов клиент: въведете домейн и марка — системата прави останалото (AI анализ, план, measure).</p>
       <form id="add-site-form" class="form-grid">
         <label>Домейн <input name="domain" type="text" placeholder="example.com" required></label>
         <label>Марка <input name="name" type="text" placeholder="Example" required></label>
@@ -73,6 +78,40 @@ export function renderDashboardPage(origin) {
     <section id="journey-bar" class="journey-bar hidden" aria-label="Път на оптимизация">
       <div class="journey-phases" id="journey-phases"></div>
       <p id="journey-focus" class="journey-focus sub">—</p>
+    </section>
+
+    <section id="playbook-panel" class="playbook-panel hidden" aria-label="AI playbook за клиента">
+      <div class="playbook-head">
+        <span id="playbook-path-badge" class="playbook-badge">—</span>
+        <span id="playbook-level" class="playbook-level sub">—</span>
+      </div>
+      <p id="playbook-summary" class="sub">—</p>
+      <p id="playbook-ai-rationale" class="playbook-rationale sub hidden"></p>
+      <div id="playbook-phases" class="playbook-phases"></div>
+    </section>
+
+    <section id="deep-research-panel" class="deep-research-panel hidden" aria-label="Дълбок анализ на сайта">
+      <div class="deep-research-head">
+        <h3 class="deep-research-title">🔬 Дълбок анализ</h3>
+        <span id="deep-research-maturity" class="deep-research-badge">—</span>
+        <button type="button" class="btn btn-sm btn-ghost" id="btn-deep-refresh" title="Нов live crawl">Обнови</button>
+      </div>
+      <p id="deep-research-summary" class="deep-research-summary">—</p>
+      <div class="deep-research-grid">
+        <div class="deep-research-col">
+          <h4 class="deep-research-sub">Силни страни</h4>
+          <ul id="deep-research-strengths" class="deep-research-list"></ul>
+        </div>
+        <div class="deep-research-col">
+          <h4 class="deep-research-sub">Пропуски</h4>
+          <ul id="deep-research-gaps" class="deep-research-list"></ul>
+        </div>
+      </div>
+      <details class="deep-research-strategy" open>
+        <summary><strong>Приоритетна стратегия</strong></summary>
+        <div id="deep-research-strategy" class="deep-research-strategy-body"></div>
+      </details>
+      <p id="deep-research-meta" class="sub deep-research-meta">—</p>
     </section>
 
     <section id="activity-panel" class="activity-panel hidden" aria-live="polite">
@@ -184,12 +223,20 @@ export function renderDashboardPage(origin) {
           <div id="edge-verdict" class="edge-verdict sub">—</div>
           <ul id="edge-fixes" class="edge-fix-list"></ul>
           <ul id="edge-prereq" class="edge-prereq-list"></ul>
-          <button type="button" class="btn btn-sm" id="btn-edge-activate">Приложи Edge</button>
+          <div class="edge-actions">
+            <button type="button" class="btn btn-sm" id="btn-edge-activate">Приложи Edge</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-cf-aeo">CF AEO</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-edge-smoke">Smoke test</button>
+          </div>
+          <div id="edge-smoke-panel" class="edge-smoke-panel hidden">
+            <p class="sub"><strong id="edge-smoke-level">—</strong> <span id="edge-smoke-score"></span></p>
+            <ul id="edge-smoke-checks" class="edge-smoke-list"></ul>
+          </div>
         </section>
         <section id="onboarding-panel" class="tech-block onboarding hidden">
           <h4>CNAME / DNS</h4>
           <ol id="onboarding-steps" class="onboarding-list"></ol>
-          <p id="onboarding-dns" class="sub mono">…</p>
+          <div id="onboarding-dns" class="onboarding-dns-guide">…</div>
         </section>
       </div>
     </details>
@@ -658,7 +705,35 @@ function script(origin) {
 
     function authErrorHint(res, data) {
       if (res.status === 401) return data?.hint || 'Нужен ADMIN_TOKEN (🔐 Admin достъп)';
+      if (data?.error === 'domain_exists' && data?.domain) {
+        return data.domain + ' вече е в системата';
+      }
       return data?.error || data?.hint || res.status;
+    }
+
+    function siteSelectLabel(s) {
+      let label = s.domain;
+      if (s.is_pilot) label += ' (pilot)';
+      if (s.status && s.status !== 'active') label += ' [' + s.status + ']';
+      return label;
+    }
+
+    function applySelectedSite(domain, reload) {
+      selectedDomain = domain;
+      const sel = $('site-select');
+      if (sel) sel.value = domain;
+      $('sites-list')?.querySelectorAll('.site-chip').forEach(el => {
+        const active = el.dataset.domain === domain;
+        el.classList.toggle('site-chip-active', active);
+        el.setAttribute('aria-current', active ? 'true' : 'false');
+      });
+      if (reload) {
+        renderOperationHistory();
+        loadStrategy();
+        loadEdgeDecision();
+        loadSiteStats();
+        loadOnboarding();
+      }
     }
 
     async function loadAuthStatus() {
@@ -733,15 +808,20 @@ function script(origin) {
     }
 
     async function loadSites() {
-      const res = await fetch(API('/api/sites'));
+      const res = await fetch(API('/api/sites?include_pilot=1'));
       const data = await res.json();
       sites = data.sites || [];
       const sel = $('site-select');
       const addPanel = $('add-panel');
       const addLead = $('add-lead');
+      const sitesBar = $('sites-bar');
+      const sitesList = $('sites-list');
+      const sitesCount = $('sites-count');
       if (!sites.length) {
         sel.innerHTML = '<option value="">— добавете сайт —</option>';
         selectedDomain = '';
+        sitesBar?.classList.add('hidden');
+        if (sitesList) sitesList.innerHTML = '';
         addPanel.classList.remove('hidden');
         addLead.textContent = 'Няма регистрирани сайтове. Добавете домейн по-долу — това е единственият вход.';
         $('btn-primary-action').disabled = true;
@@ -749,20 +829,42 @@ function script(origin) {
         $('verdict-summary').textContent = 'Домейн, марка, вертикал — след това „Добави + анализ“.';
         return;
       }
-      addPanel.classList.add('hidden');
+      sitesBar?.classList.remove('hidden');
+      if (sitesCount) sitesCount.textContent = String(data.total ?? sites.length);
+      if (sitesList) {
+        sitesList.innerHTML = sites.map(s =>
+          '<li><button type="button" class="site-chip' +
+          (s.domain === selectedDomain ? ' site-chip-active' : '') +
+          '" data-domain="' + escHtml(s.domain) + '" aria-current="' +
+          (s.domain === selectedDomain ? 'true' : 'false') + '">' +
+          escHtml(s.domain) +
+          (s.is_pilot ? ' <span class="site-badge-pilot">pilot</span>' : '') +
+          (s.status && s.status !== 'active'
+            ? ' <span class="site-badge-status">' + escHtml(s.status) + '</span>'
+            : '') +
+          '</button></li>'
+        ).join('');
+        sitesList.querySelectorAll('.site-chip').forEach(btn => {
+          btn.onclick = () => applySelectedSite(btn.dataset.domain, true);
+        });
+      }
+      if (sites.length && addPanel.classList.contains('hidden')) {
+        addLead.textContent = 'Нов клиент: въведете домейн и марка — системата прави останалото (AI анализ, план, measure).';
+      }
       $('btn-primary-action').disabled = false;
       sel.innerHTML = sites.map(s =>
-        '<option value="' + s.domain + '">' + s.domain + '</option>'
+        '<option value="' + escHtml(s.domain) + '">' + escHtml(siteSelectLabel(s)) + '</option>'
       ).join('');
       if (!selectedDomain || !sites.find(s => s.domain === selectedDomain)) {
         selectedDomain = sites[0].domain;
       }
       sel.value = selectedDomain;
-      sel.onchange = () => {
-        selectedDomain = sel.value;
-        renderOperationHistory();
-        loadStrategy();
-      };
+      sitesList?.querySelectorAll('.site-chip').forEach(el => {
+        const active = el.dataset.domain === selectedDomain;
+        el.classList.toggle('site-chip-active', active);
+        el.setAttribute('aria-current', active ? 'true' : 'false');
+      });
+      sel.onchange = () => applySelectedSite(sel.value, true);
     }
 
     const GATE_LABELS = {
@@ -801,8 +903,31 @@ function script(origin) {
         '</div></div></li>';
     }
 
+    function htmlManualGuideBlock(guide) {
+      if (!guide) return '';
+      const fields = (guide.fields || []).length
+        ? '<table class="manual-guide-fields"><thead><tr><th>Поле</th><th>Стойност</th></tr></thead><tbody>' +
+          guide.fields.map(f =>
+            '<tr><td>' + escHtml(f.label) + '</td><td><code class="manual-guide-val">' + escHtml(f.value) + '</code>' +
+            (f.note ? ' <span class="sub">' + escHtml(f.note) + '</span>' : '') + '</td></tr>'
+          ).join('') + '</tbody></table>'
+        : '';
+      const steps = (guide.steps || []).length
+        ? '<ol class="manual-guide-steps">' + guide.steps.map(s => '<li>' + escHtml(s) + '</li>').join('') + '</ol>'
+        : '';
+      const after = (guide.after || []).length
+        ? '<p class="manual-guide-after"><strong>След това:</strong> ' + escHtml(guide.after.join(' · ')) + '</p>'
+        : '';
+      return '<details class="manual-guide" open>' +
+        '<summary>📍 Къде и как (' + escHtml(guide.title || 'ръчна стъпка') + ')</summary>' +
+        '<p class="manual-guide-where"><strong>Къде:</strong> ' + escHtml(guide.where || '') + '</p>' +
+        steps + fields + after +
+        '</details>';
+    }
+
     function htmlManualTaskCard(t) {
       const sev = t.severity === 'critical' ? 'finding-critical' : (t.severity === 'warning' ? 'finding-warning' : '');
+      const guideBlock = t.manual_form?.guide ? htmlManualGuideBlock(t.manual_form.guide) : '';
       const artifactBlock = t.artifact?.content
         ? '<div class="manual-artifact-wrap">' +
           '<div class="manual-artifact-head">' +
@@ -823,6 +948,7 @@ function script(origin) {
         '<strong>' + escHtml(t.title) + '</strong>' +
         (t.instructions ? '<p class="sub">' + escHtml(t.instructions) + '</p>' : '') +
         (t.impact ? '<p class="finding-impact">' + escHtml(t.impact) + '</p>' : '') +
+        guideBlock +
         artifactBlock +
         renderManualFormFields(t.manual_form, t.id) +
         '<div class="manual-task-actions">' + genBtn +
@@ -1177,9 +1303,10 @@ function script(origin) {
 
     function renderManualFormFields(form, taskId) {
       if (!form?.fields?.length) return '';
+      const guideAlready = form.guide ? '' : (form.hint ? '<p class="sub">' + escHtml(form.hint) + '</p>' : '');
       return '<div class="finding-manual manual-task-form" data-finding-id="' + escHtml(taskId) + '">' +
         '<p class="finding-manual-title">' + escHtml(form.title) + '</p>' +
-        (form.hint ? '<p class="sub mono">' + escHtml(form.hint) + '</p>' : '') +
+        guideAlready +
         form.fields.map(field => {
           if (field.type === 'checkbox') {
             return '<label class="finding-field"><input type="checkbox" data-field="' + escHtml(field.id) + '"> ' + escHtml(field.label) + '</label>';
@@ -1366,6 +1493,34 @@ function script(origin) {
       setMetricContext('edge_status', {
         message: (v.headline || '') + ' — ' + (decision.fixes?.length || 0) + ' fixes, status=' + (decision.status || ''),
       });
+      loadEdgeSmokeQuiet();
+    }
+
+    function renderEdgeSmoke(smoke) {
+      const panel = $('edge-smoke-panel');
+      if (!smoke || smoke.error) {
+        panel?.classList.add('hidden');
+        return;
+      }
+      panel?.classList.remove('hidden');
+      $('edge-smoke-level').textContent = smoke.level_label || ('Level ' + (smoke.level ?? '?'));
+      $('edge-smoke-score').textContent = '(' + (smoke.passed ?? 0) + '/' + (smoke.total ?? 0) + ' checks)';
+      const list = $('edge-smoke-checks');
+      if (list) {
+        list.innerHTML = (smoke.checks || []).map(c =>
+          '<li class="edge-smoke-item ' + (c.pass ? 'ok' : 'fail') + '">' +
+          (c.pass ? '✓' : '✗') + ' ' + escHtml(c.id) + ': ' + escHtml(c.detail || '') + '</li>'
+        ).join('');
+      }
+    }
+
+    async function loadEdgeSmokeQuiet() {
+      if (!selectedDomain) return;
+      try {
+        const res = await fetch(API('/api/edge/' + encodeURIComponent(selectedDomain) + '/smoke'));
+        const data = await res.json();
+        if (res.ok) renderEdgeSmoke(data);
+      } catch { /* optional panel */ }
     }
 
     async function loadEdgeDecision() {
@@ -1493,7 +1648,13 @@ function script(origin) {
           '<strong>' + escHtml(s.title) + '</strong> — ' + escHtml(s.detail) + '</li>'
         ).join('');
         const dns = data.dns || {};
-        $('onboarding-dns').textContent = dns.type + ' ' + dns.name + ' → ' + dns.target;
+        const dnsEl = $('onboarding-dns');
+        if (dns.guide) {
+          dnsEl.innerHTML = htmlManualGuideBlock(dns.guide) +
+            '<p class="sub mono">' + escHtml((dns.type || 'CNAME') + ' ' + (dns.name || '') + ' → ' + (dns.target || '')) + '</p>';
+        } else {
+          dnsEl.textContent = (dns.type || 'CNAME') + ' ' + (dns.name || '') + ' → ' + (dns.target || '');
+        }
       } catch {
         panel.classList.add('hidden');
       }
@@ -1507,6 +1668,7 @@ function script(origin) {
         strategy = await res.json();
         if (!res.ok) throw new Error(strategy.error || res.status);
         renderVerdict(strategy.verdict, strategy.score);
+        renderDeepResearch(strategy.deep_research);
         renderBlockers(strategy);
         renderJourneyBar(strategy);
         renderCommandCenter(strategy);
@@ -1553,10 +1715,124 @@ function script(origin) {
         if (!res.ok) return;
         const plan = data.current_plan;
         renderRoadmap(data.roadmap);
+        renderPlaybook(data.playbook);
         setMetricContext('optimizer', {
-          message: (plan?.headline || data.roadmap?.summary || ''),
+          message: (plan?.headline || data.playbook?.summary || data.roadmap?.summary || ''),
         });
       } catch { /* optional panel */ }
+    }
+
+    function renderDeepResearch(research) {
+      const panel = $('deep-research-panel');
+      if (!research || !research.executive_summary) {
+        panel?.classList.add('hidden');
+        return;
+      }
+      panel?.classList.remove('hidden');
+      const maturity = $('deep-research-maturity');
+      if (maturity) {
+        maturity.textContent = research.maturity_label || research.site_maturity || '—';
+        maturity.className = 'deep-research-badge maturity-' + escHtml(research.site_maturity || 'unknown');
+      }
+      $('deep-research-summary').textContent = research.executive_summary || '—';
+      const strengthsEl = $('deep-research-strengths');
+      if (strengthsEl) {
+        strengthsEl.innerHTML = (research.strengths || []).slice(0, 6).map(s =>
+          '<li class="dr-strength"><strong>' + escHtml(s.title) + '</strong> — ' + escHtml(s.detail) +
+          (s.evidence ? ' <span class="sub">(' + escHtml(s.evidence) + ')</span>' : '') + '</li>'
+        ).join('') || '<li class="sub">Няма открити силни страни.</li>';
+      }
+      const gapsEl = $('deep-research-gaps');
+      if (gapsEl) {
+        gapsEl.innerHTML = (research.gaps || []).slice(0, 8).map(g =>
+          '<li class="dr-gap dr-priority-' + escHtml(g.priority || 'medium') + '">' +
+          '<strong>' + escHtml(g.title) + '</strong> — ' + escHtml(g.detail) + '</li>'
+        ).join('') || '<li class="sub">Няма критични пропуски.</li>';
+      }
+      const stratEl = $('deep-research-strategy');
+      if (stratEl && research.strategy) {
+        const blocks = [
+          { key: 'immediate', label: 'Веднага' },
+          { key: 'short_term', label: 'Краткосрочно' },
+          { key: 'long_term', label: 'Дългосрочно' },
+        ];
+        stratEl.innerHTML = blocks.map(b => {
+          const steps = research.strategy[b.key] || [];
+          if (!steps.length) return '';
+          return '<div class="dr-strategy-block"><strong>' + b.label + '</strong><ol>' +
+            steps.map(s => '<li>' + escHtml(s.title) + ' — <span class="sub">' + escHtml(s.detail) + '</span></li>').join('') +
+            '</ol></div>';
+        }).join('');
+      }
+      const inv = research.page_inventory;
+      $('deep-research-meta').textContent = inv
+        ? (inv.pages_fetched || '?') + ' страници · ' + (inv.sitemap_urls_found || 0) + ' URL в sitemap · confidence ' + (research.confidence || '—')
+        : '';
+    }
+
+    async function runDeepResearchRefresh() {
+      if (!selectedDomain || busy) return;
+      return withOperation('Дълбок анализ', 'Crawl на ключови страници…', async (setStatus) => {
+        setStatus('Sitemap + вътрешни линкове…');
+        const res = await fetch(API('/api/diagnose/deep/' + encodeURIComponent(selectedDomain) + '?refresh=1'));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.status);
+        setStatus('Синтез на стратегия…');
+        renderDeepResearch(data.research_report);
+        await loadStrategy();
+        return data;
+      }, null, {
+        successDetail: (data) => data.research_report?.executive_summary?.slice(0, 120) + '…',
+      });
+    }
+
+    function renderPlaybook(playbook) {
+      const panel = $('playbook-panel');
+      if (!playbook || playbook.error) {
+        panel?.classList.add('hidden');
+        return;
+      }
+      panel?.classList.remove('hidden');
+      const badge = $('playbook-path-badge');
+      if (badge) {
+        badge.textContent = playbook.path?.label || playbook.path_id || '—';
+        badge.className = 'playbook-badge path-' + escHtml(playbook.path_id || 'unknown');
+      }
+      const levelEl = $('playbook-level');
+      if (levelEl) {
+        const smoke = playbook.smoke;
+        levelEl.textContent = smoke
+          ? (smoke.level_label || 'Level ' + smoke.level) + ' · ' + (playbook.ai_source === 'gemini' ? '🤖 AI path' : '📋 rules')
+          : (playbook.ai_source === 'gemini' ? '🤖 AI path' : '📋 rules');
+      }
+      $('playbook-summary').textContent = playbook.summary || playbook.path?.tagline || '—';
+      const rationale = $('playbook-ai-rationale');
+      if (playbook.ai_rationale) {
+        rationale.textContent = playbook.ai_rationale;
+        rationale.classList.remove('hidden');
+      } else {
+        rationale.classList.add('hidden');
+      }
+      const phasesEl = $('playbook-phases');
+      if (phasesEl) {
+        phasesEl.innerHTML = (playbook.phases || []).map(ph =>
+          '<details class="playbook-phase" open>' +
+          '<summary><strong>' + escHtml(ph.title) + '</strong></summary>' +
+          '<ol class="playbook-steps">' +
+          (ph.steps || []).map(s =>
+            '<li class="playbook-step pb-' + escHtml(s.status) + '">' +
+            '<span class="pb-status">' + statusIcon(s.status) + '</span> ' +
+            escHtml(s.title) + ' — <span class="sub">' + escHtml(s.summary) + '</span>' +
+            '</li>'
+          ).join('') +
+          '</ol></details>'
+        ).join('');
+      }
+    }
+
+    function statusIcon(status) {
+      const icons = { done: '✅', current: '▶️', waiting_auto: '⏳', waiting_manual: '👤', blocked: '🔒' };
+      return icons[status] || '·';
     }
 
     function actionLabel(action) {
@@ -1567,6 +1843,8 @@ function script(origin) {
         refine_questions_displacement: 'Нови въпроси (конкуренция)',
         generate_content: 'Draft текст',
         activate_edge: 'Edge конфигурация',
+        apply_cf_aeo: 'Cloudflare AEO',
+        run_smoke: 'Agent-Native smoke',
         remeasure: 'Повторно измерване',
       };
       return labels[action] || action;
@@ -1664,11 +1942,20 @@ function script(origin) {
             });
             const data = await res.json();
             if (!res.ok) {
+              if (res.status === 409 && data.error === 'domain_exists' && data.domain) {
+                box.textContent = 'ℹ️ ' + data.domain + ' вече е в системата — избран автоматично';
+                applySelectedSite(data.domain, false);
+                $('add-panel').classList.add('hidden');
+                setStatus('Зареждане на списъка…');
+                await loadSites();
+                if (!thenRun) await loadStrategy();
+                return data;
+              }
               box.textContent = 'Грешка: ' + authErrorHint(res, data);
               throw new Error(authErrorHint(res, data));
             }
             box.textContent = '✓ ' + data.domain + ' добавен';
-            selectedDomain = data.domain;
+            applySelectedSite(data.domain, false);
             $('add-panel').classList.add('hidden');
             setStatus('Зареждане на списъка…');
             await loadSites();
@@ -1721,6 +2008,51 @@ function script(origin) {
       if (lastActivityRetry) lastActivityRetry();
     };
     $('btn-edge-activate').onclick = activateEdge;
+    $('btn-cf-aeo').onclick = () => applyCloudflareAeo();
+    $('btn-edge-smoke').onclick = () => runEdgeSmoke(true);
+    $('btn-deep-refresh')?.addEventListener('click', () => runDeepResearchRefresh());
+
+    async function applyCloudflareAeo() {
+      if (!selectedDomain || busy) return;
+      return withOperation('Cloudflare AEO', 'Bot Fight, WAF, DNS-AID…', async (setStatus) => {
+        setStatus('Прилагане на CF настройки за ' + selectedDomain + '…');
+        const res = await apiFetch('/api/cloudflare/' + encodeURIComponent(selectedDomain) + '/apply-aeo', {
+          method: 'POST',
+          body: JSON.stringify({ run_smoke: true }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(authErrorHint(res, data));
+        setStatus('Обновяване на smoke…');
+        if (data.smoke) renderEdgeSmoke(data.smoke);
+        else await loadEdgeSmokeQuiet();
+        await loadEdgeDecision();
+        log(data.message || 'CF AEO приложен');
+        return data;
+      }, null, {
+        retry: () => applyCloudflareAeo(),
+        successDetail: (data) => data?.message || 'Cloudflare AEO настройки приложени.',
+      });
+    }
+
+    async function runEdgeSmoke(showModal) {
+      if (!selectedDomain) return;
+      const run = async () => {
+        const res = await fetch(API('/api/edge/' + encodeURIComponent(selectedDomain) + '/smoke'));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.hint || res.status);
+        renderEdgeSmoke(data);
+        log('Smoke: ' + (data.level_label || '') + ' ' + data.passed + '/' + data.total);
+        return data;
+      };
+      if (!showModal) return run();
+      if (busy) return;
+      return withOperation('Agent-Native smoke', 'Live checks на ' + selectedDomain + '…', run, null, {
+        retry: () => runEdgeSmoke(true),
+        successDetail: (data) =>
+          (data?.level_label || 'Smoke') + ' — ' + (data?.passed ?? 0) + '/' + (data?.total ?? 0) + ' checks pass.',
+        trackMetrics: false,
+      });
+    }
     $('btn-reprocess').onclick = runReprocess;
     $('btn-export-manual').onclick = exportManualRecommendations;
     $('btn-gen-q').onclick = async () => {
@@ -1780,6 +2112,15 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .topbar-brand h1{font-size:1.25rem;margin:0}
 .topbar-meta{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
 #site-select{background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:.45rem .65rem;min-width:180px;max-width:100%}
+.sites-bar{margin-bottom:.75rem}
+.sites-bar.hidden{display:none}
+.sites-bar-title{font-size:.78rem;color:var(--muted);margin:0 0 .35rem;text-transform:uppercase;letter-spacing:.03em}
+.sites-list{list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:.4rem}
+.site-chip{font:inherit;font-size:.82rem;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:999px;padding:.35rem .75rem;cursor:pointer;transition:border-color .15s,background .15s}
+.site-chip:hover{border-color:var(--accent)}
+.site-chip-active{border-color:var(--accent);background:#1e3a5f33;box-shadow:0 0 0 1px #3b82f666}
+.site-badge-pilot{font-size:.65rem;background:#6366f133;color:#a5b4fc;border-radius:4px;padding:.05rem .35rem;margin-left:.25rem;text-transform:uppercase;vertical-align:middle}
+.site-badge-status{font-size:.65rem;color:var(--muted);margin-left:.15rem}
 .pipeline-bar.hidden,.hidden[aria-hidden="true"]{display:none!important}
 .alerts-wrap{display:grid;gap:.5rem;margin-bottom:.75rem}
 .verdict{border-radius:12px;padding:1rem 1.15rem;margin-bottom:1rem;border-left:4px solid var(--border)}
@@ -1815,6 +2156,35 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .plan-honesty.hidden{display:none}
 .journey-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem}
 .journey-bar.hidden{display:none}
+.deep-research-panel{background:#14532d18;border:1px solid #22c55e44;border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem}
+.deep-research-panel.hidden{display:none}
+.deep-research-head{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.35rem}
+.deep-research-title{margin:0;font-size:.95rem}
+.deep-research-badge{font-size:.72rem;font-weight:600;background:var(--surface2);border:1px solid var(--ok);border-radius:999px;padding:.2rem .55rem}
+.deep-research-badge.maturity-advanced{border-color:#22c55e;color:#86efac}
+.deep-research-badge.maturity-critical{border-color:var(--err);color:#fca5a5}
+.deep-research-summary{margin:.35rem 0 .65rem;line-height:1.5;font-size:.88rem}
+.deep-research-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.5rem}
+@media(max-width:720px){.deep-research-grid{grid-template-columns:1fr}}
+.deep-research-sub{margin:0 0 .25rem;font-size:.8rem;color:var(--muted)}
+.deep-research-list{margin:0;padding-left:1.1rem;font-size:.78rem;line-height:1.45}
+.dr-gap.dr-priority-critical{color:var(--err)}
+.dr-gap.dr-priority-high{color:var(--warn)}
+.deep-research-strategy{margin-top:.35rem;font-size:.82rem}
+.dr-strategy-block{margin:.35rem 0}
+.dr-strategy-block ol{margin:.25rem 0 0;padding-left:1.25rem}
+.deep-research-meta{margin:.35rem 0 0;font-size:.72rem}
+.playbook-panel{background:#1e3a5f18;border:1px solid #3b82f644;border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem}
+.playbook-panel.hidden{display:none}
+.playbook-head{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.35rem}
+.playbook-badge{font-size:.78rem;font-weight:600;background:var(--surface2);border:1px solid var(--accent);border-radius:999px;padding:.25rem .65rem}
+.playbook-rationale{margin:.35rem 0;padding:.5rem .65rem;background:var(--surface2);border-radius:8px;line-height:1.45}
+.playbook-phase{margin:.45rem 0}
+.playbook-phase summary{cursor:pointer;font-size:.88rem}
+.playbook-steps{margin:.35rem 0 0;padding-left:1.25rem;font-size:.82rem}
+.playbook-step{margin:.2rem 0}
+.playbook-step.pb-done{opacity:.85}
+.playbook-step.pb-waiting_manual{color:var(--warn)}
 .journey-phases{display:grid;grid-template-columns:repeat(4,1fr);gap:.35rem;margin-bottom:.55rem}
 @media(max-width:560px){.journey-phases{grid-template-columns:repeat(2,1fr)}}
 .journey-phase{text-align:center;padding:.45rem .35rem;border-radius:8px;border:1px solid var(--border);background:var(--surface2)}
@@ -1899,6 +2269,17 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .manual-artifact-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.25rem}
 .manual-artifact{width:100%;font-family:ui-monospace,monospace;font-size:.72rem;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:.5rem;resize:vertical}
 .manual-task-actions{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+.manual-guide{margin:.65rem 0;padding:.65rem .75rem;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:.82rem}
+.manual-guide summary{cursor:pointer;font-weight:600;color:var(--accent);margin-bottom:.35rem}
+.manual-guide-where{margin:.35rem 0;line-height:1.45}
+.manual-guide-steps{margin:.4rem 0 .4rem 1.1rem;padding:0;color:var(--text)}
+.manual-guide-steps li{margin:.25rem 0;line-height:1.4}
+.manual-guide-fields{width:100%;border-collapse:collapse;margin:.5rem 0;font-size:.78rem}
+.manual-guide-fields th,.manual-guide-fields td{border:1px solid var(--border);padding:.35rem .5rem;text-align:left;vertical-align:top}
+.manual-guide-fields th{background:var(--bg);color:var(--muted);font-weight:600}
+.manual-guide-val{font-family:ui-monospace,monospace;font-size:.75rem;word-break:break-all}
+.manual-guide-after{margin:.45rem 0 0;font-size:.78rem;color:var(--muted)}
+.onboarding-dns-guide{margin-top:.5rem}
 .findings-panel.hidden{display:none}
 .findings-head{display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.65rem}
 .findings-subhead{font-size:.9rem;margin:0;font-weight:600}
@@ -2105,6 +2486,13 @@ pre{margin:0;font-size:.75rem;color:var(--muted);overflow:auto;max-height:200px}
 .advisor-badge.err{background:#3f1515;color:#fca5a5}
 .advisor-badge.warn{background:#422006;color:#fcd34d}
 .edge-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1.75rem}
+.edge-actions{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.65rem}
+.edge-smoke-panel{margin-top:.75rem;padding-top:.65rem;border-top:1px solid var(--border)}
+.edge-smoke-panel.hidden{display:none}
+.edge-smoke-list{list-style:none;padding:0;margin:.45rem 0 0;font-size:.78rem}
+.edge-smoke-item{padding:.2rem 0;color:var(--muted)}
+.edge-smoke-item.ok{color:var(--ok)}
+.edge-smoke-item.fail{color:var(--err)}
 .edge-verdict{margin:.75rem 0;padding:.65rem .85rem;background:var(--surface2);border-radius:8px;font-size:.875rem}
 .edge-fix-list,.edge-prereq-list{margin:.5rem 0;padding-left:1.25rem;font-size:.85rem}
 .edge-fix{margin-bottom:.45rem}

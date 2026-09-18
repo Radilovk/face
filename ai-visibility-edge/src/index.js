@@ -24,8 +24,11 @@ import { fetchDomainStrategy } from './diagnose/strategy.js';
 import { fetchDashboardSummary, fetchDashboardRecommendations, renderDashboardPage } from './ui/dashboard.js';
 import { getSitePipeline, listSitesFromDb } from './api/pipeline.js';
 import { runSitePipeline } from './api/pipelineRun.js';
-import { registerSite, listVerticals, updateSite, fetchSite } from './api/sites.js';
+import { registerSite, listVerticals, updateSite, fetchSite, listSites } from './api/sites.js';
+import { fetchPlatformInfo } from './api/platform.js';
 import { provisionTenantHostname, fetchTenantHostnameStatus } from './api/customHostnames.js';
+import { applyTenantCloudflareAeo, runTenantSmoke } from './api/cloudflareAeo.js';
+import { fetchClientPlaybook } from './api/playbook.js';
 import { runCitationBatchForTenant } from './citations/runner.js';
 import { getApplyPlan, runApplyPrep } from './api/apply.js';
 import { getEdgeDecision, activateEdgeOptimization, getEdgeStatus } from './api/edge.js';
@@ -34,6 +37,7 @@ import { handleAdvisorStatus, handleAdvisorChat } from './api/advisor.js';
 import { fetchOptimizerPlan, runOptimizer, fetchOptimizerStatus } from './api/optimizer.js';
 import { applyFindingFix, saveFindingManualOnly } from './api/findingsApply.js';
 import { fetchManualExport, manualExportResponse } from './api/manualExport.js';
+import { fetchDeepResearch } from './api/deepDiagnose.js';
 import { isPlatformHost } from './config/platform.js';
 import { loadEdgeConfig } from './config/tenantEdge.js';
 import { handleTenantRequest } from './enhance/handleTenant.js';
@@ -159,6 +163,10 @@ async function handleRequest(request, env, ctx) {
     return json(status, status.error ? 404 : 200);
   }
 
+  if (url.pathname === '/api/platform/info') {
+    return json(await fetchPlatformInfo(env));
+  }
+
   if (url.pathname === '/api/sites') {
     const missing = requireDb(env);
     if (missing) return missing;
@@ -167,8 +175,23 @@ async function handleRequest(request, env, ctx) {
       if (denied) return denied;
       return sitesCreateEndpoint(request, env);
     }
-    const sites = await listSitesFromDb(env);
-    return json({ sites });
+    const excludePilot = url.searchParams.get('include_pilot') !== '1';
+    const status = url.searchParams.get('status') || null;
+    const sites = await listSites(env.DB, {
+      excludePilot,
+      status,
+      limit: Number(url.searchParams.get('limit') ?? 500),
+      offset: Number(url.searchParams.get('offset') ?? 0),
+    });
+    let countSql = 'SELECT COUNT(*) as n FROM tenants WHERE 1=1';
+    const countBinds = [];
+    if (excludePilot) countSql += ' AND is_pilot = 0';
+    if (status) {
+      countSql += ' AND status = ?';
+      countBinds.push(status);
+    }
+    const total = await env.DB.prepare(countSql).bind(...countBinds).first();
+    return json({ sites, total: total?.n ?? sites.length, exclude_pilot: excludePilot });
   }
 
   const siteMatch = url.pathname.match(/^\/api\/sites\/([^/]+)$/);
@@ -258,6 +281,15 @@ async function handleRequest(request, env, ctx) {
     return pipelineRunEndpoint(request, env, decodeURIComponent(pipelineRunMatch[1]));
   }
 
+  const playbookMatch = url.pathname.match(/^\/api\/playbook\/([^/]+)$/);
+  if (playbookMatch && request.method === 'GET') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const skipAi = url.searchParams.get('skip_ai') === '1';
+    const result = await fetchClientPlaybook(env, decodeURIComponent(playbookMatch[1]), { skip_ai: skipAi });
+    return json(result, result.error ? 404 : 200);
+  }
+
   const edgeDecisionMatch = url.pathname.match(/^\/api\/edge\/([^/]+)\/decision$/);
   if (edgeDecisionMatch) {
     const missing = requireDb(env);
@@ -272,7 +304,27 @@ async function handleRequest(request, env, ctx) {
     if (missing) return missing;
     const denied = requireAdmin(request, env);
     if (denied) return denied;
-    const result = await activateEdgeOptimization(env, decodeURIComponent(edgeActivateMatch[1]));
+    const body = await request.json().catch(() => ({}));
+    const result = await activateEdgeOptimization(env, decodeURIComponent(edgeActivateMatch[1]), body);
+    return json(result, result.error ? 400 : 200);
+  }
+
+  const edgeSmokeMatch = url.pathname.match(/^\/api\/edge\/([^/]+)\/smoke$/);
+  if (edgeSmokeMatch && request.method === 'GET') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const result = await runTenantSmoke(env, decodeURIComponent(edgeSmokeMatch[1]));
+    return json(result, result.error ? 404 : 200);
+  }
+
+  const cfAeoMatch = url.pathname.match(/^\/api\/cloudflare\/([^/]+)\/apply-aeo$/);
+  if (cfAeoMatch && request.method === 'POST') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
+    const body = await request.json().catch(() => ({}));
+    const result = await applyTenantCloudflareAeo(env, decodeURIComponent(cfAeoMatch[1]), body);
     return json(result, result.error ? 400 : 200);
   }
 
@@ -476,6 +528,16 @@ async function handleRequest(request, env, ctx) {
     return displacementEndpoint(env, url);
   }
 
+  const deepDiagnoseMatch = url.pathname.match(/^\/api\/diagnose\/deep\/([^/]+)$/);
+  if (deepDiagnoseMatch && request.method === 'GET') {
+    const refresh = url.searchParams.get('refresh') === '1' || url.searchParams.get('force') === '1';
+    const result = await fetchDeepResearch(env, decodeURIComponent(deepDiagnoseMatch[1]), {
+      refresh,
+      force: refresh,
+    });
+    return json(result, result.error ? 404 : 200);
+  }
+
   const reportMatch = url.pathname.match(/^\/(?:api\/)?report\/([^/]+)$/);
   if (reportMatch) {
     const missing = requireDb(env);
@@ -618,7 +680,25 @@ async function questionsCreateEndpoint(request, env) {
 async function sitesCreateEndpoint(request, env) {
   const body = await request.json().catch(() => ({}));
   const result = await registerSite(env.DB, body);
-  return json(result, result.error ? 400 : 201);
+  if (result.error === 'domain_exists') {
+    const existing = await fetchSite(env.DB, result.domain);
+    return json(
+      {
+        ...result,
+        already_exists: true,
+        site: existing.site ?? { apex_host: result.domain, id: result.tenant_id },
+      },
+      409,
+    );
+  }
+  if (result.error) return json(result, 400);
+
+  if (body.run_analysis === true || body.run_pipeline === true) {
+    const pipeline = await runSitePipeline(env, result.domain, { skip_edge: !body.activate_edge });
+    return json({ ...result, pipeline }, pipeline.error ? 207 : 201);
+  }
+
+  return json(result, 201);
 }
 
 async function measureRunEndpoint(request, env) {

@@ -7,8 +7,10 @@ import { enrichFindingsWithAutomation } from './findingsAutomation.js';
 import {
   effectiveBrandMentions,
   hasPriceSignals,
+  isRichLanding,
   shouldRecommendEdge,
 } from './siteProfile.js';
+import { isOriginAgentNativeReady, shouldSuppressAivEdgeFindings } from './originReady.js';
 
 const SEVERITY_ORDER = { critical: 0, warning: 1, info: 2, ok: 3 };
 
@@ -51,7 +53,7 @@ export function buildSiteFindings(input = {}) {
     findings.push(...cacheFindings(cacheIndex, botHits));
   }
 
-  if (tenant && !edgeActive && probe && shouldRecommendEdge(probe)) {
+  if (tenant && !edgeActive && probe && shouldRecommendEdge(probe) && !shouldSuppressAivEdgeFindings(probe, tenant)) {
     findings.push(
       finding({
         id: 'edge_activate',
@@ -110,8 +112,10 @@ function probeFindings(probe, passage, brand, edgeActive) {
   const title = probe.raw_json?.title ?? null;
   const h1 = probe.raw_json?.h1 ?? null;
   const meta = probe.raw_json?.meta_description ?? null;
+  const originReady = isOriginAgentNativeReady(probe);
+  const searchCrawlersOk = (signals.missing_search_crawlers ?? []).length === 0;
 
-  if (probe.robots_ai_policy === 'disallow_all') {
+  if (probe.robots_ai_policy === 'disallow_all' && !(originReady && searchCrawlersOk && !signals.gptbot_blocked)) {
     out.push(
       finding({
         id: 'robots_disallow_all',
@@ -231,7 +235,7 @@ function probeFindings(probe, passage, brand, edgeActive) {
         },
       }),
     );
-  } else if (chars < 500) {
+  } else if (chars < 500 && !isRichLanding(probe, brand) && !originReady) {
     out.push(
       finding({
         id: 'thin_content',
@@ -428,7 +432,60 @@ function probeFindings(probe, passage, brand, edgeActive) {
     );
   }
 
-  if (signals.llms_txt_ok === false) {
+  if (signals.ai_catalog_ok === false && !originReady) {
+    out.push(
+      finding({
+        id: 'missing_ai_catalog',
+        category: 'technical',
+        severity: 'warning',
+        title: 'Липсва ARD (/.well-known/ai-catalog.json)',
+        impact: 'AI агенти нямат Agent Resource Descriptor — по-ниска Agent-Native оценка (isitagentready).',
+        evidence: { url: `https://${probe.domain}/.well-known/ai-catalog.json`, ai_catalog_ok: false },
+        fix: {
+          owner: edgeActive ? 'edge' : 'system',
+          steps: edgeActive
+            ? ['Edge Agent-Native pack обслужва ARD след CNAME']
+            : ['„Приложи Edge“ — ARD се генерира автоматично'],
+        },
+      }),
+    );
+  }
+
+  if (signals.auth_md_ok === false && !originReady) {
+    out.push(
+      finding({
+        id: 'missing_auth_md',
+        category: 'technical',
+        severity: 'info',
+        title: 'Липсва /auth.md',
+        impact: 'Агентите нямат machine-readable auth/discovery prose.',
+        evidence: { url: `https://${probe.domain}/auth.md`, auth_md_ok: false },
+        fix: {
+          owner: edgeActive ? 'edge' : 'system',
+          steps: ['Edge Agent-Native pack — /auth.md с H1 auth.md'],
+        },
+      }),
+    );
+  }
+
+  if (signals.content_signal_ok === false && probe.robots_ai_policy !== 'none' && !originReady) {
+    out.push(
+      finding({
+        id: 'missing_content_signal',
+        category: 'technical',
+        severity: 'info',
+        title: 'robots.txt без Content-Signal (search / ai-input)',
+        impact: 'Cloudflare Content-Signal директива липсва — по-слаба AI input политика.',
+        evidence: { content_signal: signals.content_signal ?? null },
+        fix: {
+          owner: edgeActive ? 'edge' : 'system',
+          steps: ['Edge robots: Content-Signal: search=yes, ai-input=yes, ai-train=no'],
+        },
+      }),
+    );
+  }
+
+  if (signals.llms_txt_ok === false && !originReady) {
     out.push(
       finding({
         id: 'missing_llms_txt',

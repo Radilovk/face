@@ -45,6 +45,7 @@ export async function buildOptimizerContext(env, domain) {
       vertical_id: tenant.vertical_id,
       vertical_name: tenant.vertical_name,
       is_canary: Boolean(tenant.is_canary),
+      is_pilot: Boolean(tenant.is_pilot),
       edge_enabled: Boolean(tenant.edge_enabled),
       edge_status: tenant.edge_status ?? 'measurement_only',
     },

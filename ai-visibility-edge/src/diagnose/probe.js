@@ -10,6 +10,7 @@ import {
   extractJsonLdTypes,
 } from './siteBrief.js';
 import { AI_BOT_TOKENS, findMissingSearchCrawlers } from '../config/aiCrawlers.js';
+import { contentSignalOk, hasAgentmap, parseContentSignal } from '../enhance/agentNative.js';
 
 const PROBE_UA = 'AIVisibilityBot/1.0 (+https://ai-visibility-edge/probe)';
 
@@ -50,6 +51,10 @@ export async function probeDomain(domain, options = {}) {
   }
 
   const llmsTxtOk = await checkLlmsTxt(fetchImpl, host);
+  const aiCatalogOk = await checkJsonUrl(fetchImpl, host, '/.well-known/ai-catalog.json', 'displayName');
+  const authMdOk = await checkAuthMd(fetchImpl, host);
+  const apiCatalogOk = await checkJsonUrl(fetchImpl, host, '/.well-known/api-catalog', 'linkset');
+  const contentSignal = parseContentSignal(robotsText);
 
   const html = page.html ?? '';
   const text = page.text ?? '';
@@ -63,6 +68,7 @@ export async function probeDomain(domain, options = {}) {
   const noindex = detectNoindex(html);
   const h1Count = (html.match(/<h1[\s>]/gi) ?? []).length;
   const sitemapOk = await checkSitemap(fetchImpl, host);
+  const gptbotStatus = await probeBotAccess(fetchImpl, host, 'GPTBot');
   const brand = options.brand ?? null;
   const brandMentions = brand ? countBrandMentions(text, brand) : 0;
 
@@ -75,10 +81,18 @@ export async function probeDomain(domain, options = {}) {
     title_len: title?.length ?? 0,
     sitemap_ok: sitemapOk,
     llms_txt_ok: llmsTxtOk,
+    ai_catalog_ok: aiCatalogOk,
+    auth_md_ok: authMdOk,
+    api_catalog_ok: apiCatalogOk,
+    content_signal_ok: contentSignalOk(contentSignal),
+    agentmap_ok: hasAgentmap(robotsText),
+    content_signal: contentSignal,
     missing_search_crawlers: missingSearchCrawlers,
     jsonld_types: jsonldTypes,
     js_shell_suspect: html.length > 8000 && text.length < 300,
     html_bytes: html.length,
+    gptbot_status: gptbotStatus,
+    gptbot_blocked: gptbotStatus === 403 || gptbotStatus === 401,
   };
 
   return {
@@ -124,8 +138,9 @@ export async function probeBatch(domains, options = {}) {
   return results;
 }
 
-export async function persistDiagnostic(db, probeResult, score = null) {
+export async function persistDiagnostic(db, probeResult, score = null, extras = null) {
   const id = crypto.randomUUID();
+  const rawJson = { ...(probeResult.raw_json ?? {}), ...(extras ?? {}) };
   await db
     .prepare(
       `INSERT INTO diagnostics (
@@ -145,21 +160,66 @@ export async function persistDiagnostic(db, probeResult, score = null) {
       probeResult.has_canonical,
       probeResult.price_tokens,
       score,
-      JSON.stringify(probeResult.raw_json ?? {}),
+      JSON.stringify(rawJson),
     )
     .run();
 
   return { id, ...probeResult, score };
 }
 
-function summarizeRobots(text) {
+/** Parse robots.txt policy for User-agent: * only (ignore per-bot blocks like CCBot). */
+export function summarizeRobots(text) {
+  const star = getRobotsUserAgentBlock(text, '*');
+  if (star && blockDisallowsEntireSite(star)) return 'disallow_all';
+
   const lower = text.toLowerCase();
-  if (lower.includes('disallow: /') && !lower.includes('user-agent: *')) return 'partial';
-  if (/user-agent:\s*\*[\s\S]*?disallow:\s*\/\s*$/m.test(lower)) return 'disallow_all';
-  if (lower.includes('gptbot') || lower.includes('google-extended') || lower.includes('anthropic')) {
+  if (
+    lower.includes('gptbot') ||
+    lower.includes('oai-searchbot') ||
+    lower.includes('google-extended') ||
+    lower.includes('anthropic')
+  ) {
     return 'ai_rules_present';
   }
-  return 'allow';
+  if (star && blockAllowsRoot(star)) return 'allow';
+  return 'partial';
+}
+
+export function getRobotsUserAgentBlock(text, userAgent) {
+  const target = String(userAgent).toLowerCase();
+  const blocks = splitRobotsBlocks(text);
+  return blocks.find((b) => b.userAgent.toLowerCase() === target) ?? null;
+}
+
+export function splitRobotsBlocks(text) {
+  const blocks = [];
+  let current = null;
+  for (const line of String(text ?? '').split('\n')) {
+    const ua = line.match(/^\s*User-agent:\s*(.+)\s*$/i);
+    if (ua) {
+      if (current) blocks.push(current);
+      current = { userAgent: ua[1].trim(), allows: [], disallows: [] };
+      continue;
+    }
+    if (!current) continue;
+    const allow = line.match(/^\s*Allow:\s*(.+)\s*$/i);
+    if (allow) {
+      current.allows.push(allow[1].trim());
+      continue;
+    }
+    const disallow = line.match(/^\s*Disallow:\s*(.+)\s*$/i);
+    if (disallow) current.disallows.push(disallow[1].trim());
+  }
+  if (current) blocks.push(current);
+  return blocks;
+}
+
+function blockDisallowsEntireSite(block) {
+  return block.disallows.some((p) => p === '/' || p === '/*');
+}
+
+function blockAllowsRoot(block) {
+  return block.allows.some((p) => p === '/' || p === '/*');
 }
 
 function extractBlockedBots(text) {
@@ -215,6 +275,19 @@ async function checkSitemap(fetchImpl, host) {
   }
 }
 
+async function probeBotAccess(fetchImpl, host, userAgent) {
+  try {
+    const res = await fetchImpl(`https://${host}/`, {
+      method: 'HEAD',
+      headers: { 'User-Agent': userAgent },
+      redirect: 'follow',
+    });
+    return res.status;
+  } catch {
+    return 0;
+  }
+}
+
 async function checkLlmsTxt(fetchImpl, host) {
   try {
     const res = await fetchImpl(`https://${host}/llms.txt`, {
@@ -224,6 +297,39 @@ async function checkLlmsTxt(fetchImpl, host) {
     if (!res.ok) return false;
     const body = (await res.text()).slice(0, 500);
     return body.includes('#') || body.toLowerCase().includes('http');
+  } catch {
+    return false;
+  }
+}
+
+async function checkJsonUrl(fetchImpl, host, path, requiredKey) {
+  try {
+    const res = await fetchImpl(`https://${host}${path}`, {
+      headers: { 'User-Agent': PROBE_UA, Accept: 'application/json' },
+    });
+    if (!res.ok) return false;
+    const body = await res.text();
+    const json = JSON.parse(body.slice(0, 8000));
+    if (requiredKey === 'displayName') {
+      return Boolean(json.host?.displayName && Array.isArray(json.entries) && json.entries.some((e) => e.displayName));
+    }
+    if (requiredKey === 'linkset') {
+      return Array.isArray(json.linkset) && json.linkset.length > 0;
+    }
+    return Boolean(json);
+  } catch {
+    return false;
+  }
+}
+
+async function checkAuthMd(fetchImpl, host) {
+  try {
+    const res = await fetchImpl(`https://${host}/auth.md`, {
+      headers: { 'User-Agent': PROBE_UA },
+    });
+    if (!res.ok) return false;
+    const body = (await res.text()).slice(0, 2000);
+    return /^#\s+auth\.md/im.test(body) || body.toLowerCase().includes('auth.md');
   } catch {
     return false;
   }

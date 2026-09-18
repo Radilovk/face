@@ -1,5 +1,7 @@
 import { buildRobotsTxt } from '../config/aiCrawlers.js';
 import { buildLlmsTxt } from '../enhance/llms.js';
+import { buildAgentNativePack } from '../enhance/agentNative.js';
+import { isOriginAgentNativeReady } from '../diagnose/originReady.js';
 import { pickSchemaType } from '../schema/pickType.js';
 
 /**
@@ -49,6 +51,26 @@ export function buildEdgeDecision(input = {}) {
       layer: 'edge',
       title: 'llms.txt от Edge',
       detail: 'Курирана карта на ключовите страници за AI агенти.',
+    });
+  }
+
+  if (probe?.signals?.gptbot_blocked) {
+    fixes.push({
+      id: 'cloudflare_aeo',
+      layer: 'cloudflare',
+      title: 'Cloudflare Bot Fight / WAF',
+      detail: `GPTBot получава ${probe.signals.gptbot_status ?? 403} — robots.txt не помага. POST /api/cloudflare/${domain}/apply-aeo или dashboard „CF AEO“.`,
+    });
+  }
+
+  const originReady = isOriginAgentNativeReady(probe) || Boolean(tenant?.is_pilot);
+  const agentGaps = originReady ? [] : agentNativeGaps(probe);
+  if (agentGaps.length > 0) {
+    fixes.push({
+      id: 'serve_agent_native',
+      layer: 'edge',
+      title: 'Agent-Native discovery pack',
+      detail: `ARD, auth.md, api-catalog, OAuth metadata, markdown negotiation — липсва: ${agentGaps.join(', ')}.`,
     });
   }
 
@@ -129,15 +151,38 @@ export function buildEdgeDecision(input = {}) {
   };
 }
 
+function agentNativeGaps(probe) {
+  const signals = probe?.signals ?? {};
+  const gaps = [];
+  if (!signals.ai_catalog_ok) gaps.push('ai-catalog');
+  if (!signals.auth_md_ok) gaps.push('auth.md');
+  if (!signals.api_catalog_ok) gaps.push('api-catalog');
+  if (!signals.content_signal_ok) gaps.push('Content-Signal');
+  if (!signals.agentmap_ok) gaps.push('Agentmap');
+  return gaps;
+}
+
 function buildEdgeConfigPayload({ domain, brand, probe, tenant, fixes }) {
   const fixIds = new Set(fixes.map((f) => f.id));
+  const serveRobots = fixIds.has('robots_allow') || fixIds.has('robots_serve');
+  const agentNative = fixIds.has('serve_agent_native') || serveRobots || fixIds.has('serve_llms_txt');
+  const agentPack = agentNative
+    ? buildAgentNativePack({
+        domain,
+        brand,
+        vertical: tenant?.vertical_name,
+        probe,
+      })
+    : {};
 
   return {
     domain,
     edge: {
       enabled: true,
-      robots_mode: fixIds.has('robots_allow') || fixIds.has('robots_serve') ? 'serve' : 'passthrough',
+      robots_mode: serveRobots ? 'serve' : 'passthrough',
       llms_mode: fixIds.has('serve_llms_txt') ? 'serve' : 'passthrough',
+      agent_native: agentNative,
+      markdown_negotiation: agentNative,
       inject_jsonld: fixIds.has('inject_jsonld'),
       inject_canonical: fixIds.has('canonical_root'),
       origin_url: probe?.raw_json?.final_url
@@ -146,7 +191,7 @@ function buildEdgeConfigPayload({ domain, brand, probe, tenant, fixes }) {
     },
     brand,
     vertical: tenant?.vertical_name ?? null,
-    robots_txt: buildRobotsTxt(domain),
+    robots_txt: serveRobots || agentNative ? buildRobotsTxt(domain, { agentNative: true }) : buildRobotsTxt(domain),
     llms_txt: fixIds.has('serve_llms_txt')
       ? buildLlmsTxt({ domain, brand, vertical: tenant?.vertical_name })
       : null,
@@ -156,5 +201,6 @@ function buildEdgeConfigPayload({ domain, brand, probe, tenant, fixes }) {
           ...pickSchemaType(tenant?.vertical_name, brand, domain, { probe }),
         }
       : null,
+    ...agentPack,
   };
 }

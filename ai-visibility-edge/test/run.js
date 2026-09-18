@@ -66,6 +66,43 @@ import {
   testManualExportResponseHeaders,
   testManualExportResponse404,
 } from './manualExport.js';
+import {
+  testManualGuideCnameHasWhereHowWhat,
+  testManualGuideCmsPublish,
+} from './manualGuides.js';
+import {
+  testAiCatalogHasDisplayName,
+  testAuthMdHeading,
+  testRobotsContentSignalAndAgentmap,
+  testContentSignalParser,
+  testServeAgentNativePath,
+  testMarkdownNegotiationHeader,
+  testEdgeDecisionCloudflareAeoFix,
+  testEdgeDecisionIncludesAgentNativePack,
+  testFindingsMissingAiCatalog,
+} from './agent-native.js';
+import {
+  testRunAgentNativeSmokeAllPass,
+  testRunAgentNativeSmokeGptbotBlocked,
+  testContentSignalHelpers,
+} from './smoke-aeo.js';
+import {
+  testDetectPilotPath,
+  testDetectContentFirstPath,
+  testDetectEdgeProxyPath,
+  testBuildClientPlaybook,
+} from './client-path.js';
+import {
+  testSummarizeRobotsIgnoresCcBotDisallow,
+  testHasAgentmapFullUrl,
+  testDaotslabnaFixtureProbeFindings,
+  testDaotslabnaLiveProbeFindings,
+} from './probe-robots-fix.js';
+import {
+  testBuildDeepResearchOriginReady,
+  testBuildDeepResearchCriticalGaps,
+  testPrioritizeUrlsFaqFirst,
+} from './deep-research.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
 import {
@@ -76,6 +113,12 @@ import {
   testCloudflareConfigured,
   testResolveTenantOriginFallback,
 } from './production-backend.js';
+import {
+  testRegisterSiteWithoutVertical,
+  testListSitesExcludesPilot,
+  testRegisterSiteDomainExists,
+  testPlatformInfo,
+} from './saas-platform.js';
 import {
   testBuildRecommendationsRobots,
   testBuildRecommendationsCanaryEdge,
@@ -331,6 +374,31 @@ async function run() {
   testManualExportFilenameSafe();
   testManualExportResponseHeaders();
   testManualExportResponse404();
+  testManualGuideCnameHasWhereHowWhat();
+  testManualGuideCmsPublish();
+  testAiCatalogHasDisplayName();
+  testAuthMdHeading();
+  testRobotsContentSignalAndAgentmap();
+  testContentSignalParser();
+  testServeAgentNativePath();
+  testMarkdownNegotiationHeader();
+  testEdgeDecisionCloudflareAeoFix();
+  testEdgeDecisionIncludesAgentNativePack();
+  await testRunAgentNativeSmokeAllPass();
+  await testRunAgentNativeSmokeGptbotBlocked();
+  testContentSignalHelpers();
+  testDetectPilotPath();
+  testDetectContentFirstPath();
+  testDetectEdgeProxyPath();
+  testBuildClientPlaybook();
+  testSummarizeRobotsIgnoresCcBotDisallow();
+  testHasAgentmapFullUrl();
+  await testDaotslabnaFixtureProbeFindings();
+  await testDaotslabnaLiveProbeFindings();
+  testBuildDeepResearchOriginReady();
+  testBuildDeepResearchCriticalGaps();
+  testPrioritizeUrlsFaqFirst();
+  testFindingsMissingAiCatalog();
   testGenerateQuestions();
   testStepStatus();
   testNormalizeApexHost();
@@ -341,6 +409,10 @@ async function run() {
   testPlatformHostsEnv();
   testCloudflareConfigured();
   await testResolveTenantOriginFallback();
+  await testRegisterSiteWithoutVertical();
+  await testListSitesExcludesPilot();
+  await testRegisterSiteDomainExists();
+  await testPlatformInfo();
   testBuildRecommendationsRobots();
   testBuildRecommendationsCanaryEdge();
   testInfoModulesAndChecklist();

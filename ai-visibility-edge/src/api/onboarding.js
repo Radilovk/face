@@ -2,6 +2,7 @@ import { resolveTenantByDomain } from './questions.js';
 import { getEdgeDecision } from './edge.js';
 import { resolveWorkerPublicHost } from '../config/workerHost.js';
 import { cloudflareConfigured } from '../cloudflare/api.js';
+import { buildManualGuide } from '../diagnose/manualGuides.js';
 
 /**
  * CNAME / Custom Hostname onboarding checklist (Block 6.2).
@@ -73,6 +74,11 @@ export async function fetchOnboardingStatus(env, domain) {
           note: cloudflareConfigured(env)
             ? 'Custom Hostname API е конфигуриран — POST /api/hostnames/{domain}/provision'
             : 'Custom Hostname в Cloudflare for SaaS — не пълен DNS transfer.',
+          guide: buildManualGuide('cname', {
+            domain: tenant.apex_host,
+            workerHost,
+            brand: tenant.name,
+          }),
         }
       : null,
     cloudflare_auto_provision: cloudflareConfigured(env),

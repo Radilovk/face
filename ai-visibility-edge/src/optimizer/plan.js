@@ -2,8 +2,15 @@
  * Rule-based optimization plan — deterministic, zero LLM cost.
  * Human gates only where automation is impossible or risky.
  */
+import { detectClientPath } from '../onboarding/clientPath.js';
 
 export const HUMAN_GATES = {
+  cloudflare_aeo: {
+    id: 'cloudflare_aeo',
+    title: 'Cloudflare Bot / WAF',
+    why: 'GPTBot получава 403 от edge — robots.txt не помага. CF dashboard или API token.',
+    short: 'CF AEO / Bot Fight OFF',
+  },
   dns_cname: {
     id: 'dns_cname',
     title: 'CNAME / DNS насочване',
@@ -111,6 +118,33 @@ export function buildOptimizationPlan(ctx, env = {}) {
     });
   }
 
+  const pathInfo = detectClientPath(ctx, env);
+  const gptbotBlocked = Boolean(ctx.probe?.signals?.gptbot_blocked);
+  const cfToken = Boolean(env.CF_API_TOKEN ?? env.CLOUDFLARE_API_TOKEN);
+
+  if (gptbotBlocked || pathInfo.path_id === 'pilot_worker' || pathInfo.path_id === 'edge_proxy') {
+    if (cfToken) {
+      auto.push({
+        action: 'apply_cf_aeo',
+        priority: 6,
+        reason: gptbotBlocked
+          ? 'GPTBot блокиран — CF AEO (Bot Fight, WAF skip).'
+          : `Path ${pathInfo.path_id} — CF AEO за Level 5.`,
+      });
+      auto.push({
+        action: 'run_smoke',
+        priority: 7,
+        reason: 'Agent-Native smoke — verify Level 4–5.',
+      });
+    } else if (gptbotBlocked) {
+      human.push({
+        gate: 'cloudflare_aeo',
+        priority: 2,
+        reason: 'GPTBot 403 — нужен CF_API_TOKEN или ръчни Bot Fight настройки.',
+      });
+    }
+  }
+
   if (edge.edge_active && stats.runCount > 0 && stats.obsCount > 0) {
     auto.push({
       action: 'remeasure',
@@ -134,6 +168,8 @@ export function buildOptimizationPlan(ctx, env = {}) {
     insights,
     auto_actions: auto,
     human_gates: human,
+    client_path: pathInfo.path_id,
+    client_path_label: pathInfo.path?.label,
     automation_level: human.length === 0 ? 'full_auto' : human.length === 1 && human[0].gate === 'dns_cname' ? 'auto_except_dns' : 'hybrid',
     context_summary: {
       score: ctx.strategy?.score,
@@ -141,6 +177,7 @@ export function buildOptimizationPlan(ctx, env = {}) {
       displacement_rate: displacementRate,
       edge_status: edge.status,
       thin_content: thinContent,
+      client_path: pathInfo.path_id,
     },
     generated_at: new Date().toISOString(),
   };

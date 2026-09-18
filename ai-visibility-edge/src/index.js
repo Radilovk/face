@@ -28,6 +28,7 @@ import { registerSite, listVerticals, updateSite, fetchSite, listSites } from '.
 import { fetchPlatformInfo } from './api/platform.js';
 import { provisionTenantHostname, fetchTenantHostnameStatus } from './api/customHostnames.js';
 import { applyTenantCloudflareAeo, runTenantSmoke } from './api/cloudflareAeo.js';
+import { fetchClientPlaybook } from './api/playbook.js';
 import { runCitationBatchForTenant } from './citations/runner.js';
 import { getApplyPlan, runApplyPrep } from './api/apply.js';
 import { getEdgeDecision, activateEdgeOptimization, getEdgeStatus } from './api/edge.js';
@@ -277,6 +278,15 @@ async function handleRequest(request, env, ctx) {
     const denied = requireAdmin(request, env);
     if (denied) return denied;
     return pipelineRunEndpoint(request, env, decodeURIComponent(pipelineRunMatch[1]));
+  }
+
+  const playbookMatch = url.pathname.match(/^\/api\/playbook\/([^/]+)$/);
+  if (playbookMatch && request.method === 'GET') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const skipAi = url.searchParams.get('skip_ai') === '1';
+    const result = await fetchClientPlaybook(env, decodeURIComponent(playbookMatch[1]), { skip_ai: skipAi });
+    return json(result, result.error ? 404 : 200);
   }
 
   const edgeDecisionMatch = url.pathname.match(/^\/api\/edge\/([^/]+)\/decision$/);

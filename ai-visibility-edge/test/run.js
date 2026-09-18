@@ -86,6 +86,12 @@ import {
   testRunAgentNativeSmokeGptbotBlocked,
   testContentSignalHelpers,
 } from './smoke-aeo.js';
+import {
+  testDetectPilotPath,
+  testDetectContentFirstPath,
+  testDetectEdgeProxyPath,
+  testBuildClientPlaybook,
+} from './client-path.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
 import {
@@ -370,6 +376,10 @@ async function run() {
   await testRunAgentNativeSmokeAllPass();
   await testRunAgentNativeSmokeGptbotBlocked();
   testContentSignalHelpers();
+  testDetectPilotPath();
+  testDetectContentFirstPath();
+  testDetectEdgeProxyPath();
+  testBuildClientPlaybook();
   testFindingsMissingAiCatalog();
   testGenerateQuestions();
   testStepStatus();

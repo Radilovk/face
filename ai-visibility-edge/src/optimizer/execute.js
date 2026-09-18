@@ -3,6 +3,7 @@
  */
 import { runSitePipeline } from '../api/pipelineRun.js';
 import { activateEdgeOptimization } from '../api/edge.js';
+import { applyTenantCloudflareAeo, runTenantSmoke } from '../api/cloudflareAeo.js';
 import { generateAndSaveQuestions } from '../api/questions.js';
 import { runCitationBatchForTenant } from '../citations/runner.js';
 import { reprocessRuns } from '../citations/reprocess.js';
@@ -136,7 +137,16 @@ async function executeAction(env, ctx, action, options) {
     }
 
     case 'activate_edge':
-      return activateEdgeOptimization(env, domain);
+      return activateEdgeOptimization(env, domain, {
+        apply_cloudflare_aeo: false,
+        run_smoke: false,
+      });
+
+    case 'apply_cf_aeo':
+      return applyTenantCloudflareAeo(env, domain, { run_smoke: false });
+
+    case 'run_smoke':
+      return runTenantSmoke(env, domain);
 
     case 'generate_content': {
       const content = await generateSmartContent(env, ctx);

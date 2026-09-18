@@ -201,9 +201,53 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
     }),
   );
 
+  const gptbotBlocked = Boolean(probe.signals?.gptbot_blocked ?? ctx.probe?.signals?.gptbot_blocked);
+  const smokeDone = Boolean(extras.smoke?.ok);
+  steps.push(
+    step('cf_aeo', {
+      order: 7,
+      title: 'Cloudflare AEO (Bot Fight / WAF за AI bots)',
+      status: !hasAudit
+        ? 'blocked'
+        : !gptbotBlocked && smokeDone
+          ? 'done'
+          : gptbotBlocked
+            ? 'waiting_manual'
+            : edgeFixes.length > 0
+              ? 'waiting_auto'
+              : 'done',
+      owner: gptbotBlocked ? 'both' : 'system',
+      summary: !gptbotBlocked
+        ? 'AI crawlers не са блокирани на edge (403 check OK).'
+        : 'GPTBot получава 403 — robots.txt не помага без CF настройки.',
+      why_waiting: gptbotBlocked
+        ? 'Bot Fight / WAF — API „CF AEO“ или ръчно в Cloudflare Dashboard.'
+        : null,
+      instructions: gptbotBlocked
+        ? guideToInstructionLines(buildManualGuide('cloudflare_aeo', { domain, workerHost }))
+        : [],
+      action_hint: gptbotBlocked ? 'apply_cf_aeo' : null,
+    }),
+  );
+
+  steps.push(
+    step('smoke', {
+      order: 8,
+      title: 'Agent-Native smoke (Level 4–5)',
+      status: !hasAudit ? 'blocked' : smokeDone ? 'done' : edgeLive || !gptbotBlocked ? 'waiting_auto' : 'blocked',
+      owner: 'system',
+      summary: smokeDone
+        ? extras.smoke.level_label ?? 'Smoke pass'
+        : 'Live checks: robots, ARD, llms, markdown negotiation.',
+      why_waiting: smokeDone ? null : 'След Edge/CNAME/CF AEO — натиснете „Smoke test“.',
+      instructions: smokeDone ? [] : ['Edge & DNS → „Smoke test“ или „CF AEO“ (включва smoke).'],
+      action_hint: smokeDone ? null : 'run_smoke',
+    }),
+  );
+
   steps.push(
     step('cname', {
-      order: 7,
+      order: 9,
       title: 'CNAME към Worker (опционално — само при Edge поправки)',
       status:
         edgeFixes.length === 0
@@ -236,7 +280,7 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
   const contentNeeded = thinContent || hasDraft;
   steps.push(
     step('content', {
-      order: 8,
+      order: 10,
       title: 'Текст на сайта (ако е тънко съдържание)',
       status: !hasAudit
         ? 'blocked'
@@ -267,7 +311,7 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
 
   steps.push(
     step('remeasure', {
-      order: 9,
+      order: 11,
       title: 'Повторно измерване след промени',
       status: !edgeLive && !hasObs
         ? 'blocked'
@@ -293,7 +337,7 @@ export function buildOptimizationRoadmap(ctx, extras = {}) {
 
   steps.push(
     step('monitor', {
-      order: 10,
+      order: 12,
       title: 'Мониторинг и тренд',
       status: stats.runCount >= 10 && hasObs ? 'done' : hasObs ? 'current' : 'blocked',
       owner: 'system',

@@ -51,6 +51,7 @@ export async function fetchPlatformInfo(env) {
       'POST /api/edge/{domain}/activate — KV edge config + optional CF AEO + smoke',
       'POST /api/cloudflare/{domain}/apply-aeo — Bot Fight, WAF skip, DNS-AID',
       'GET /api/edge/{domain}/smoke — live Agent-Native checks',
+      'GET /api/playbook/{domain} — AI-routed path + Level 5 playbook',
       'POST /api/hostnames/{domain}/provision — optional Custom Hostname',
     ],
     generated_at: new Date().toISOString(),

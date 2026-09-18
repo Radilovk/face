@@ -80,6 +80,16 @@ export function renderDashboardPage(origin) {
       <p id="journey-focus" class="journey-focus sub">—</p>
     </section>
 
+    <section id="playbook-panel" class="playbook-panel hidden" aria-label="AI playbook за клиента">
+      <div class="playbook-head">
+        <span id="playbook-path-badge" class="playbook-badge">—</span>
+        <span id="playbook-level" class="playbook-level sub">—</span>
+      </div>
+      <p id="playbook-summary" class="sub">—</p>
+      <p id="playbook-ai-rationale" class="playbook-rationale sub hidden"></p>
+      <div id="playbook-phases" class="playbook-phases"></div>
+    </section>
+
     <section id="activity-panel" class="activity-panel hidden" aria-live="polite">
       <div class="activity-head">
         <span id="activity-status-icon" class="activity-icon" aria-hidden="true">⏳</span>
@@ -1680,10 +1690,60 @@ function script(origin) {
         if (!res.ok) return;
         const plan = data.current_plan;
         renderRoadmap(data.roadmap);
+        renderPlaybook(data.playbook);
         setMetricContext('optimizer', {
-          message: (plan?.headline || data.roadmap?.summary || ''),
+          message: (plan?.headline || data.playbook?.summary || data.roadmap?.summary || ''),
         });
       } catch { /* optional panel */ }
+    }
+
+    function renderPlaybook(playbook) {
+      const panel = $('playbook-panel');
+      if (!playbook || playbook.error) {
+        panel?.classList.add('hidden');
+        return;
+      }
+      panel?.classList.remove('hidden');
+      const badge = $('playbook-path-badge');
+      if (badge) {
+        badge.textContent = playbook.path?.label || playbook.path_id || '—';
+        badge.className = 'playbook-badge path-' + escHtml(playbook.path_id || 'unknown');
+      }
+      const levelEl = $('playbook-level');
+      if (levelEl) {
+        const smoke = playbook.smoke;
+        levelEl.textContent = smoke
+          ? (smoke.level_label || 'Level ' + smoke.level) + ' · ' + (playbook.ai_source === 'gemini' ? '🤖 AI path' : '📋 rules')
+          : (playbook.ai_source === 'gemini' ? '🤖 AI path' : '📋 rules');
+      }
+      $('playbook-summary').textContent = playbook.summary || playbook.path?.tagline || '—';
+      const rationale = $('playbook-ai-rationale');
+      if (playbook.ai_rationale) {
+        rationale.textContent = playbook.ai_rationale;
+        rationale.classList.remove('hidden');
+      } else {
+        rationale.classList.add('hidden');
+      }
+      const phasesEl = $('playbook-phases');
+      if (phasesEl) {
+        phasesEl.innerHTML = (playbook.phases || []).map(ph =>
+          '<details class="playbook-phase" open>' +
+          '<summary><strong>' + escHtml(ph.title) + '</strong></summary>' +
+          '<ol class="playbook-steps">' +
+          (ph.steps || []).map(s =>
+            '<li class="playbook-step pb-' + escHtml(s.status) + '">' +
+            '<span class="pb-status">' + statusIcon(s.status) + '</span> ' +
+            escHtml(s.title) + ' — <span class="sub">' + escHtml(s.summary) + '</span>' +
+            '</li>'
+          ).join('') +
+          '</ol></details>'
+        ).join('');
+      }
+    }
+
+    function statusIcon(status) {
+      const icons = { done: '✅', current: '▶️', waiting_auto: '⏳', waiting_manual: '👤', blocked: '🔒' };
+      return icons[status] || '·';
     }
 
     function actionLabel(action) {
@@ -1694,6 +1754,8 @@ function script(origin) {
         refine_questions_displacement: 'Нови въпроси (конкуренция)',
         generate_content: 'Draft текст',
         activate_edge: 'Edge конфигурация',
+        apply_cf_aeo: 'Cloudflare AEO',
+        run_smoke: 'Agent-Native smoke',
         remeasure: 'Повторно измерване',
       };
       return labels[action] || action;
@@ -2004,6 +2066,17 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .plan-honesty.hidden{display:none}
 .journey-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem}
 .journey-bar.hidden{display:none}
+.playbook-panel{background:#1e3a5f18;border:1px solid #3b82f644;border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem}
+.playbook-panel.hidden{display:none}
+.playbook-head{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.35rem}
+.playbook-badge{font-size:.78rem;font-weight:600;background:var(--surface2);border:1px solid var(--accent);border-radius:999px;padding:.25rem .65rem}
+.playbook-rationale{margin:.35rem 0;padding:.5rem .65rem;background:var(--surface2);border-radius:8px;line-height:1.45}
+.playbook-phase{margin:.45rem 0}
+.playbook-phase summary{cursor:pointer;font-size:.88rem}
+.playbook-steps{margin:.35rem 0 0;padding-left:1.25rem;font-size:.82rem}
+.playbook-step{margin:.2rem 0}
+.playbook-step.pb-done{opacity:.85}
+.playbook-step.pb-waiting_manual{color:var(--warn)}
 .journey-phases{display:grid;grid-template-columns:repeat(4,1fr);gap:.35rem;margin-bottom:.55rem}
 @media(max-width:560px){.journey-phases{grid-template-columns:repeat(2,1fr)}}
 .journey-phase{text-align:center;padding:.45rem .35rem;border-radius:8px;border:1px solid var(--border);background:var(--surface2)}

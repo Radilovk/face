@@ -95,6 +95,7 @@ import {
 import {
   testSummarizeRobotsIgnoresCcBotDisallow,
   testHasAgentmapFullUrl,
+  testDaotslabnaFixtureProbeFindings,
   testDaotslabnaLiveProbeFindings,
 } from './probe-robots-fix.js';
 import {
@@ -392,6 +393,7 @@ async function run() {
   testBuildClientPlaybook();
   testSummarizeRobotsIgnoresCcBotDisallow();
   testHasAgentmapFullUrl();
+  await testDaotslabnaFixtureProbeFindings();
   await testDaotslabnaLiveProbeFindings();
   testBuildDeepResearchOriginReady();
   testBuildDeepResearchCriticalGaps();

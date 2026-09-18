@@ -1,9 +1,13 @@
 import { probeDomain } from '../diagnose/probe.js';
+import { runAgentNativeSmoke } from '../diagnose/smoke.js';
 import { fetchDomainStrategy } from '../diagnose/strategy.js';
 import { buildEdgeDecision } from '../edge/decision.js';
 import { loadEdgeConfig, saveEdgeConfig } from '../config/tenantEdge.js';
 import { resolveTenantByDomain } from './questions.js';
 import { resolveWorkerPublicHost } from '../config/workerHost.js';
+import { cloudflareTokenConfigured } from '../cloudflare/api.js';
+import { applyTenantCloudflareAeo } from './cloudflareAeo.js';
+import { provisionTenantHostname } from './customHostnames.js';
 
 export async function getEdgeDecision(env, domain) {
   if (!env.DB) return { error: 'db_not_bound' };
@@ -39,7 +43,7 @@ export async function getEdgeDecision(env, domain) {
 }
 
 /** Apply edge optimization: analysis → decision → KV config (live when CNAME active). */
-export async function activateEdgeOptimization(env, domain) {
+export async function activateEdgeOptimization(env, domain, body = {}) {
   const decision = await getEdgeDecision(env, domain);
   if (decision.error) return decision;
 
@@ -56,6 +60,25 @@ export async function activateEdgeOptimization(env, domain) {
     .bind('pending_cname', decision.tenant_id)
     .run();
 
+  const followUp = {};
+
+  if (body.provision_hostname !== false && cloudflareTokenConfigured(env)) {
+    const host = await provisionTenantHostname(env, decision.domain);
+    followUp.hostname = host.error ? { error: host.error, hint: host.hint } : { ok: true, status: host.status };
+  }
+
+  if (body.apply_cloudflare_aeo !== false && cloudflareTokenConfigured(env)) {
+    const aeo = await applyTenantCloudflareAeo(env, decision.domain, {
+      run_smoke: false,
+      zone_id: body.zone_id,
+    });
+    followUp.cloudflare_aeo = aeo.error ? { error: aeo.error, hint: aeo.hint } : { ok: aeo.ok, applied: aeo.applied };
+  }
+
+  if (body.run_smoke !== false) {
+    followUp.smoke = await runAgentNativeSmoke(decision.domain);
+  }
+
   return {
     ok: true,
     domain: decision.domain,
@@ -64,6 +87,7 @@ export async function activateEdgeOptimization(env, domain) {
     fixes_applied: decision.fixes.map((f) => f.id),
     edge_config_saved: true,
     next_steps: decision.prerequisites,
+    follow_up: followUp,
     message:
       'Edge конфигурацията е записана. След CNAME към Worker поправките се прилагат автоматично — без CMS.',
     saved_at: new Date().toISOString(),

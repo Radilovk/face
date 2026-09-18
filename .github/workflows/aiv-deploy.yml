@@ -121,3 +121,11 @@ jobs:
           SAAS_ZONE_ID: ${{ steps.cf.outputs.saas_zone_id }}
         run: |
           node scripts/cf-platform-setup.mjs provision daotslabna.com life-protocols.com biocode-bg.com || true
+
+      - name: Apply Cloudflare AEO settings on pilot zones (optional)
+        if: env.CF_API_TOKEN != ''
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+        working-directory: ai-visibility-edge
+        run: |
+          node scripts/apply-cloudflare-aeo.mjs daotslabna.com life-protocols.com biocode-bg.com || true

@@ -53,6 +53,15 @@ export function buildEdgeDecision(input = {}) {
     });
   }
 
+  if (probe?.signals?.gptbot_blocked) {
+    fixes.push({
+      id: 'cloudflare_aeo',
+      layer: 'cloudflare',
+      title: 'Cloudflare Bot Fight / WAF',
+      detail: `GPTBot получава ${probe.signals.gptbot_status ?? 403} — robots.txt не помага. POST /api/cloudflare/${domain}/apply-aeo или dashboard „CF AEO“.`,
+    });
+  }
+
   const agentGaps = agentNativeGaps(probe);
   if (agentGaps.length > 0) {
     fixes.push({

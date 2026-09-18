@@ -77,9 +77,15 @@ import {
   testContentSignalParser,
   testServeAgentNativePath,
   testMarkdownNegotiationHeader,
+  testEdgeDecisionCloudflareAeoFix,
   testEdgeDecisionIncludesAgentNativePack,
   testFindingsMissingAiCatalog,
 } from './agent-native.js';
+import {
+  testRunAgentNativeSmokeAllPass,
+  testRunAgentNativeSmokeGptbotBlocked,
+  testContentSignalHelpers,
+} from './smoke-aeo.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
 import {
@@ -359,7 +365,11 @@ async function run() {
   testContentSignalParser();
   testServeAgentNativePath();
   testMarkdownNegotiationHeader();
+  testEdgeDecisionCloudflareAeoFix();
   testEdgeDecisionIncludesAgentNativePack();
+  await testRunAgentNativeSmokeAllPass();
+  await testRunAgentNativeSmokeGptbotBlocked();
+  testContentSignalHelpers();
   testFindingsMissingAiCatalog();
   testGenerateQuestions();
   testStepStatus();

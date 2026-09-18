@@ -19,7 +19,8 @@
     "baseline:backup-kv": "node scripts/baseline-backup-kv.js",
     "db:import-baseline": "node scripts/baseline-import-d1.js",
     "db:migrate:remote": "wrangler d1 migrations apply aiv --remote",
-    "citations:reprocess": "node scripts/run-reprocess.js"
+    "citations:reprocess": "node scripts/run-reprocess.js",
+    "cf:apply-aeo": "node scripts/apply-cloudflare-aeo.mjs"
   },
   "devDependencies": {
     "better-sqlite3": "^11.10.0",

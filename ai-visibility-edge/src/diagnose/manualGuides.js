@@ -53,6 +53,8 @@ export function buildManualGuide(gateId, ctx = {}) {
       return hostingGuide(domain);
     case 'strategic_review':
       return strategicReviewGuide(domain);
+    case 'cloudflare_aeo':
+      return cloudflareAeoGuide(domain);
     default:
       return genericGuide(gateId, domain);
   }
@@ -316,6 +318,33 @@ function hostingGuide(domain) {
     after: [
       'В dashboard въведете новия HTTP status.',
       'Натиснете „🚀 Стартирай“ за повторен одит.',
+    ],
+  };
+}
+
+function cloudflareAeoGuide(domain) {
+  return {
+    gate_id: 'cloudflare_aeo',
+    title: 'Cloudflare Bot / WAF за AI crawlers',
+    where:
+      `Cloudflare Dashboard → ${domain} → Security → Bots / WAF, ` +
+      'или dashboard → Edge & DNS → „CF AEO“ (автоматично с API token).',
+    steps: [
+      '1. Security → Bots → Bot Fight Mode → **OFF**.',
+      '2. Security → Bots → Bot Preference Sync → **OFF** (managed robots.txt).',
+      '3. AI Crawl Control → Search: **Allow**, Training: **Disallow**, Agent: **Allow**.',
+      '4. Security → WAF → Custom rules → Skip за OAI-SearchBot, GPTBot, PerplexityBot, Claude-SearchBot.',
+      '5. Или натиснете „CF AEO“ в dashboard (изисква CF_API_TOKEN с Zone:Edit).',
+      '6. Проверка: curl -sI -A GPTBot https://' + domain + '/ → HTTP 200, не 403.',
+    ],
+    fields: [
+      { label: 'Bot Fight Mode', value: 'OFF' },
+      { label: 'Bot Preference Sync', value: 'OFF' },
+      { label: 'AI bots protection', value: 'disabled' },
+    ],
+    after: [
+      'Натиснете „Smoke test“ в dashboard.',
+      'Пуснете „Пълен анализ“ за обновен probe.',
     ],
   };
 }

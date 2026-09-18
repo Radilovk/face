@@ -68,6 +68,7 @@ export async function probeDomain(domain, options = {}) {
   const noindex = detectNoindex(html);
   const h1Count = (html.match(/<h1[\s>]/gi) ?? []).length;
   const sitemapOk = await checkSitemap(fetchImpl, host);
+  const gptbotStatus = await probeBotAccess(fetchImpl, host, 'GPTBot');
   const brand = options.brand ?? null;
   const brandMentions = brand ? countBrandMentions(text, brand) : 0;
 
@@ -90,6 +91,8 @@ export async function probeDomain(domain, options = {}) {
     jsonld_types: jsonldTypes,
     js_shell_suspect: html.length > 8000 && text.length < 300,
     html_bytes: html.length,
+    gptbot_status: gptbotStatus,
+    gptbot_blocked: gptbotStatus === 403 || gptbotStatus === 401,
   };
 
   return {
@@ -223,6 +226,19 @@ async function checkSitemap(fetchImpl, host) {
     return body.includes('<urlset') || body.includes('<sitemapindex');
   } catch {
     return false;
+  }
+}
+
+async function probeBotAccess(fetchImpl, host, userAgent) {
+  try {
+    const res = await fetchImpl(`https://${host}/`, {
+      method: 'HEAD',
+      headers: { 'User-Agent': userAgent },
+      redirect: 'follow',
+    });
+    return res.status;
+  } catch {
+    return 0;
   }
 }
 

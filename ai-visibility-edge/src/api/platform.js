@@ -48,6 +48,9 @@ export async function fetchPlatformInfo(env) {
     onboarding_flow: [
       'POST /api/sites { domain, name, vertical_name?, locale?, run_analysis?: true }',
       'POST /api/pipeline/{domain}/run — or run_analysis on register',
+      'POST /api/edge/{domain}/activate — KV edge config + optional CF AEO + smoke',
+      'POST /api/cloudflare/{domain}/apply-aeo — Bot Fight, WAF skip, DNS-AID',
+      'GET /api/edge/{domain}/smoke — live Agent-Native checks',
       'POST /api/hostnames/{domain}/provision — optional Custom Hostname',
     ],
     generated_at: new Date().toISOString(),

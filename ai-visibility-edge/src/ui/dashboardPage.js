@@ -189,7 +189,15 @@ export function renderDashboardPage(origin) {
           <div id="edge-verdict" class="edge-verdict sub">—</div>
           <ul id="edge-fixes" class="edge-fix-list"></ul>
           <ul id="edge-prereq" class="edge-prereq-list"></ul>
-          <button type="button" class="btn btn-sm" id="btn-edge-activate">Приложи Edge</button>
+          <div class="edge-actions">
+            <button type="button" class="btn btn-sm" id="btn-edge-activate">Приложи Edge</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-cf-aeo">CF AEO</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="btn-edge-smoke">Smoke test</button>
+          </div>
+          <div id="edge-smoke-panel" class="edge-smoke-panel hidden">
+            <p class="sub"><strong id="edge-smoke-level">—</strong> <span id="edge-smoke-score"></span></p>
+            <ul id="edge-smoke-checks" class="edge-smoke-list"></ul>
+          </div>
         </section>
         <section id="onboarding-panel" class="tech-block onboarding hidden">
           <h4>CNAME / DNS</h4>
@@ -1451,6 +1459,34 @@ function script(origin) {
       setMetricContext('edge_status', {
         message: (v.headline || '') + ' — ' + (decision.fixes?.length || 0) + ' fixes, status=' + (decision.status || ''),
       });
+      loadEdgeSmokeQuiet();
+    }
+
+    function renderEdgeSmoke(smoke) {
+      const panel = $('edge-smoke-panel');
+      if (!smoke || smoke.error) {
+        panel?.classList.add('hidden');
+        return;
+      }
+      panel?.classList.remove('hidden');
+      $('edge-smoke-level').textContent = smoke.level_label || ('Level ' + (smoke.level ?? '?'));
+      $('edge-smoke-score').textContent = '(' + (smoke.passed ?? 0) + '/' + (smoke.total ?? 0) + ' checks)';
+      const list = $('edge-smoke-checks');
+      if (list) {
+        list.innerHTML = (smoke.checks || []).map(c =>
+          '<li class="edge-smoke-item ' + (c.pass ? 'ok' : 'fail') + '">' +
+          (c.pass ? '✓' : '✗') + ' ' + escHtml(c.id) + ': ' + escHtml(c.detail || '') + '</li>'
+        ).join('');
+      }
+    }
+
+    async function loadEdgeSmokeQuiet() {
+      if (!selectedDomain) return;
+      try {
+        const res = await fetch(API('/api/edge/' + encodeURIComponent(selectedDomain) + '/smoke'));
+        const data = await res.json();
+        if (res.ok) renderEdgeSmoke(data);
+      } catch { /* optional panel */ }
     }
 
     async function loadEdgeDecision() {
@@ -1821,6 +1857,50 @@ function script(origin) {
       if (lastActivityRetry) lastActivityRetry();
     };
     $('btn-edge-activate').onclick = activateEdge;
+    $('btn-cf-aeo').onclick = () => applyCloudflareAeo();
+    $('btn-edge-smoke').onclick = () => runEdgeSmoke(true);
+
+    async function applyCloudflareAeo() {
+      if (!selectedDomain || busy) return;
+      return withOperation('Cloudflare AEO', 'Bot Fight, WAF, DNS-AID…', async (setStatus) => {
+        setStatus('Прилагане на CF настройки за ' + selectedDomain + '…');
+        const res = await apiFetch('/api/cloudflare/' + encodeURIComponent(selectedDomain) + '/apply-aeo', {
+          method: 'POST',
+          body: JSON.stringify({ run_smoke: true }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(authErrorHint(res, data));
+        setStatus('Обновяване на smoke…');
+        if (data.smoke) renderEdgeSmoke(data.smoke);
+        else await loadEdgeSmokeQuiet();
+        await loadEdgeDecision();
+        log(data.message || 'CF AEO приложен');
+        return data;
+      }, null, {
+        retry: () => applyCloudflareAeo(),
+        successDetail: (data) => data?.message || 'Cloudflare AEO настройки приложени.',
+      });
+    }
+
+    async function runEdgeSmoke(showModal) {
+      if (!selectedDomain) return;
+      const run = async () => {
+        const res = await fetch(API('/api/edge/' + encodeURIComponent(selectedDomain) + '/smoke'));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || data.hint || res.status);
+        renderEdgeSmoke(data);
+        log('Smoke: ' + (data.level_label || '') + ' ' + data.passed + '/' + data.total);
+        return data;
+      };
+      if (!showModal) return run();
+      if (busy) return;
+      return withOperation('Agent-Native smoke', 'Live checks на ' + selectedDomain + '…', run, null, {
+        retry: () => runEdgeSmoke(true),
+        successDetail: (data) =>
+          (data?.level_label || 'Smoke') + ' — ' + (data?.passed ?? 0) + '/' + (data?.total ?? 0) + ' checks pass.',
+        trackMetrics: false,
+      });
+    }
     $('btn-reprocess').onclick = runReprocess;
     $('btn-export-manual').onclick = exportManualRecommendations;
     $('btn-gen-q').onclick = async () => {
@@ -2225,6 +2305,13 @@ pre{margin:0;font-size:.75rem;color:var(--muted);overflow:auto;max-height:200px}
 .advisor-badge.err{background:#3f1515;color:#fca5a5}
 .advisor-badge.warn{background:#422006;color:#fcd34d}
 .edge-panel{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1rem;margin-bottom:1.75rem}
+.edge-actions{display:flex;flex-wrap:wrap;gap:.45rem;margin-top:.65rem}
+.edge-smoke-panel{margin-top:.75rem;padding-top:.65rem;border-top:1px solid var(--border)}
+.edge-smoke-panel.hidden{display:none}
+.edge-smoke-list{list-style:none;padding:0;margin:.45rem 0 0;font-size:.78rem}
+.edge-smoke-item{padding:.2rem 0;color:var(--muted)}
+.edge-smoke-item.ok{color:var(--ok)}
+.edge-smoke-item.fail{color:var(--err)}
 .edge-verdict{margin:.75rem 0;padding:.65rem .85rem;background:var(--surface2);border-radius:8px;font-size:.875rem}
 .edge-fix-list,.edge-prereq-list{margin:.5rem 0;padding-left:1.25rem;font-size:.85rem}
 .edge-fix{margin-bottom:.45rem}

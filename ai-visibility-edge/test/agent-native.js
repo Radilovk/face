@@ -55,6 +55,14 @@ export function testMarkdownNegotiationHeader() {
   assert(wantsMarkdownResponse(req));
 }
 
+export function testEdgeDecisionCloudflareAeoFix() {
+  const decision = buildEdgeDecision({
+    probe: { signals: { gptbot_blocked: true, gptbot_status: 403 }, html_text_chars: 2000 },
+    tenant: { apex_host: 'shop.example.com', name: 'Shop' },
+  });
+  assert(decision.fixes.some((f) => f.id === 'cloudflare_aeo'));
+}
+
 export function testEdgeDecisionIncludesAgentNativePack() {
   const decision = buildEdgeDecision({
     probe: {

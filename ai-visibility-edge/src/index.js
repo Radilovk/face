@@ -27,6 +27,7 @@ import { runSitePipeline } from './api/pipelineRun.js';
 import { registerSite, listVerticals, updateSite, fetchSite, listSites } from './api/sites.js';
 import { fetchPlatformInfo } from './api/platform.js';
 import { provisionTenantHostname, fetchTenantHostnameStatus } from './api/customHostnames.js';
+import { applyTenantCloudflareAeo, runTenantSmoke } from './api/cloudflareAeo.js';
 import { runCitationBatchForTenant } from './citations/runner.js';
 import { getApplyPlan, runApplyPrep } from './api/apply.js';
 import { getEdgeDecision, activateEdgeOptimization, getEdgeStatus } from './api/edge.js';
@@ -292,7 +293,27 @@ async function handleRequest(request, env, ctx) {
     if (missing) return missing;
     const denied = requireAdmin(request, env);
     if (denied) return denied;
-    const result = await activateEdgeOptimization(env, decodeURIComponent(edgeActivateMatch[1]));
+    const body = await request.json().catch(() => ({}));
+    const result = await activateEdgeOptimization(env, decodeURIComponent(edgeActivateMatch[1]), body);
+    return json(result, result.error ? 400 : 200);
+  }
+
+  const edgeSmokeMatch = url.pathname.match(/^\/api\/edge\/([^/]+)\/smoke$/);
+  if (edgeSmokeMatch && request.method === 'GET') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const result = await runTenantSmoke(env, decodeURIComponent(edgeSmokeMatch[1]));
+    return json(result, result.error ? 404 : 200);
+  }
+
+  const cfAeoMatch = url.pathname.match(/^\/api\/cloudflare\/([^/]+)\/apply-aeo$/);
+  if (cfAeoMatch && request.method === 'POST') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
+    const body = await request.json().catch(() => ({}));
+    const result = await applyTenantCloudflareAeo(env, decodeURIComponent(cfAeoMatch[1]), body);
     return json(result, result.error ? 400 : 200);
   }
 

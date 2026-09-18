@@ -37,6 +37,7 @@ import { handleAdvisorStatus, handleAdvisorChat } from './api/advisor.js';
 import { fetchOptimizerPlan, runOptimizer, fetchOptimizerStatus } from './api/optimizer.js';
 import { applyFindingFix, saveFindingManualOnly } from './api/findingsApply.js';
 import { fetchManualExport, manualExportResponse } from './api/manualExport.js';
+import { fetchDeepResearch } from './api/deepDiagnose.js';
 import { isPlatformHost } from './config/platform.js';
 import { loadEdgeConfig } from './config/tenantEdge.js';
 import { handleTenantRequest } from './enhance/handleTenant.js';
@@ -525,6 +526,16 @@ async function handleRequest(request, env, ctx) {
     const missing = requireDb(env);
     if (missing) return missing;
     return displacementEndpoint(env, url);
+  }
+
+  const deepDiagnoseMatch = url.pathname.match(/^\/api\/diagnose\/deep\/([^/]+)$/);
+  if (deepDiagnoseMatch && request.method === 'GET') {
+    const refresh = url.searchParams.get('refresh') === '1' || url.searchParams.get('force') === '1';
+    const result = await fetchDeepResearch(env, decodeURIComponent(deepDiagnoseMatch[1]), {
+      refresh,
+      force: refresh,
+    });
+    return json(result, result.error ? 404 : 200);
   }
 
   const reportMatch = url.pathname.match(/^\/(?:api\/)?report\/([^/]+)$/);

@@ -1,4 +1,6 @@
 import { probeDomain, persistDiagnostic } from '../diagnose/probe.js';
+import { runDeepAudit } from '../diagnose/deepAudit.js';
+import { buildDeepResearchReport } from '../diagnose/deepResearch.js';
 import { passageAutonomy, computeDiagnosticScore } from '../diagnose/score.js';
 import { generateAndSaveQuestions } from './questions.js';
 import { resolveTenantByDomain } from './questions.js';
@@ -104,11 +106,22 @@ export async function runSitePipeline(env, domain, options = {}) {
 async function runAuditStep(env, domain) {
   const tenant = await resolveTenantByDomain(env.DB, domain);
   const probe = await probeDomain(domain, { brand: tenant?.name ?? undefined });
-  const passage = passageAutonomy(probe.raw_json?.text_sample ?? '');
+  const passage = passageAutonomy(
+    probe.raw_json?.text_passage ?? probe.raw_json?.text_sample ?? '',
+  );
   const score = computeDiagnosticScore(probe, passage);
 
+  const deepAudit = await runDeepAudit(domain, probe, {
+    pageLimit: 12,
+    includeSmoke: true,
+    brand: tenant?.name,
+  });
+  const researchReport = buildDeepResearchReport(deepAudit, probe, {
+    brand: tenant?.name,
+  });
+
   if (env.DB) {
-    await persistDiagnostic(env.DB, probe, score);
+    await persistDiagnostic(env.DB, probe, score, { deep_audit: deepAudit });
   }
 
   return {
@@ -120,6 +133,20 @@ async function runAuditStep(env, domain) {
     final_url: probe.raw_json?.final_url,
     redirect_hops: probe.raw_json?.redirect_chain?.length ?? 1,
     title: probe.raw_json?.title ?? null,
+    deep_audit: {
+      pages_fetched: deepAudit.pages_fetched,
+      sitemap_urls_found: deepAudit.sitemap_urls_found,
+      missing_page_types: deepAudit.missing_page_types,
+      agent_native: deepAudit.agent_native,
+    },
+    research_report: {
+      executive_summary: researchReport.executive_summary,
+      site_maturity: researchReport.site_maturity,
+      maturity_label: researchReport.maturity_label,
+      strengths_count: researchReport.strengths.length,
+      gaps_count: researchReport.gaps.length,
+      confidence: researchReport.confidence,
+    },
     probe,
   };
 }

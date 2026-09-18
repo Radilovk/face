@@ -57,6 +57,15 @@ async function buildAdvisorContextFresh(env, normalized) {
           plan_month: strategy.plan?.this_month?.slice(0, 4),
           stats: strategy.stats,
           probe: strategy.probe,
+          deep_research: strategy.deep_research
+            ? {
+                executive_summary: strategy.deep_research.executive_summary,
+                site_maturity: strategy.deep_research.site_maturity,
+                strengths: strategy.deep_research.strengths?.slice(0, 5),
+                gaps: strategy.deep_research.gaps?.slice(0, 6),
+                strategy: strategy.deep_research.strategy,
+              }
+            : null,
         }
       : null,
     site_brief: strategy?.probe

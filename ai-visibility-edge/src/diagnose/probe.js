@@ -138,8 +138,9 @@ export async function probeBatch(domains, options = {}) {
   return results;
 }
 
-export async function persistDiagnostic(db, probeResult, score = null) {
+export async function persistDiagnostic(db, probeResult, score = null, extras = null) {
   const id = crypto.randomUUID();
+  const rawJson = { ...(probeResult.raw_json ?? {}), ...(extras ?? {}) };
   await db
     .prepare(
       `INSERT INTO diagnostics (
@@ -159,7 +160,7 @@ export async function persistDiagnostic(db, probeResult, score = null) {
       probeResult.has_canonical,
       probeResult.price_tokens,
       score,
-      JSON.stringify(probeResult.raw_json ?? {}),
+      JSON.stringify(rawJson),
     )
     .run();
 

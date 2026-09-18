@@ -90,6 +90,30 @@ export function renderDashboardPage(origin) {
       <div id="playbook-phases" class="playbook-phases"></div>
     </section>
 
+    <section id="deep-research-panel" class="deep-research-panel hidden" aria-label="Дълбок анализ на сайта">
+      <div class="deep-research-head">
+        <h3 class="deep-research-title">🔬 Дълбок анализ</h3>
+        <span id="deep-research-maturity" class="deep-research-badge">—</span>
+        <button type="button" class="btn btn-sm btn-ghost" id="btn-deep-refresh" title="Нов live crawl">Обнови</button>
+      </div>
+      <p id="deep-research-summary" class="deep-research-summary">—</p>
+      <div class="deep-research-grid">
+        <div class="deep-research-col">
+          <h4 class="deep-research-sub">Силни страни</h4>
+          <ul id="deep-research-strengths" class="deep-research-list"></ul>
+        </div>
+        <div class="deep-research-col">
+          <h4 class="deep-research-sub">Пропуски</h4>
+          <ul id="deep-research-gaps" class="deep-research-list"></ul>
+        </div>
+      </div>
+      <details class="deep-research-strategy" open>
+        <summary><strong>Приоритетна стратегия</strong></summary>
+        <div id="deep-research-strategy" class="deep-research-strategy-body"></div>
+      </details>
+      <p id="deep-research-meta" class="sub deep-research-meta">—</p>
+    </section>
+
     <section id="activity-panel" class="activity-panel hidden" aria-live="polite">
       <div class="activity-head">
         <span id="activity-status-icon" class="activity-icon" aria-hidden="true">⏳</span>
@@ -1644,6 +1668,7 @@ function script(origin) {
         strategy = await res.json();
         if (!res.ok) throw new Error(strategy.error || res.status);
         renderVerdict(strategy.verdict, strategy.score);
+        renderDeepResearch(strategy.deep_research);
         renderBlockers(strategy);
         renderJourneyBar(strategy);
         renderCommandCenter(strategy);
@@ -1695,6 +1720,70 @@ function script(origin) {
           message: (plan?.headline || data.playbook?.summary || data.roadmap?.summary || ''),
         });
       } catch { /* optional panel */ }
+    }
+
+    function renderDeepResearch(research) {
+      const panel = $('deep-research-panel');
+      if (!research || !research.executive_summary) {
+        panel?.classList.add('hidden');
+        return;
+      }
+      panel?.classList.remove('hidden');
+      const maturity = $('deep-research-maturity');
+      if (maturity) {
+        maturity.textContent = research.maturity_label || research.site_maturity || '—';
+        maturity.className = 'deep-research-badge maturity-' + escHtml(research.site_maturity || 'unknown');
+      }
+      $('deep-research-summary').textContent = research.executive_summary || '—';
+      const strengthsEl = $('deep-research-strengths');
+      if (strengthsEl) {
+        strengthsEl.innerHTML = (research.strengths || []).slice(0, 6).map(s =>
+          '<li class="dr-strength"><strong>' + escHtml(s.title) + '</strong> — ' + escHtml(s.detail) +
+          (s.evidence ? ' <span class="sub">(' + escHtml(s.evidence) + ')</span>' : '') + '</li>'
+        ).join('') || '<li class="sub">Няма открити силни страни.</li>';
+      }
+      const gapsEl = $('deep-research-gaps');
+      if (gapsEl) {
+        gapsEl.innerHTML = (research.gaps || []).slice(0, 8).map(g =>
+          '<li class="dr-gap dr-priority-' + escHtml(g.priority || 'medium') + '">' +
+          '<strong>' + escHtml(g.title) + '</strong> — ' + escHtml(g.detail) + '</li>'
+        ).join('') || '<li class="sub">Няма критични пропуски.</li>';
+      }
+      const stratEl = $('deep-research-strategy');
+      if (stratEl && research.strategy) {
+        const blocks = [
+          { key: 'immediate', label: 'Веднага' },
+          { key: 'short_term', label: 'Краткосрочно' },
+          { key: 'long_term', label: 'Дългосрочно' },
+        ];
+        stratEl.innerHTML = blocks.map(b => {
+          const steps = research.strategy[b.key] || [];
+          if (!steps.length) return '';
+          return '<div class="dr-strategy-block"><strong>' + b.label + '</strong><ol>' +
+            steps.map(s => '<li>' + escHtml(s.title) + ' — <span class="sub">' + escHtml(s.detail) + '</span></li>').join('') +
+            '</ol></div>';
+        }).join('');
+      }
+      const inv = research.page_inventory;
+      $('deep-research-meta').textContent = inv
+        ? (inv.pages_fetched || '?') + ' страници · ' + (inv.sitemap_urls_found || 0) + ' URL в sitemap · confidence ' + (research.confidence || '—')
+        : '';
+    }
+
+    async function runDeepResearchRefresh() {
+      if (!selectedDomain || busy) return;
+      return withOperation('Дълбок анализ', 'Crawl на ключови страници…', async (setStatus) => {
+        setStatus('Sitemap + вътрешни линкове…');
+        const res = await fetch(API('/api/diagnose/deep/' + encodeURIComponent(selectedDomain) + '?refresh=1'));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || res.status);
+        setStatus('Синтез на стратегия…');
+        renderDeepResearch(data.research_report);
+        await loadStrategy();
+        return data;
+      }, null, {
+        successDetail: (data) => data.research_report?.executive_summary?.slice(0, 120) + '…',
+      });
     }
 
     function renderPlaybook(playbook) {
@@ -1921,6 +2010,7 @@ function script(origin) {
     $('btn-edge-activate').onclick = activateEdge;
     $('btn-cf-aeo').onclick = () => applyCloudflareAeo();
     $('btn-edge-smoke').onclick = () => runEdgeSmoke(true);
+    $('btn-deep-refresh')?.addEventListener('click', () => runDeepResearchRefresh());
 
     async function applyCloudflareAeo() {
       if (!selectedDomain || busy) return;
@@ -2066,6 +2156,24 @@ body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--
 .plan-honesty.hidden{display:none}
 .journey-bar{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:.75rem 1rem;margin-bottom:.75rem}
 .journey-bar.hidden{display:none}
+.deep-research-panel{background:#14532d18;border:1px solid #22c55e44;border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem}
+.deep-research-panel.hidden{display:none}
+.deep-research-head{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.35rem}
+.deep-research-title{margin:0;font-size:.95rem}
+.deep-research-badge{font-size:.72rem;font-weight:600;background:var(--surface2);border:1px solid var(--ok);border-radius:999px;padding:.2rem .55rem}
+.deep-research-badge.maturity-advanced{border-color:#22c55e;color:#86efac}
+.deep-research-badge.maturity-critical{border-color:var(--err);color:#fca5a5}
+.deep-research-summary{margin:.35rem 0 .65rem;line-height:1.5;font-size:.88rem}
+.deep-research-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.5rem}
+@media(max-width:720px){.deep-research-grid{grid-template-columns:1fr}}
+.deep-research-sub{margin:0 0 .25rem;font-size:.8rem;color:var(--muted)}
+.deep-research-list{margin:0;padding-left:1.1rem;font-size:.78rem;line-height:1.45}
+.dr-gap.dr-priority-critical{color:var(--err)}
+.dr-gap.dr-priority-high{color:var(--warn)}
+.deep-research-strategy{margin-top:.35rem;font-size:.82rem}
+.dr-strategy-block{margin:.35rem 0}
+.dr-strategy-block ol{margin:.25rem 0 0;padding-left:1.25rem}
+.deep-research-meta{margin:.35rem 0 0;font-size:.72rem}
 .playbook-panel{background:#1e3a5f18;border:1px solid #3b82f644;border-radius:10px;padding:.85rem 1rem;margin-bottom:.75rem}
 .playbook-panel.hidden{display:none}
 .playbook-head{display:flex;flex-wrap:wrap;gap:.5rem;align-items:center;margin-bottom:.35rem}

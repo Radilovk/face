@@ -97,6 +97,11 @@ import {
   testHasAgentmapFullUrl,
   testDaotslabnaLiveProbeFindings,
 } from './probe-robots-fix.js';
+import {
+  testBuildDeepResearchOriginReady,
+  testBuildDeepResearchCriticalGaps,
+  testPrioritizeUrlsFaqFirst,
+} from './deep-research.js';
 import { testGenerateQuestions, testStepStatus } from './questions-api.js';
 import { testNormalizeApexHost, testSlugId } from './sites-api.js';
 import {
@@ -388,6 +393,9 @@ async function run() {
   testSummarizeRobotsIgnoresCcBotDisallow();
   testHasAgentmapFullUrl();
   await testDaotslabnaLiveProbeFindings();
+  testBuildDeepResearchOriginReady();
+  testBuildDeepResearchCriticalGaps();
+  testPrioritizeUrlsFaqFirst();
   testFindingsMissingAiCatalog();
   testGenerateQuestions();
   testStepStatus();

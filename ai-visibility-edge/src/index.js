@@ -1,6 +1,9 @@
 import { withFailOpen } from './middleware/failOpen.js';
 import { requireAdmin, requireAdminIfProduction } from './middleware/requireAdmin.js';
 import { buildBrandRiskReport, renderBrandRiskReport } from './risk/report.js';
+import { generateAtomsForDomain, listAtoms, publishAtom, getAtom, retireAtom } from './atoms/store.js';
+import { atomResponse } from './atoms/serve.js';
+import { atomPerformance } from './atoms/attribute.js';
 import { productionConfigIssues } from './config/production.js';
 import { resolveWorkerPublicHost } from './config/workerHost.js';
 import { cloudflareConfigured } from './cloudflare/api.js';
@@ -528,6 +531,37 @@ async function handleRequest(request, env, ctx) {
     return displacementEndpoint(env, url);
   }
 
+  // Публична повърхност: атомът е адресируем ресурс (Accept договаряне, без UA).
+  const atomServeMatch = url.pathname.match(/^\/a\/([A-Za-z0-9-]+)$/);
+  if (atomServeMatch) {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    return atomServeEndpoint(env, request, url, atomServeMatch[1]);
+  }
+
+  const atomsApiMatch = url.pathname.match(/^\/api\/atoms\/([^/]+)$/);
+  if (atomsApiMatch) {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
+    return atomsApiEndpoint(env, request, url, decodeURIComponent(atomsApiMatch[1]));
+  }
+
+  const atomActionMatch = url.pathname.match(/^\/api\/atom\/([A-Za-z0-9-]+)\/(publish|retire)$/);
+  if (atomActionMatch && request.method === 'POST') {
+    const missing = requireDb(env);
+    if (missing) return missing;
+    const denied = requireAdmin(request, env);
+    if (denied) return denied;
+    const action = atomActionMatch[2];
+    const result =
+      action === 'publish'
+        ? await publishAtom(env.DB, atomActionMatch[1])
+        : await retireAtom(env.DB, atomActionMatch[1]);
+    return json(result, result.error ? 400 : 200);
+  }
+
   const riskMatch = url.pathname.match(/^\/(?:api\/)?risk\/([^/]+)$/);
   if (riskMatch) {
     const missing = requireDb(env);
@@ -801,6 +835,37 @@ async function riskEndpoint(env, domain, url) {
   }
 
   return json(report);
+}
+
+async function atomServeEndpoint(env, request, url, atomId) {
+  const atom = await getAtom(env.DB, atomId);
+  if (!atom || atom.status !== 'published') {
+    return json({ error: 'atom_not_found', atom_id: atomId }, 404);
+  }
+  return atomResponse(atom, request, { base: url.origin });
+}
+
+async function atomsApiEndpoint(env, request, url, domain) {
+  if (request.method === 'POST') {
+    const body = await request.json().catch(() => ({}));
+    const result = await generateAtomsForDomain(env.DB, {
+      domain,
+      brand: body.brand ?? null,
+      tenantId: body.tenant_id ?? null,
+      facts: Array.isArray(body.facts) ? body.facts : [],
+    });
+    return json(result, 201);
+  }
+
+  if (url.searchParams.get('view') === 'performance') {
+    const perf = await atomPerformance(env.DB, domain, {
+      days: Number(url.searchParams.get('days') ?? 90),
+    });
+    return json(perf);
+  }
+
+  const atoms = await listAtoms(env.DB, domain, { status: url.searchParams.get('status') || null });
+  return json({ domain, count: atoms.length, atoms });
 }
 
 function json(body, status = 200) {

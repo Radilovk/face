@@ -1,6 +1,7 @@
 import { parseModelResponse } from './extract.js';
 import { verifyCitation } from './verify.js';
 import { classifyClaim } from '../risk/claimRisk.js';
+import { attributeObservation } from '../atoms/attribute.js';
 import {
   classifyFromVerify,
   detectParametricRecall,
@@ -100,6 +101,17 @@ export async function reprocessRuns(env, options = {}) {
         .run();
 
       summary.observations++;
+
+      const attribution = await attributeObservation(db, {
+        id: obsId,
+        run_id: run.id,
+        model: run.model,
+        domain: classified.domain || verified.domain || '',
+        cited_passage: classified.cited_passage ?? null,
+      });
+      if (attribution.matched) {
+        summary.atom_citations = (summary.atom_citations ?? 0) + 1;
+      }
 
       if (isMisattribution(classified.class)) {
         const claimText = citation.supportedText || citation.snippet || '';

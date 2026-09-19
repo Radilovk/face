@@ -239,6 +239,30 @@ import {
   testScanBrandRiskIdempotent,
   testScanForeignBrandNeedsNothingFromIt,
 } from './risk.js';
+import {
+  testBuildAtomShape,
+  testValidateAtomPasses,
+  testLinterCatchesAnaphora,
+  testLinterCatchesMissingFact,
+  testLinterRefusesOwnRiskyClaim,
+  testLinterLength,
+  testFingerprintSurvivesParaphrase,
+  testFingerprintDecimalNormalisation,
+  testRepresentationNegotiation,
+  testSerialisations,
+  testIndexLinesOnlyPublished,
+  testAtomIdStable,
+  testPublishRequiresValidAtom,
+  testPublishDetectsFingerprintCollision,
+  testPublishHappyPath,
+  testAttributionMatchesOwnAtom,
+  testAttributionIgnoresCopiesOnOtherDomains,
+  testAttributionSkipsDrafts,
+  testAttributionIsIdempotent,
+  testPerformanceSeparatesWorkingFromSilent,
+  testGenerateForAnyDomainWithoutTenant,
+  testMatchPassageToAtomDirect,
+} from './atoms.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -512,6 +536,28 @@ async function run() {
   await testScanBrandRiskPersistsAndRates();
   await testScanBrandRiskIdempotent();
   await testScanForeignBrandNeedsNothingFromIt();
+  testBuildAtomShape();
+  testValidateAtomPasses();
+  testLinterCatchesAnaphora();
+  testLinterCatchesMissingFact();
+  testLinterRefusesOwnRiskyClaim();
+  testLinterLength();
+  testFingerprintSurvivesParaphrase();
+  testFingerprintDecimalNormalisation();
+  testRepresentationNegotiation();
+  testSerialisations();
+  testIndexLinesOnlyPublished();
+  testAtomIdStable();
+  testMatchPassageToAtomDirect();
+  await testPublishRequiresValidAtom();
+  await testPublishDetectsFingerprintCollision();
+  await testPublishHappyPath();
+  await testAttributionMatchesOwnAtom();
+  await testAttributionIgnoresCopiesOnOtherDomains();
+  await testAttributionSkipsDrafts();
+  await testAttributionIsIdempotent();
+  await testPerformanceSeparatesWorkingFromSilent();
+  await testGenerateForAnyDomainWithoutTenant();
   console.log('All tests passed');
 }
 

@@ -1,3 +1,4 @@
+import { WORD_CHAR, WORD_START, wordRegex } from '../lang/boundaries.js';
 /**
  * Радар за информационни аномалии — класифицира твърдения, които модел
  * приписва на марка, по клас риск (Блок 3 разширение).
@@ -22,12 +23,11 @@ export const RISK_CLASSES = {
  * Внимание: в JavaScript `\b` и `\w` са ASCII-only дори с флага `u` —
  * не работят за кирилица. Затова: W = буква/цифра, а границите са lookaround.
  */
-const W = '[\\p{L}\\p{N}_]';
-const START = `(?<!${W})`;
-const END = `(?!${W})`;
+const W = WORD_CHAR;
+const START = WORD_START;
 
 function rx(source) {
-  return new RegExp(START + '(?:' + source + ')' + END, 'iu');
+  return wordRegex(source);
 }
 
 const PATTERNS = [
